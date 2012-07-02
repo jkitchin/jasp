@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+'''
+command to summarize a vasp calculation in a directory
+
+usage:
+jaspsum
+   this will summarize the calculation in the current directory
+
+jaspsum directoryname
+   this will summarize the calculation in the directoryname
+'''
+import os, sys
+from jasp import *
+
+if len(sys.argv[1:]) == 0:
+    dirs = ['.']
+else:
+    dirs = sys.argv[1:]
+
+for d in dirs:
+    with jasp(d) as calc:
+        print calc
