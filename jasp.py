@@ -211,7 +211,7 @@ Vasp.run = run
 
 def pretty_print(self):
     '''
-    __str__ function to print the calculator
+    __str__ function to print the calculator with a nice summary, e.g. vaspsum
     '''
     atoms = self.get_atoms()
     uc = atoms.get_cell()
@@ -317,7 +317,7 @@ Vasp.__str__ = pretty_print
 
 #########################################################################
 def checkerr_vasp(self):
-    ''' Checks vasp output in OUTCAR for errors'''
+    ''' Checks vasp output in OUTCAR for errors. adapted from atat code'''
     error_strings = ['forrtl: severe',  #seg-fault
                      'highest band is occupied at some k-points!',
                      'rrrr', # I think this is from Warning spelled out in ascii art
@@ -375,102 +375,8 @@ def Jasp(**kwargs):
     calc.cwd = os.getcwd()
     return calc
 
-    ## if 'PBS_O_WORKDIR' in os.environ:
-    ##     if 'atoms' in kwargs:
-    ##         atoms = kwargs['atoms']
-    ##         del kwargs['atoms']
-    ##         calc = Vasp(**kwargs)
-    ##         atoms.set_calculator(calc)
-    ##     else:
-    ##         calc = Vasp(**kwargs)
-
-    ##     # finally, we return the calculator
-    ##     calc.cwd = os.getcwd()
-    ##     return calc
-
-
-    ## JOBSTATUS = None
-
-    ## # 1. is there a jobid file?
-    ## if os.path.exists('jobid'):
-    ##     jobid = open('jobid').readline().strip()
-    ##     jobids_in_queue = commands.getoutput('qselect').split('\n')
-    ##     if jobid in jobids_in_queue:
-    ##         # get details on specific jobid
-    ##         status, output = commands.getstatusoutput('qstat %s' % jobid)
-    ##         if status == 0:
-    ##             lines = output.split('\n')
-    ##             fields = lines[2].split()
-    ##             job_status = fields[4]
-    ##             if job_status == 'C':
-    ##                 os.unlink('jobid')
-    ##                 #print 'job in queue but with status = C'
-    ##                 JOBSTATUS = 'job status = C'
-    ##             else:
-    ##                 raise VaspQueued
-    ##         else:
-    ##             # status was not 0, something is wrong
-    ##             raise Exception, output
-    ##     else:
-    ##         # jobid not in queue
-    ##         JOBSTATUS = 'not in queue'
-    ##         os.unlink('jobid')
-    ## else:
-    ##     JOBSTATUS = 'no jobid'
-
-    ## #2. Job is not in queue, so check out status of OUTCAR
-    ## if JOBSTATUS in ['job status = C',
-    ##                  'not in queue',
-    ##                  'no jobid']:
-    ##     if os.path.exists('OUTCAR'):
-    ##         # check if calculation is done
-    ##         STATUS = None
-    ##         with open('OUTCAR','r') as f:
-    ##             for line in f:
-    ##                 if ' General timing and accounting informations for this job:' in line:
-    ##                     STATUS = 'finished'
-    ##                     # OUTCAR looks done, we load in results from the files.
-    ##                     calc = Vasp(restart=True)
-    ##                     calc_atoms = calc.get_atoms()
-
-    ##                     if 'atoms' in kwargs:
-    ##                         atoms = kwargs['atoms']
-
-    ##                         atoms.set_cell(calc_atoms.get_cell())
-    ##                         atoms.set_positions(calc_atoms.get_positions())
-    ##                         atoms.set_calculator(calc)
-
-    ##         if STATUS is 'finished' and JOBSTATUS is not 'no jobid':
-    ##             # this should only get run once because after
-    ##             # this the status will be 'finished' and 'no jobid'
-    ##             if hasattr(calc, 'post_run_hooks'):
-    ##                 for hook in calc.post_run_hooks:
-    ##                     hook(calc)
-    ##                 return calc
-    ##         elif JOBSTATUS is 'no jobid':
-    ##             return calc
-    ##         else:
-    ##             # there is an unfinished outcar. that probably
-    ##             # means Vasp is running
-    ##             raise VaspNotFinished
-
-    ## #3. no OUTCAR, so we return a calculator made from the kwargs
-    ## if not os.path.exists('OUTCAR'):
-    ##     if 'atoms' in kwargs:
-    ##         atoms = kwargs['atoms']
-    ##         del kwargs['atoms']
-    ##         calc = Vasp(**kwargs)
-    ##         atoms.set_calculator(calc)
-    ##     else:
-    ##         calc = Vasp(**kwargs)
-    ## else:
-    ##     raise Exception, 'Expected no OUTCAR, but found one'
-
-    ## # finally, we return the calculator
-    ## calc.cwd = os.getcwd()
-    ## return calc
-
 class jasp:
+    '''Context manager for running Vasp calculations'''
     def __init__(self, dir, **kwargs):
         '''
         dir: the directory to run vasp in
@@ -484,8 +390,12 @@ class jasp:
 
     def __enter__(self):
         '''
-        on enter, make sure directory exists, create it if necessary, and change into the directory. then return the calculator.
+        on enter, make sure directory exists, create it if necessary,
+        and change into the directory. then return the calculator.
         '''
+        #if __debug__:
+        #    print('Entering {0}.'.format(self.dir)
+
         # make directory if it doesnt already exist
         if not os.path.isdir(self.dir):
             os.makedirs(self.dir)
@@ -500,34 +410,9 @@ class jasp:
 
     def __exit__(self,exc_type, exc_val, exc_tb):
         '''
-        on exit, change back to the original directory
+        on exit, change back to the original directory.
         '''
+        #if __debug__:
+        #    print('Exiting {0}.'.format(self.dir)
         os.chdir(self.cwd)
         return False #allows exception to propogate out
-
-# if __name__ == '__main__':
-#     from ase import Atoms, Atom
-#     atom = Atoms([Atom('O',[5,5,5],magmom=1)],
-#                  cell=(6,6,6))
-
-#     def pretest(calc):
-#         print '\n\n\n\npre-run-hook\n\n\n\n'
-#         print 'Converged: ',calc.converged
-
-#     def postrun(calc):
-#         print '\n\n\n\npost-run-hook\n\n\n\n'
-#         print 'Converged: ',calc.converged
-
-#     Vasp.register_pre_run_hook(pretest)
-#     Vasp.register_post_run_hook(postrun)
-
-#     with jasp('O-test',
-#               atoms=atom,
-#               prec='high',
-#               xc='PBE',
-#               ispin=2,
-#               ismear=0,
-#               sigma=0.001) as calc:
-
-#         print 'calc_required: ',calc.calculation_required(atom,['energy'])
-#         print 'energy: ',atom.get_potential_energy()
