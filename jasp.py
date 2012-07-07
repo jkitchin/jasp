@@ -356,6 +356,30 @@ def cleanvasp(self):
 
 Vasp.register_post_run_hook(checkerr_vasp)
 
+def set_nbands(self, f=1.5):
+    ''' convenience function to automatically compute nbands
+
+    nbands = int(nelectrons/2 + nions*f) this formula is suggested at
+    http://cms.mpi.univie.ac.at/vasp/vasp/NBANDS_tag.html
+
+    for transition metals f may be as high as 2.
+    '''
+
+    default_electrons = self.get_default_number_of_electrons()
+
+    d = {}
+    for s,n in default_electrons:
+        d[s] = n
+    atoms = self.get_atoms()
+
+    nelectrons = 0
+    for atom in atoms:
+        nelectrons += d[atom.symbol]
+    nbands = int(nelectrons/2 + len(atoms)*f)
+    self.set(nbands=nbands)
+
+Vasp.set_nbands = set_nbands
+
 def Jasp(**kwargs):
     '''wrapper function to create a Vasp calculator
 
