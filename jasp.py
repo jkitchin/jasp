@@ -112,13 +112,9 @@ Vasp.register_pre_run_hook = staticmethod(register_pre_run_hook)
 Vasp.register_post_run_hook = staticmethod(register_post_run_hook)
 
 def run(self):
-    'monkey patch to submit job through the queue'
-    '''
-    If this is called, then a job should be submitted.
+    '''monkey patch to submit job through the queue
 
-    check if there is a jobid file in the directory (jobid). If there
-    is, check if the job is still in the queue. if not, delete the
-    jobid file and return.
+    If this is called, then a job should be submitted or run.
     '''
     if hasattr(self,'pre_run_hooks'):
         for hook in self.pre_run_hooks:
@@ -131,6 +127,8 @@ def run(self):
             raise Exception, '$VASP_SCRIPT not found.'
         exitcode = os.system(cmd)
         return exitcode
+
+    # we are not in the queue, we determine if a job has been submitted
 
     JOBSTATUS = None
     # check if jobid file exists and if so, get jobid. if not,
@@ -183,21 +181,20 @@ def run(self):
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     # this is what python was called with
+    # this only works when you call the python script from the cmd line
+    # it does not work from emacs.
     scriptname = sys.argv[0]
     f = open(os.path.join(self.cwd,scriptname))
     lines = f.readlines()
     f.close()
-    # insert in reverse order
-    lines.insert(1,'''os.chdir('{0}')\n'''.format(self.cwd))
-    lines.insert(1,'import os\n')
-    lines.append('''os.unlink('jobid')''')
-    script = ''.join(lines)
 
-##         script = '''
-## #!/bin/bash
-## cd {0}
-## python {1}
-## #end'''.format(self.cwd, scriptname)
+    # make sure there is a header to run python and change to working directory
+    header = ['#!/usr/bin/env python\n',
+                 'import os\n'
+                 '''os.chdir('{0}')\n'''.format(self.cwd)]
+
+    footer = ['''os.unlink('jobid')\n''']
+    script = ''.join(header + lines + footer)
 
     out, err = p.communicate(script)
     print out,err
@@ -291,12 +288,7 @@ def pretty_print(self):
     if self.get_spin_polarized():
         s.append('Spin polarized: Magnetic moment = %1.2f' % self.get_magnetic_moment(atoms))
 
-    ## s.append('Kpoints: %s' % str(self.input_params.get('kpts',None)))
-    ## s.append('  gamma: %s' % str(self.input_params.get('gamma',None)))
-    ## s.append('XC     : %s' % str(self.input_params.get('xc',None)))
-    ## s.append('nbands : %i' % self.get_number_of_bands())
-    ## s.append('ENCUT  : %1.0f eV' % self.float_params.get('encut'))
-    ## s.append('SIGMA  : %1.2f eV' % self.float_params.get('sigma'))
+    # print all parameters that are set
     self.read_incar()
     for d in [self.int_params,
               self.float_params,
@@ -340,6 +332,8 @@ def checkerr_vasp(self):
                 f.write('line {0}: {1}\n'.format(i,line))
             f.close()
     else:
+        print os.getcwd()
+        print os.listdir('.')
         raise Exception, 'no OUTCAR found'
 
 def cleanvasp(self):
