@@ -211,6 +211,8 @@ def pretty_print(self):
     pos = atoms.get_positions()
     syms = atoms.get_chemical_symbols()
 
+    converged = self.converged # save to reset later
+
     if self.converged:
         energy = atoms.get_potential_energy()
         forces = atoms.get_forces()
@@ -219,11 +221,12 @@ def pretty_print(self):
         forces = [np.array([np.nan, np.nan, np.nan]) for atom in atoms]
 
     if self.converged:
-        stress = atoms.get_stress()
+        if hasattr(self,'stress'):
+            stress = self.stress
         if stress is None:
             stress = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
         else:
-            stress *= 0.1
+            stress *= 0.1 #conversion from kbar to GPa
     else:
         stress = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
 
@@ -247,15 +250,15 @@ def pretty_print(self):
     s.append('  Energy = %f eV' % energy)
     s.append('\n  Unit cell vectors (angstroms)')
     s.append('        x       y     z      length')
-    s.append('  a0 [% 1.3f % 1.3f % 1.3f] %1.3f' % (uc[0][0],
+    s.append('  a0 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[0][0],
                                                  uc[0][1],
                                                  uc[0][2],
                                                  A.length()))
-    s.append('  a1 [% 1.3f % 1.3f % 1.3f] %1.3f' % (uc[1][0],
+    s.append('  a1 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[1][0],
                                                  uc[1][1],
                                                  uc[1][2],
                                                  B.length()))
-    s.append('  a2 [% 1.3f % 1.3f % 1.3f] %1.3f' % (uc[2][0],
+    s.append('  a2 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[2][0],
                                                  uc[2][1],
                                                  uc[2][2],
                                                  C.length()))
@@ -271,7 +274,7 @@ def pretty_print(self):
     s.append('  Atom,  sym, position (in x,y,z), rmsForce')
     for i,atom in enumerate(atoms):
         rms_f = np.sum(forces[i]**2)**0.5
-        ts = '  %4i %4s [% 6.3f % 6.3f % 6.3f] % 1.2f' % (i,
+        ts = '  %4i %4s [% 9.3f% 9.3f% 9.3f] % 1.2f' % (i,
                                                        atom.symbol,
                                                        atom.x,
                                                        atom.y,
@@ -295,16 +298,18 @@ def pretty_print(self):
               self.list_params,
               self.dict_params,
               self.string_params,
-              self.special_params]:
+              self.special_params,
+              self.input_params]:
 
         for key in d:
-            if d[key]:
+            if d[key] is not None:
                 s.append('  %12s: %s' % (key, str(d[key])))
 
     s += ['\nPseudopotentials used:']
     s += ['----------------------']
 
     self.original_initialize(self.get_atoms())
+    self.converged = converged #reset this because initialize makes this unconverged
     s += self.ppp_list
     s += ['\n']
     return '\n'.join(s)
@@ -328,7 +333,7 @@ def checkerr_vasp(self):
             i += 1
             for es in error_strings:
                 if es in line:
-                    errors.append(i,line)
+                    errors.append((i,line))
         f.close()
         if len(errors) != 0:
             f = open('error', 'w')
