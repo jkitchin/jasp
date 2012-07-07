@@ -59,17 +59,23 @@ Atoms.__eq__ = atoms_equal
 original_initialize = Vasp.initialize
 
 def initialize(self, atoms):
-    'initialize and write out the input files'
+    '''initialize and write out the input files
+
+    when I wrote this, the initialize function did not write out all
+    the files.
+    '''
     original_initialize(self, atoms)
     from ase.io.vasp import write_vasp
-    write_vasp('POSCAR', self.atoms_sorted, symbol_count = self.symbol_count)
+    write_vasp('POSCAR',
+               self.atoms_sorted,
+               symbol_count = self.symbol_count)
     self.write_incar(atoms)
     self.write_potcar()
     self.write_kpoints()
     self.write_sort_file()
 
 Vasp.initialize = initialize
-
+Vasp.original_initialize  = original_initialize
 class VaspQueued(exceptions.Exception):
     pass
 
@@ -114,25 +120,19 @@ Vasp.register_post_run_hook = staticmethod(register_post_run_hook)
 def run(self):
     '''monkey patch to submit job through the queue
 
-    If this is called, then a job should be submitted or run.
+    If this is called, then the calculator thinks a job should be run.
+    If we are in the queue, we should run it, otherwise, a job should be submitted.
+
+    July 7, 2012
+    I am changing this function to submit a shell script that runs vasp.
     '''
     if hasattr(self,'pre_run_hooks'):
         for hook in self.pre_run_hooks:
             hook(self)
 
-    if 'PBS_O_WORKDIR' in os.environ:
-        # we are in the queue system, so we should just run vasp
-        cmd = os.environ.get('VASP_SCRIPT',None)
-        if cmd is None:
-            raise Exception, '$VASP_SCRIPT not found.'
-        exitcode = os.system(cmd)
-        return exitcode
-
-    # we are not in the queue, we determine if a job has been submitted
-
     JOBSTATUS = None
     # check if jobid file exists and if so, get jobid. if not,
-    # calculation_required must have been true, so we will run a job
+    # calculation_required must have been true, so we will submit a job
     if os.path.exists('jobid'):
         jobid = open('jobid').readline().strip()
 
@@ -158,6 +158,7 @@ def run(self):
         else:
             JOBSTATUS = 'done'
             os.unlink('jobid')
+            return
     else:
         # no jobid, but maybe the calculation is done?
         # how do we tell if the job is done?
@@ -172,29 +173,24 @@ def run(self):
 
     # if you get here, a job is getting submitted
 
-    # we are not in the queue, so we need to submit this job
+
+    cmd = os.environ.get('VASP_SCRIPT',None)
+    if cmd is None:
+        raise Exception, '$VASP_SCRIPT not found.'
+
+    script = '''
+#!/bin/bash
+cd {0}  # this is the current working directory
+cd {1}  # this is the vasp directory
+{2}     # this is the vasp command
+#end'''.format(self.cwd, self.dir, cmd)
+
     p = Popen(['qsub',
                '-joe',
                '-N',
                "%s" % os.getcwd(),
                '-l walltime=168:00:00'],
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
-    # this is what python was called with
-    # this only works when you call the python script from the cmd line
-    # it does not work from emacs.
-    scriptname = sys.argv[0]
-    f = open(os.path.join(self.cwd,scriptname))
-    lines = f.readlines()
-    f.close()
-
-    # make sure there is a header to run python and change to working directory
-    header = ['#!/usr/bin/env python\n',
-                 'import os\n'
-                 '''os.chdir('{0}')\n'''.format(self.cwd)]
-
-    footer = ['''os.unlink('jobid')\n''']
-    script = ''.join(header + lines + footer)
 
     out, err = p.communicate(script)
     print out,err
@@ -290,6 +286,8 @@ def pretty_print(self):
 
     # print all parameters that are set
     self.read_incar()
+    s += ['\nINCAR Parameters:']
+    s += ['-----------------']
     for d in [self.int_params,
               self.float_params,
               self.exp_params,
@@ -303,6 +301,12 @@ def pretty_print(self):
             if d[key]:
                 s.append('  %12s: %s' % (key, str(d[key])))
 
+    s += ['\nPseudopotentials used:']
+    s += ['----------------------']
+
+    self.original_initialize(self.get_atoms())
+    s += self.ppp_list
+    s += ['\n']
     return '\n'.join(s)
 
 Vasp.__str__ = pretty_print
