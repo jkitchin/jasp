@@ -18,9 +18,10 @@ date.created.ascii = Mon Jul  9 16:08:07 2012
 '''
 
 import os, pwd, time, uuid
+from jasp import *
 from jasprc import *
 
-def create_metadata(fname='METADATA', force=True):
+def create_metadata(self, fname='METADATA', force=True):
     '''
     create the METADATA file. overwrites existing file if present.
     '''
@@ -30,9 +31,9 @@ def create_metadata(fname='METADATA', force=True):
     # this uuid should only ever be made once.
     this_uuid = uuid.uuid1()
 
-    username = JASPRC['user.username']
-    fullname = JASPRC['user.fullname']
-    email = JASPRC['user.email']
+    username = JASPRC.get('user.username', None)
+    fullname = JASPRC.get('user.fullname', None)
+    email = JASPRC.get('user.email', None)
     date = time.time()
     ascdate = time.ctime(date)
 
@@ -52,8 +53,10 @@ date.created.ascii = {ascdate}
     f.write(s)
     f.close()
 
-def parse_metadata(fname='METADATA'):
-    '''read metadata file in and return dictionary'''
+Vasp.create_metadata = create_metadata
+
+def read_metadata(self, fname='METADATA'):
+    '''read metadata file in'''
 
     d = {}
 
@@ -67,9 +70,11 @@ def parse_metadata(fname='METADATA'):
         d[key.strip()] = value.strip()
     f.close()
 
-    return d
+    self.metadata = d
 
-def update_metadata(fname, dictionary):
+Vasp.read_metadata = read_metadata
+
+def update_metadata(self, fname, dictionary):
     '''
     update values in METADATA
     '''
@@ -80,7 +85,4 @@ def update_metadata(fname, dictionary):
     for key in d:
         f.write('{0} = {1}\n'.format(key, d[key]))
 
-
-if __name__ == '__main__':
-
-    create_metadata(force=True)
+Vasp.update_metadata = update_metadata
