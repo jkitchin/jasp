@@ -537,7 +537,11 @@ def Jasp(**kwargs):
         atoms.set_calculator(calc)
     elif len(kwargs) == 0:
         # eg Jasp(), returns calculator from what is in the directory
-        calc = Vasp(restart=True)
+        try:
+            calc = Vasp(restart=True)
+        except IOError:
+            # this happens if there is no CONTCAR, e.g. an empty directory
+            calc = Vasp()
     else:
         calc = Vasp(**kwargs)
 
@@ -563,9 +567,6 @@ class jasp:
         on enter, make sure directory exists, create it if necessary,
         and change into the directory. then return the calculator.
         '''
-        #if __debug__:
-        #    print('Entering {0}.'.format(self.dir)
-
         # make directory if it doesnt already exist
         if not os.path.isdir(self.dir):
             os.makedirs(self.dir)
