@@ -14,14 +14,10 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.vasp import Vasp
 
-'''
-Configuration dictionary for submitting jobs
-'''
-JASPRC = {'walltime':'168:00:00',
-          'nodes':1,
-          'ppn':1,
-          'mem':'2GB',
-          'jobname':None}
+# internal imports
+from jasprc import *     # configuration data
+from metadata import *   # jasp metadata
+
 
 def atoms_equal(self, other):
     '''
@@ -454,6 +450,91 @@ def pretty_print(self):
 
 Vasp.__str__ = pretty_print
 
+def vasp_repr(self):
+    '''this function generates python code to make the calculator.
+
+    Missing functionality: constraints, magnetic moments
+
+    '''
+    from Cheetah.Template import Template
+
+    atoms = self.get_atoms()
+    calc = self
+
+    template = '''\
+from numpy import array
+from ase import Atom, Atoms
+from jasp import *
+
+atoms = Atoms([#slurp
+#for $i,$atom in enumerate($atoms)
+Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),#slurp
+#end for
+],
+              cell=$repr($atoms.get_cell()))
+
+with jasp('$calc.dir',
+#for key in $calc.int_params
+#if $calc.int_params[key] is not None
+          $key = $calc.int_params[key],
+#end if
+#end for
+#
+#for key in $calc.float_params
+#if $calc.float_params[key] is not None
+          $key = $calc.float_params[key],
+#end if
+#end for
+#
+#for key in $calc.string_params
+#if $calc.string_params[key] is not None
+          $key = '$calc.string_params[key]',
+#end if
+#end for
+#
+#for key in $calc.exp_params
+#if $calc.exp_params[key] is not None
+          $key = '$calc.exp_params[key]',
+#end if
+#end for
+#
+#for key in $calc.bool_params
+#if $calc.bool_params[key] is not None
+          $key = $calc.bool_params[key],
+#end if
+#end for
+#
+#for key in $calc.list_params
+#if $calc.list_params[key] is not None
+          $key = $repr($calc.list_params[key]),
+#end if
+#end for
+#
+#for key in $calc.dict_params
+#if $calc.dict_params[key] is not None
+          $key = $repr($calc.dict_params[key]),
+#end if
+#end for
+#
+#for key in $calc.special_params
+#if $calc.special_params[key] is not None
+          $key = $repr($calc.special_params[key]),
+#end if
+#end for
+#
+#for key in $calc.input_params
+#if $calc.input_params[key] is not None
+          $key = $repr($calc.input_params[key]),
+#end if
+#end for
+#
+          atoms=atoms) as calc:
+    # your code here
+'''
+    return Template(template,searchList=[locals()]).respond()
+
+Vasp.__repr__ = vasp_repr
+
 #########################################################################
 def checkerr_vasp(self):
     ''' Checks vasp output in OUTCAR for errors. adapted from atat code'''
@@ -483,6 +564,8 @@ def checkerr_vasp(self):
         print os.listdir('.')
         raise Exception, 'no OUTCAR found'
 
+Vasp.register_post_run_hook(checkerr_vasp)
+
 def cleanvasp(self):
     'removes output files from directory'
     files_to_remove = ['CHG', 'CHGCAR', 'WAVECAR',
@@ -491,8 +574,6 @@ def cleanvasp(self):
     for f in files_to_remove:
         if os.path.exists(f):
             os.unlink(f)
-
-Vasp.register_post_run_hook(checkerr_vasp)
 
 def set_nbands(self, f=1.5):
     ''' convenience function to automatically compute nbands
@@ -571,6 +652,8 @@ class jasp:
         if not os.path.isdir(self.dir):
             os.makedirs(self.dir)
 
+            #print 'entering'
+
         # now change to new working dir
         os.chdir(self.dir)
 
@@ -583,6 +666,13 @@ class jasp:
         '''
         on exit, change back to the original directory.
         '''
-
+        #print 'exiting'
         os.chdir(self.cwd)
         return False # allows exception to propogate out
+
+
+if __name__ == '__main__':
+    c = jasp('tests/O_test')
+    with c as calc:
+
+        print vasp_repr(calc)

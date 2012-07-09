@@ -200,14 +200,12 @@ CREATE TABLE positions (
     magnetic_moment FLOAT
 	);'''
 
+conn = apsw.Connection(DB)
 if not os.path.exists(DB):
-    # we need to initialize a database
-    conn = apsw.Connection(DB)
+    # we need to initialize a database if there isn't one
     with conn:
         c = conn.cursor()
         c.execute(setup_sql)
-else:
-    conn = apsw.Connection(DB)
 
 def insert_database_entry(calc):
     '''
@@ -684,11 +682,6 @@ if __name__ == '__main__':
         #print output.getvalue()
 
         insert_database_entry(calc)
-
-
-
-
-
 
     '''
     v = Vasp()

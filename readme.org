@@ -2,7 +2,19 @@ This package is under mercurial version control.
 
 https://bitbucket.org/jkitchin/jasp/overview
 
-* TODO make jasp work in the queue without submitting jobs
-* TODO add configuration capability to control job submission details
-* TODO add sqlite database capability
-* TODO integrate git into jasp hooks
+* DONE make jasp work in the queue without submitting jobs
+  CLOSED: [2012-07-09 Mon 08:41]
+if you ever wnat to submit a script that uses jasp, it would be a problem if it was submitting jobs within the queue to the queue. this feature ignores everything in the run function if it is run within the queue system.
+
+* DONE add configuration capability to control job submission details
+  CLOSED: [2012-07-09 Mon 08:42]
+added a small dictionary of parameters.
+
+* DONE add sqlite database capability
+  CLOSED: [2012-07-09 Mon 12:19]
+* DONE integrate git into jasp hooks
+  CLOSED: [2012-07-09 Mon 12:19]
+* DONE add metadata functions to store things like username, uuid, etc...
+  CLOSED: [2012-07-09 Mon 12:19]
+
+* make .jasprc option for configuration
