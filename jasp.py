@@ -223,12 +223,10 @@ def pretty_print(self):
     if self.converged:
         if hasattr(self,'stress'):
             stress = self.stress
-        if stress is None:
-            stress = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
-        else:
+        if stress is not None:
             stress *= 0.1 #conversion from kbar to GPa
     else:
-        stress = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+        stress = None
 
     # get a,b,c,alpha,beta, gamma
     from Scientific.Geometry import Vector
@@ -267,19 +265,30 @@ def pretty_print(self):
                                                                               c,
                                                                               alpha,
                                                                               beta,gamma))
-    s.append('  Stress (GPa):xx,   yy,    zz,    yz,    xz,    xy')
-    s.append('            % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f' % tuple(stress))
+    s.append('  Unit cell volume = {0:1.3f} Ang^3'.format(volume))
+
+    if stress is not None:
+        s.append('  Stress (GPa):xx,   yy,    zz,    yz,    xz,    xy')
+        s.append('            % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f' % tuple(stress))
+    else:
+        s += ['  Stress was not computed']
     s.append('  Volume = %1.2f A^3\n' % volume)
 
-    s.append('  Atom,  sym, position (in x,y,z), rmsForce')
+    s.append(' Atom#  sym       position [x,y,z]        rmsForce')
     for i,atom in enumerate(atoms):
         rms_f = np.sum(forces[i]**2)**0.5
-        ts = '  %4i %4s [% 9.3f% 9.3f% 9.3f] % 1.2f' % (i,
+        ts = '  {0:^4d} {1:^4s} [{2:<9.3f}{3:^9.3f}{4:9.3f}] {5:1.2f}'.format(i,
                                                        atom.symbol,
                                                        atom.x,
                                                        atom.y,
                                                        atom.z,
                                                        rms_f)
+        #ts = '  %4i %4s [% 9.3f% 9.3f% 9.3f] % 1.2f' % (i,
+        #                                               atom.symbol,
+        #                                               atom.x,
+        #                                               atom.y,
+        #                                               atom.z,
+        #                                               rms_f)
         s.append(ts)
 
 
