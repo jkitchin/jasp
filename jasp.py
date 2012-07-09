@@ -14,6 +14,11 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.vasp import Vasp
 
+jasprc = {'walltime':'168:00:00',
+          'nodes':1,
+          'ppn':1,
+          'mem':'2GB'}
+
 def atoms_equal(self, other):
     '''
     check if two atoms objects are identical
@@ -130,6 +135,13 @@ def run(self):
         for hook in self.pre_run_hooks:
             hook(self)
 
+    # if we are in the queue and jasp is called, we should just run
+    # the job
+    if 'PBS_O_WORKDIR' in os.environ:
+        cmd = os.environ['VASP_SCRIPT']
+        exitcode = os.system(cmd)
+        return exitcode
+
     JOBSTATUS = None
     # check if jobid file exists and if so, get jobid. if not,
     # calculation_required must have been true, so we will submit a job
@@ -180,16 +192,17 @@ def run(self):
 
     script = '''
 #!/bin/bash
-cd {0}  # this is the current working directory
-cd {1}  # this is the vasp directory
-{2}     # this is the vasp command
-#end'''.format(self.cwd, self.dir, cmd)
+cd {self.cwd}  # this is the current working directory
+cd {self.dir}  # this is the vasp directory
+{cmd}     # this is the vasp command
+#end'''.format(**locals())
 
     p = Popen(['qsub',
                '-joe',
-               '-N',
-               "%s" % os.getcwd(),
-               '-l walltime=168:00:00'],
+               '-N', '{0}'.format(self.dir),
+               '-l walltime={walltime}'.format(**jasprc),
+               '-l nodes={nodes}:ppn={ppn}'.format(**jasprc),
+               '-l mem={mem}'.format(**jasprc)],
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     out, err = p.communicate(script)
@@ -283,14 +296,8 @@ def pretty_print(self):
                                                        atom.y,
                                                        atom.z,
                                                        rms_f)
-        #ts = '  %4i %4s [% 9.3f% 9.3f% 9.3f] % 1.2f' % (i,
-        #                                               atom.symbol,
-        #                                               atom.x,
-        #                                               atom.y,
-        #                                               atom.z,
-        #                                               rms_f)
-        s.append(ts)
 
+        s.append(ts)
 
     s.append('--------------------------------------------------')
     if self.get_spin_polarized():
