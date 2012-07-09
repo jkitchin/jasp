@@ -14,10 +14,14 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.vasp import Vasp
 
-jasprc = {'walltime':'168:00:00',
+'''
+Configuration dictionary for submitting jobs
+'''
+JASPRC = {'walltime':'168:00:00',
           'nodes':1,
           'ppn':1,
-          'mem':'2GB'}
+          'mem':'2GB',
+          'jobname':None}
 
 def atoms_equal(self, other):
     '''
@@ -25,7 +29,9 @@ def atoms_equal(self, other):
 
     I monkeypatch the ase class because the ase.io read/write
     functions often result in float errors that make atoms not be
-    equal. I use float tolerance for the comparison here.
+    equal. The problem is you may write out 2.0000000, but read in
+    1.9999999, which looks different by absolute comparison. I use
+    float tolerance for the comparison here.
     '''
     if other is None:
         return False
@@ -199,10 +205,10 @@ cd {self.dir}  # this is the vasp directory
 
     p = Popen(['qsub',
                '-joe',
-               '-N', '{0}'.format(self.dir),
-               '-l walltime={walltime}'.format(**jasprc),
-               '-l nodes={nodes}:ppn={ppn}'.format(**jasprc),
-               '-l mem={mem}'.format(**jasprc)],
+               '-N', '{0}'.format(JASPRC['jobname'] if JASPRC['jobname'] is not None else self.dir),
+               '-l walltime={walltime}'.format(**JASPRC),
+               '-l nodes={nodes}:ppn={ppn}'.format(**JASPRC),
+               '-l mem={mem}'.format(**JASPRC)],
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     out, err = p.communicate(script)
