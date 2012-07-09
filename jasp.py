@@ -73,7 +73,7 @@ def initialize(self, atoms):
     '''initialize and write out the input files
 
     when I wrote this, the initialize function did not write out all
-    the files.
+    the files, it only found the pseudopotentials.
     '''
     original_initialize(self, atoms)
     from ase.io.vasp import write_vasp
@@ -87,6 +87,124 @@ def initialize(self, atoms):
 
 Vasp.initialize = initialize
 Vasp.original_initialize  = original_initialize
+
+def get_pseudopotentials(self):
+    from os.path import join, isfile, islink
+    ''' this is almost the exact code from the original initialize function, but all it does is get the pseudpotentials.
+    '''
+    atoms = self.get_atoms()
+    p = self.input_params
+
+    self.all_symbols = atoms.get_chemical_symbols()
+    self.natoms = len(atoms)
+    self.spinpol = atoms.get_initial_magnetic_moments().any()
+    atomtypes = atoms.get_chemical_symbols()
+
+    # Determine the number of atoms of each atomic species
+    # sorted after atomic species
+    special_setups = []
+    symbols = {}
+    if self.input_params['setups']:
+        for m in self.input_params['setups']:
+            try :
+                #special_setup[self.input_params['setups'][m]] = int(m)
+                special_setups.append(int(m))
+            except:
+                #print 'setup ' + m + ' is a groups setup'
+                continue
+        #print 'special_setups' , special_setups
+
+    for m,atom in enumerate(atoms):
+        symbol = atom.symbol
+        if m in special_setups:
+            pass
+        else:
+            if not symbols.has_key(symbol):
+                symbols[symbol] = 1
+            else:
+                symbols[symbol] += 1
+
+    # Build the sorting list
+    self.sort = []
+    self.sort.extend(special_setups)
+
+    for symbol in symbols:
+        for m,atom in enumerate(atoms):
+            if m in special_setups:
+                pass
+            else:
+                if atom.symbol == symbol:
+                    self.sort.append(m)
+    self.resort = range(len(self.sort))
+    for n in range(len(self.resort)):
+        self.resort[self.sort[n]] = n
+    self.atoms_sorted = atoms[self.sort]
+
+    # Check if the necessary POTCAR files exists and
+    # create a list of their paths.
+    self.symbol_count = []
+    for m in special_setups:
+        self.symbol_count.append([atomtypes[m],1])
+    for m in symbols:
+        self.symbol_count.append([m,symbols[m]])
+    #print 'self.symbol_count',self.symbol_count
+    sys.stdout.flush()
+    xc = '/'
+    #print 'p[xc]',p['xc']
+    if p['xc'] == 'PW91':
+        xc = '_gga/'
+    elif p['xc'] == 'PBE':
+        xc = '_pbe/'
+    if 'VASP_PP_PATH' in os.environ:
+        pppaths = os.environ['VASP_PP_PATH'].split(':')
+    else:
+        pppaths = []
+    self.ppp_list = []
+    # Setting the pseudopotentials, first special setups and
+    # then according to symbols
+    for m in special_setups:
+        name = 'potpaw'+xc.upper() + p['setups'][str(m)] + '/POTCAR'
+        found = False
+        for path in pppaths:
+            filename = join(path, name)
+            #print 'filename', filename
+            if isfile(filename) or islink(filename):
+                found = True
+                self.ppp_list.append(filename)
+                break
+            elif isfile(filename + '.Z') or islink(filename + '.Z'):
+                found = True
+                self.ppp_list.append(filename+'.Z')
+                break
+        if not found:
+            raise RuntimeError('No pseudopotential for %s!' % symbol)
+    #print 'symbols', symbols
+    for symbol in symbols:
+        try:
+            name = 'potpaw'+xc.upper()+symbol + p['setups'][symbol]
+        except (TypeError, KeyError):
+            name = 'potpaw' + xc.upper() + symbol
+        name += '/POTCAR'
+        found = False
+        for path in pppaths:
+            filename = join(path, name)
+            #print 'filename', filename
+            if isfile(filename) or islink(filename):
+                found = True
+                self.ppp_list.append(filename)
+                break
+            elif isfile(filename + '.Z') or islink(filename + '.Z'):
+                found = True
+                self.ppp_list.append(filename+'.Z')
+                break
+        if not found:
+            raise RuntimeError('No pseudopotential for %s!' % symbol)
+
+    stripped_paths = [ppp.split(os.environ['VASP_PP_PATH'])[1] for ppp in self.ppp_list]
+    return zip(symbols, stripped_paths)
+
+Vasp.get_pseudopotentials = get_pseudopotentials
+
 class VaspQueued(exceptions.Exception):
     pass
 
@@ -326,10 +444,12 @@ def pretty_print(self):
     s += ['\nPseudopotentials used:']
     s += ['----------------------']
 
-    self.original_initialize(self.get_atoms())
-    self.converged = converged #reset this because initialize makes this unconverged
-    s += self.ppp_list
-    s += ['\n']
+    #self.original_initialize(self.get_atoms())
+    #self.converged = converged #reset this because initialize makes this unconverged
+    ppp_list = self.get_pseudopotentials()
+    for sym,ppp in ppp_list:
+        s += ['{0}: {1}'.format(sym,ppp)]
+
     return '\n'.join(s)
 
 Vasp.__str__ = pretty_print
