@@ -1,3 +1,8 @@
 This package is under mercurial version control.
 
 https://bitbucket.org/jkitchin/jasp/overview
+
+* TODO make jasp work in the queue without submitting jobs
+* TODO add configuration capability to control job submission details
+* TODO add sqlite database capability
+* TODO integrate git into jasp hooks
