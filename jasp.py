@@ -558,8 +558,8 @@ class jasp:
         **kwargs: all the vasp keywords, including an atoms object
         '''
 
-        self.cwd = os.getcwd()
-        self.dir = dir
+        self.cwd = os.getcwd() # directory we were in when jasp created
+        self.dir = dir # directory vasp files will be in
         self.kwargs = kwargs
 
     def __enter__(self):
@@ -575,15 +575,14 @@ class jasp:
         os.chdir(self.dir)
 
         calc = Jasp(**self.kwargs)
-        calc.dir = self.dir
-        calc.cwd = self.cwd
+        calc.dir = self.dir   # vasp directory
+        calc.cwd = self.cwd   # directory we came from
         return calc
 
     def __exit__(self,exc_type, exc_val, exc_tb):
         '''
         on exit, change back to the original directory.
         '''
-        #if __debug__:
-        #    print('Exiting {0}.'.format(self.dir)
+
         os.chdir(self.cwd)
-        return False #allows exception to propogate out
+        return False # allows exception to propogate out
