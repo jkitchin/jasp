@@ -201,29 +201,41 @@ CREATE TABLE positions (
     magnetic_moment FLOAT
 	);'''
 
-conn = apsw.Connection(DB)
+
 if not os.path.exists(DB):
+    conn = apsw.Connection(DB)
     # we need to initialize a database if there isn't one
+    print('initializing')
     with conn:
         c = conn.cursor()
         c.execute(setup_sql)
+else:
+    conn = apsw.Connection(DB)
+
 
 def insert_database_entry(calc):
     '''
-    adds an entry to the database
+    adds an entry to the database.
+
+    TODO: check for uuid uniqueness
     '''
 
+    # collect all data into data dictionary
     data = {}
 
     data['path'] = calc.dir
+    if hasattr(calc,'metadata'):
+        data['uuid'] = calc.metadata.get('uuid',None)
+    else:
+        data['uuid'] = None
 
-    # collect all data into data dictionary
+    # these lines add all entries of each dictionary to data
     data.update(calc.int_params)
     data.update(calc.float_params)
     data.update(calc.string_params)
     data.update(calc.bool_params)
 
-    #handle special dictionaries
+    # handle special dictionaries. these entries will be stored as strings
     for key in calc.exp_params:
         data[key] = repr(calc.exp_params[key])
     for key in calc.list_params:
@@ -290,7 +302,7 @@ def insert_database_entry(calc):
 
         db.execute('''
 insert into vasp (id,
-                  path,
+                  path, uuid,
                   uc_a, uc_b, uc_c, uc_alpha, uc_beta, uc_gamma,
                   constraints,
                   total_energy,
@@ -446,7 +458,7 @@ insert into vasp (id,
                   gamma)
                   values (
                   :id,
-                  :path,
+                  :path, :uuid,
                   :uc_a,
                   :uc_b,
                   :uc_c,
@@ -670,17 +682,17 @@ if __name__ == '__main__':
     connection=apsw.Connection(DB)
     cursor=connection.cursor()
 
-    ## import StringIO as io # use io in Python 3
-    ## output=io.StringIO()
+    import StringIO as io # use io in Python 3
+    output=io.StringIO()
 
-    ## shell = apsw.Shell(stdout=output, db=connection)
-    ## shell.process_command('.tables')
-    ## print output.getvalue()
+    shell = apsw.Shell(stdout=output, db=connection)
+    shell.process_command('.tables')
+    print output.getvalue()
 
     from jasp import *
     with jasp('tests/O_test') as calc:
-        #shell.process_command('.tables')
-        #print output.getvalue()
+        shell.process_command('.tables')
+        print output.getvalue()
 
         insert_database_entry(calc)
 
