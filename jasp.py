@@ -18,7 +18,6 @@ from ase.calculators.vasp import Vasp
 from jasprc import *     # configuration data
 from metadata import *   # jasp metadata
 
-
 def atoms_equal(self, other):
     '''
     check if two atoms objects are identical
@@ -257,8 +256,8 @@ def run(self):
         raise Exception, '$VASP_SCRIPT not found.'
 
     # if we are in the queue and jasp is called, we should just run
-    # the job
-    if 'PBS_O_WORKDIR' in os.environ:
+    # the job or if we want to use mode='run'
+    if 'PBS_O_WORKDIR' in os.environ or JASPRC['mode']=='run':
         exitcode = os.system(cmd)
         return exitcode
 
@@ -313,12 +312,12 @@ cd {self.dir}  # this is the vasp directory
 {cmd}     # this is the vasp command
 #end'''.format(**locals())
 
-    p = Popen(['qsub',
-               '-joe',
-               '-N', '{0}'.format(JASPRC['jobname'] if JASPRC['jobname'] is not None else self.dir),
-               '-l walltime={walltime}'.format(**JASPRC),
-               '-l nodes={nodes}:ppn={ppn}'.format(**JASPRC),
-               '-l mem={mem}'.format(**JASPRC)],
+    p = Popen(['{queue.command}'.format(**JASPRC),
+               '{queue.options}'.format(**JASPRC),
+               '-N', '{0}'.format(JASPRC['queue.jobname'] if JASPRC['queue.jobname'] is not None else self.dir),
+               '-l walltime={queue.walltime}'.format(**JASPRC),
+               '-l nodes={queue.nodes}:ppn={queue.ppn}'.format(**JASPRC),
+               '-l mem={queue.mem}'.format(**JASPRC)],
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     out, err = p.communicate(script)
