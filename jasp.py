@@ -133,18 +133,18 @@ def run(self):
 
     If this is called, then the calculator thinks a job should be run.
     If we are in the queue, we should run it, otherwise, a job should be submitted.
-
-    July 7, 2012
-    I am changing this function to submit a shell script that runs vasp.
     '''
     if hasattr(self,'pre_run_hooks'):
         for hook in self.pre_run_hooks:
             hook(self)
 
+    cmd = os.environ.get('VASP_SCRIPT',None)
+    if cmd is None:
+        raise Exception, '$VASP_SCRIPT not found.'
+
     # if we are in the queue and jasp is called, we should just run
     # the job
     if 'PBS_O_WORKDIR' in os.environ:
-        cmd = os.environ['VASP_SCRIPT']
         exitcode = os.system(cmd)
         return exitcode
 
@@ -152,6 +152,7 @@ def run(self):
     # check if jobid file exists and if so, get jobid. if not,
     # calculation_required must have been true, so we will submit a job
     if os.path.exists('jobid'):
+        # get the jobid
         jobid = open('jobid').readline().strip()
 
         # see if jobid is in queue
@@ -176,26 +177,21 @@ def run(self):
         else:
             JOBSTATUS = 'done'
             os.unlink('jobid')
-            return
     else:
         # no jobid, but maybe the calculation is done?
-        # how do we tell if the job is done?
-        if os.path.exists('vasprun.xml'):
-            return None
+        converged = self.read_convergence()
+        if converged:
+            return True
 
+    # there was a jobid, but we have not returned or raised yet, so
+    # the job must have finished. so, we run the post-run-hooks and return.
     if JOBSTATUS is not None:
         if hasattr(self,'post_run_hooks'):
             for hook in self.post_run_hooks:
                 hook(self)
-        return None
+        return True
 
     # if you get here, a job is getting submitted
-
-
-    cmd = os.environ.get('VASP_SCRIPT',None)
-    if cmd is None:
-        raise Exception, '$VASP_SCRIPT not found.'
-
     script = '''
 #!/bin/bash
 cd {self.cwd}  # this is the current working directory
@@ -381,7 +377,9 @@ Vasp.register_post_run_hook(checkerr_vasp)
 def set_nbands(self, f=1.5):
     ''' convenience function to automatically compute nbands
 
-    nbands = int(nelectrons/2 + nions*f) this formula is suggested at
+    nbands = int(nelectrons/2 + nions*f)
+
+    this formula is suggested at
     http://cms.mpi.univie.ac.at/vasp/vasp/NBANDS_tag.html
 
     for transition metals f may be as high as 2.
@@ -403,7 +401,10 @@ def set_nbands(self, f=1.5):
 Vasp.set_nbands = set_nbands
 
 def Jasp(**kwargs):
-    '''wrapper function to create a Vasp calculator
+    '''wrapper function to create a Vasp calculator. The only purpose
+    of this function is to enable atoms as a keyword argument, and to
+    restart the calculator from the current directory if no keywords
+    are given.
 
     **kwargs is the same as ase.calculators.vasp except that atoms can be used.
 
