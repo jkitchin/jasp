@@ -79,6 +79,8 @@ def initialize(self, atoms):
     self.write_potcar()
     self.write_kpoints()
     self.write_sort_file()
+    self.create_metadata()
+    self.read_metadata()
 
 Vasp.initialize = initialize
 Vasp.original_initialize  = original_initialize
@@ -626,6 +628,11 @@ def Jasp(**kwargs):
         calc = Vasp(**kwargs)
 
     # finally, we return the calculator
+    # first we create a METADATA file if it does not exist.
+    if not os.path.exists('METADATA'):
+        calc.create_metadata()
+
+    calc.read_metadata() #read in metadata
     calc.cwd = os.getcwd()
     return calc
 
