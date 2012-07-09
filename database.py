@@ -14,6 +14,7 @@ setup_sql='''
 CREATE TABLE vasp (
      id INTEGER PRIMARY KEY,
      path TEXT,
+     uuid TEXT,
      -- unit cell parameters
      uc_a FLOAT,
      uc_b FLOAT,
