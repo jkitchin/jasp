@@ -37,6 +37,8 @@ def create_metadata(self, fname='METADATA', force=True):
     date = time.time()
     ascdate = time.ctime(date)
 
+    ppp = self.get_pseudopotentials()
+
     s = '''\
 uuid = {this_uuid!s}
 user.username = {username}
@@ -46,6 +48,10 @@ user.email = {email}
 date.created = {date}
 date.created.ascii = {ascdate}
 '''.format(**locals())
+
+    for (sym, path, hash) in ppp:
+        s += '{0}.potential.path = {1}\n'.format(sym,path)
+        s += '{0}.potential.git_hash = {1}\n'.format(sym,hash)
 
     print s
 

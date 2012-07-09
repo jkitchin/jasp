@@ -9,6 +9,7 @@ this is a patched Vasp calculator with the following features:
 '''
 
 import commands, exceptions, os, sys
+from hashlib import sha1
 from subprocess import Popen, PIPE
 import numpy as np
 from ase import Atoms
@@ -197,8 +198,22 @@ def get_pseudopotentials(self):
         if not found:
             raise RuntimeError('No pseudopotential for %s!' % symbol)
 
+        # get sha1 hashes similar to the way git does it
+        # http://stackoverflow.com/questions/552659/assigning-git-sha1s-without-git
+        # git hash-object foo.txt  will generate a command-line hash
+        hashes = []
+        for ppp in self.ppp_list:
+            f = open(ppp,'r')
+            data = f.read()
+            f.close()
+
+            s = sha1()
+            s.update("blob %u\0" % len(data))
+            s.update(data)
+            hashes.append(s.hexdigest())
+
     stripped_paths = [ppp.split(os.environ['VASP_PP_PATH'])[1] for ppp in self.ppp_list]
-    return zip(symbols, stripped_paths)
+    return zip(symbols, stripped_paths, hashes)
 
 Vasp.get_pseudopotentials = get_pseudopotentials
 
@@ -444,8 +459,8 @@ def pretty_print(self):
     #self.original_initialize(self.get_atoms())
     #self.converged = converged #reset this because initialize makes this unconverged
     ppp_list = self.get_pseudopotentials()
-    for sym,ppp in ppp_list:
-        s += ['{0}: {1}'.format(sym,ppp)]
+    for sym,ppp,hash in ppp_list:
+        s += ['{0}: {1} (git-hash: {2})'.format(sym,ppp,hash)]
 
     return '\n'.join(s)
 
@@ -586,7 +601,6 @@ def set_nbands(self, f=1.5):
 
     for transition metals f may be as high as 2.
     '''
-
     default_electrons = self.get_default_number_of_electrons()
 
     d = {}
@@ -682,3 +696,5 @@ if __name__ == '__main__':
     with c as calc:
 
         print vasp_repr(calc)
+
+        print calc
