@@ -21,12 +21,13 @@ import os, pwd, time, uuid
 from jasp import *
 from jasprc import *
 
-def create_metadata(self, fname='METADATA', force=True):
+def create_metadata(self, fname='METADATA', force=False):
     '''
-    create the METADATA file. overwrites existing file if present.
+    create the METADATA file.
     '''
     if os.path.exists(fname) and force is not True:
-        raise Exception, 'METADATA exists. you must delete it to recreate it.'
+        return None
+    #raise Exception, 'METADATA exists. you must delete it to recreate it.'
 
     # this uuid should only ever be made once.
     this_uuid = uuid.uuid1()
@@ -52,8 +53,6 @@ date.created.ascii = {ascdate}
     for (sym, path, hash) in ppp:
         s += '{0}.potential.path = {1}\n'.format(sym,path)
         s += '{0}.potential.git_hash = {1}\n'.format(sym,hash)
-
-    print s
 
     f = open(fname,'w')
     f.write(s)
