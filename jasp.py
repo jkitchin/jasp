@@ -76,8 +76,8 @@ class VaspUnknownState(exceptions.Exception):
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
     ''' this is almost the exact code from the original initialize
-    function, but all it does is get the pseudpotentials, and the
-    git-hash for each one
+    function, but all it does is get the pseudpotentials paths, and
+    the git-hash for each one
     '''
     atoms = self.get_atoms()
     p = self.input_params
@@ -221,6 +221,8 @@ def enter_calc_in_database(self):
 calc.register_post_run_hook(enter_calc_in_database)
 
 maybe plugins (http://www.luckydonkey.com/2008/01/02/python-style-plugins-made-easy/) are a better way?
+
+The calculator will store a list of hooks.
 '''
 def register_pre_run_hook(function):
     if not hasattr(Vasp,'pre_run_hooks'):
@@ -234,7 +236,6 @@ def register_post_run_hook(function):
 
 Vasp.register_pre_run_hook = staticmethod(register_pre_run_hook)
 Vasp.register_post_run_hook = staticmethod(register_post_run_hook)
-
 
 def job_in_queue(self):
     ''' return True or False if the directory has a job in the queue'''
@@ -260,7 +261,6 @@ def job_in_queue(self):
         else:
             return False
 Vasp.job_in_queue = job_in_queue
-
 
 original_calculate = Vasp.calculate
 def calculate(self, atoms):
@@ -308,9 +308,11 @@ cd {self.vaspdir}  # this is the vasp directory
 {cmd}     # this is the vasp command
 #end'''.format(**locals())
 
+    jobname = JASPRC.get('queue.jobname', self.vaspdir)
+
     p = Popen(['{0}'.format(JASPRC['queue.command']),
                '{0}'.format(JASPRC['queue.options']),
-               '-N', '{0}'.format(JASPRC['queue.jobname'] if JASPRC['queue.jobname'] is not None else self.vaspdir),
+               '-N', '{0}'.format(jobname),
                '-l walltime={0}'.format(JASPRC['queue.walltime']),
                '-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
                                                      JASPRC['queue.ppn']),
@@ -449,7 +451,6 @@ def vasp_repr(self):
     '''this function generates python code to make the calculator.
 
     Missing functionality: constraints, magnetic moments
-
     '''
     from Cheetah.Template import Template
 
@@ -553,6 +554,12 @@ def checkerr_vasp(self):
         converged = self.read_convergence()
         if not converged:
             errors.append(('Converged',converged))
+
+        # Then if ibrion > 0, check whether ionic relaxation condition
+        # been fulfilled
+        if self.int_params['ibrion'] > 0:
+            if not self.read_relaxed():
+                errors.append(('Ions/cell Converged',converged))
 
         if len(errors) != 0:
             f = open('error', 'w')
