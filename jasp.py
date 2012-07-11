@@ -70,6 +70,9 @@ class VaspRunning(exceptions.Exception):
 class VaspNotFinished(exceptions.Exception):
     pass
 
+class VaspNotConverged(exceptions.Exception):
+    pass
+
 class VaspUnknownState(exceptions.Exception):
     pass
 
@@ -331,7 +334,7 @@ Vasp.run = run
 
 def pretty_print(self):
     '''
-    __str__ function to print the calculator with a nice summary, e.g. vaspsum
+    __str__ function to print the calculator with a nice summary, e.g. jaspsum
     '''
     atoms = self.get_atoms()
     uc = atoms.get_cell()
@@ -345,7 +348,6 @@ def pretty_print(self):
         print energy
         forces = atoms.get_forces()
     else:
-        print 'Not converged', self.converged
         energy = np.nan
         forces = [np.array([np.nan, np.nan, np.nan]) for atom in atoms]
 
@@ -624,8 +626,12 @@ def Jasp(**kwargs):
     if 'atoms' in kwargs:
         atoms = kwargs['atoms']
         del kwargs['atoms']
-        calc = Vasp(**kwargs)
-        atoms.set_calculator(calc)
+
+        try:
+            calc = Vasp(**kwargs)
+            atoms.set_calculator(calc)
+        except:
+            calc = Vasp()
 
     elif len(kwargs) == 0:
         # eg Jasp(), returns calculator from what is in the directory
@@ -635,6 +641,35 @@ def Jasp(**kwargs):
             # this happens if there is no CONTCAR, e.g. an empty directory
             print 'empty directory with no CONTCAR'
             calc = Vasp()
+        except UnboundLocalError:
+            '''
+            this happens when there is an incomplete OUTCAR
+            '''
+            calc = Vasp()
+            import ase.io
+            # Try to read sorting file
+            if os.path.isfile('ase-sort.dat'):
+                calc.sort = []
+                calc.resort = []
+                file = open('ase-sort.dat', 'r')
+                lines = file.readlines()
+                file.close()
+                for line in lines:
+                    data = line.split()
+                    calc.sort.append(int(data[0]))
+                    calc.resort.append(int(data[1]))
+                atoms = ase.io.read('CONTCAR', format='vasp')[calc.resort]
+            else:
+                atoms = ase.io.read('CONTCAR', format='vasp')
+                calc.sort = range(len(atoms))
+                calc.resort = range(len(atoms))
+            calc.atoms = atoms.copy()
+            calc.read_incar()
+            calc.read_kpoints()
+            calc.read_potcar()
+            calc.old_input_params = calc.input_params.copy()
+            calc.converged = calc.read_convergence()
+
     else:
         calc = Vasp(**kwargs)
 
@@ -739,6 +774,13 @@ class jasp:
             if hasattr(calc,'post_run_hooks'):
                 for hook in calc.post_run_hooks:
                     hook(calc)
+
+            if not calc.converged:
+                print 'Converged: ', calc.read_convergence()
+                if calc.int_params['ibrion'] > 0:
+                    if not calc.read_relaxed():
+                        print 'Ions/cell not converged'
+                raise VaspNotConverged
 
         # job done long ago, jobid deleted, no running, and the
         #  output files all exist
