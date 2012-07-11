@@ -73,32 +73,6 @@ class VaspNotFinished(exceptions.Exception):
 class VaspUnknownState(exceptions.Exception):
     pass
 
-# store original function so we can call it later
-## original_initialize = Vasp.initialize
-
-## def initialize(self, atoms):
-##     '''initialize and write out the input files
-
-##     when I wrote this, the initialize function did not write out all
-##     the files, it only found the pseudopotentials.
-##     '''
-##     converged = self.read_convergence()
-##     original_initialize(self, atoms)
-##     self.converged = converged
-##     from ase.io.vasp import write_vasp
-##     write_vasp('POSCAR',
-##                self.atoms_sorted,
-##                symbol_count = self.symbol_count)
-##     self.write_incar(atoms)
-##     self.write_potcar()
-##     self.write_kpoints()
-##     self.write_sort_file()
-##     self.create_metadata()
-##     self.read_metadata()
-
-## Vasp.initialize = initialize
-## Vasp.original_initialize  = original_initialize
-
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
     ''' this is almost the exact code from the original initialize
@@ -232,8 +206,6 @@ def get_pseudopotentials(self):
 
 Vasp.get_pseudopotentials = get_pseudopotentials
 
-
-
 ''' pre_run and post_run hooks
 
 the idea here is that you can register some functions that will run before and after running a Vasp calculation. These functions will have the following signature: function(self). you might use them like this
@@ -289,13 +261,31 @@ def job_in_queue(self):
             return False
 Vasp.job_in_queue = job_in_queue
 
+
+original_calculate = Vasp.calculate
+def calculate(self, atoms):
+    '''
+    monkeypatched function to avoid calling calculate unless we really
+    want to run a job. If a job is queued or running, we should exit
+    here to avoid reinitializing the input files.
+    '''
+    if hasattr(self,'vasp_queued'):
+        raise VaspQueued
+
+    if hasattr(self,'vasp_running'):
+        raise VaspRunning
+
+    # if you get here, we call the original method, which calls run
+    original_calculate(self, atoms)
+
+Vasp.calculate = calculate
+
 def run(self):
     '''monkey patch to submit job through the queue
 
     If this is called, then the calculator thinks a job should be run.
     If we are in the queue, we should run it, otherwise, a job should be submitted.
     '''
-
     if hasattr(self,'pre_run_hooks'):
         for hook in self.pre_run_hooks:
             hook(self)
@@ -314,13 +304,13 @@ def run(self):
     script = '''
 #!/bin/bash
 cd {self.cwd}  # this is the current working directory
-cd {self.dir}  # this is the vasp directory
+cd {self.vaspdir}  # this is the vasp directory
 {cmd}     # this is the vasp command
 #end'''.format(**locals())
 
     p = Popen(['{0}'.format(JASPRC['queue.command']),
                '{0}'.format(JASPRC['queue.options']),
-               '-N', '{0}'.format(JASPRC['queue.jobname'] if JASPRC['queue.jobname'] is not None else self.dir),
+               '-N', '{0}'.format(JASPRC['queue.jobname'] if JASPRC['queue.jobname'] is not None else self.vaspdir),
                '-l walltime={0}'.format(JASPRC['queue.walltime']),
                '-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
                                                      JASPRC['queue.ppn']),
@@ -559,10 +549,16 @@ def checkerr_vasp(self):
                 if es in line:
                     errors.append((i,line))
         f.close()
+
+        converged = self.read_convergence()
+        if not converged:
+            errors.append(('Converged',converged))
+
         if len(errors) != 0:
             f = open('error', 'w')
             for i,line in errors:
-                f.write('line {0}: {1}\n'.format(i,line))
+                f.write('{0}: {1}\n'.format(i,line))
+
             f.close()
     else:
         print os.getcwd()
@@ -643,7 +639,12 @@ def Jasp(**kwargs):
     return calc
 
 class jasp:
-    '''Context manager for running Vasp calculations'''
+    '''Context manager for running Vasp calculations
+
+    Note: You do not want to raise exceptions here! it makes code
+    using this really hard to write because you have to catch
+    exceptions in the with statement.
+    '''
     def __init__(self, vaspdir, **kwargs):
         '''
         vaspdir: the directory to run vasp in
@@ -687,14 +688,28 @@ class jasp:
               and job_in_queue(None)
               and not os.path.exists('running')):
 
-            raise VaspQueued
+            calc = Jasp() #automatically loads results
+            # now update the atoms object if it was a kwarg
+            if 'atoms' in self.kwargs:
+                atoms = self.kwargs['atoms']
+                atoms.set_cell(calc.atoms.get_cell())
+                atoms.set_positions(calc.atoms.get_positions())
+                atoms.calc = calc
+            calc.vasp_queued = True
 
         # job created, and in queue, and running
         elif (os.path.exists('jobid')
               and job_in_queue(None)
               and os.path.exists('running')):
 
-            raise VaspRunning
+            calc = Jasp() #automatically loads results
+            # now update the atoms object if it was a kwarg
+            if 'atoms' in self.kwargs:
+                atoms = self.kwargs['atoms']
+                atoms.set_cell(calc.atoms.get_cell())
+                atoms.set_positions(calc.atoms.get_positions())
+                atoms.calc = calc
+            calc.vasp_running = True
 
         # job created, run, not in queue, not running. finished and
         # first time we are looking at it
