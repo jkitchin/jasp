@@ -310,52 +310,6 @@ def run(self):
         exitcode = os.system(cmd)
         return exitcode
 
-    JOBSTATUS = None
-    # check if jobid file exists and if so, get jobid. if not,
-    # calculation_required must have been true, so we will submit a job
-    if os.path.exists('jobid'):
-        # get the jobid
-        jobid = open('jobid').readline().strip()
-
-        # see if jobid is in queue
-        jobids_in_queue = commands.getoutput('qselect').split('\n')
-        if jobid in jobids_in_queue:
-            # get details on specific jobid
-            status, output = commands.getstatusoutput('qstat %s' % jobid)
-            if status == 0:
-                lines = output.split('\n')
-                fields = lines[2].split()
-                job_status = fields[4]
-                if job_status == 'C':
-                    os.unlink('jobid')
-                    #print 'job in queue but with status = C'
-                    JOBSTATUS = 'Done'
-                else:
-                    os.chdir(self.cwd)
-                    raise VaspQueued
-            else:
-                os.chdir(self.cwd)
-                raise Exception, output
-        else:
-            JOBSTATUS = 'done'
-            os.unlink('jobid')
-    else:
-        # no jobid, but maybe the calculation is done?
-        try:
-            converged = self.read_convergence()
-            if converged:
-                return True
-        except IOError:
-            JOBSTATUS = 'New'
-
-    '''    # there was a jobid, but we have not returned or raised yet, so
-    # the job must have finished. so, we run the post-run-hooks and return.
-    if JOBSTATUS is not None:
-        if hasattr(self,'post_run_hooks'):
-            for hook in self.post_run_hooks:
-                hook(self)
-        return True
-    '''
     # if you get here, a job is getting submitted
     script = '''
 #!/bin/bash
@@ -618,10 +572,9 @@ def checkerr_vasp(self):
 Vasp.register_post_run_hook(checkerr_vasp)
 
 def cleanvasp(self):
-    'removes output files from directory'
+    '''removes large uncritical output files from directory'''
     files_to_remove = ['CHG', 'CHGCAR', 'WAVECAR',
-                       'EIGENVAL', 'IBZKPT', 'PCDAT', 'XDATCAR',
-                       'vasprun.xml']
+                       'EIGENVAL', 'IBZKPT', 'PCDAT', 'XDATCAR']
     for f in files_to_remove:
         if os.path.exists(f):
             os.unlink(f)
@@ -651,6 +604,9 @@ def set_nbands(self, f=1.5):
 
 Vasp.set_nbands = set_nbands
 
+# ###################################################################
+# Main function and jasp class
+# ###################################################################
 
 def Jasp(**kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
@@ -672,7 +628,6 @@ def Jasp(**kwargs):
         # eg Jasp(), returns calculator from what is in the directory
         try:
             calc = Vasp(restart=True)
-
         except IOError:
             # this happens if there is no CONTCAR, e.g. an empty directory
             print 'empty directory with no CONTCAR'
@@ -680,8 +635,7 @@ def Jasp(**kwargs):
     else:
         calc = Vasp(**kwargs)
 
-    # finally, we return the calculator
-    # first we create a METADATA file if it does not exist.
+    # create a METADATA file if it does not exist.
     if not os.path.exists('METADATA'):
         calc.create_metadata()
         calc.read_metadata() #read in metadata
@@ -710,8 +664,6 @@ class jasp:
         if not os.path.isdir(self.vaspdir):
             os.makedirs(self.vaspdir)
 
-            #print 'entering'
-
         # now change to new working dir
         os.chdir(self.vaspdir)
 
@@ -721,7 +673,6 @@ class jasp:
             and not os.path.exists('KPOINTS')
             and not os.path.exists('POTCAR')):
             calc = Jasp(**self.kwargs)
-            print 'case 1'
 
         # initialized directory, but no job has been run
         elif (not os.path.exists('jobid')
@@ -730,20 +681,19 @@ class jasp:
               and not os.path.exists('CONTCAR')
               and not os.path.exists('vasprun.xml')):
               calc = Jasp(**self.kwargs)
-              print 'case 2'
 
         # job created, and in queue, but not running
         elif (os.path.exists('jobid')
               and job_in_queue(None)
               and not os.path.exists('running')):
-            print 'case 3'
+
             raise VaspQueued
 
         # job created, and in queue, and running
         elif (os.path.exists('jobid')
               and job_in_queue(None)
               and os.path.exists('running')):
-            print 'case 4'
+
             raise VaspRunning
 
         # job created, run, not in queue, not running. finished and
@@ -751,21 +701,22 @@ class jasp:
         elif (os.path.exists('jobid')
               and not job_in_queue(None)
               and not os.path.exists('running')):
-
+            # delete the jobid file, since it is done
             os.unlink('jobid')
 
-            calc = Jasp()
+            calc = Jasp() #automatically loads results
+            # now update the atoms object if it was a kwarg
             if 'atoms' in self.kwargs:
                 atoms = self.kwargs['atoms']
                 atoms.set_cell(calc.atoms.get_cell())
                 atoms.set_positions(calc.atoms.get_positions())
                 atoms.calc = calc
 
-            # this is the first time we have finished, so now we run the post_run_hooks?
+            # this is the first time we have finished, so now we run
+            # the post_run_hooks
             if hasattr(calc,'post_run_hooks'):
                 for hook in calc.post_run_hooks:
                     hook(calc)
-            print 'case 5'
 
         # job done long ago, jobid deleted, no running, and the
         #  output files all exist
@@ -781,7 +732,6 @@ class jasp:
                 atoms.set_cell(calc.atoms.get_cell())
                 atoms.set_positions(calc.atoms.get_positions())
                 atoms.calc = calc
-            print 'case 6'
 
         # something bad probably happened if the running file is still
         # here, but the job is not in the queue
@@ -801,15 +751,5 @@ class jasp:
         '''
         on exit, change back to the original directory.
         '''
-        #print 'exiting'
         os.chdir(self.cwd)
         return False # allows exception to propogate out
-
-
-if __name__ == '__main__':
-    c = jasp('tests/O_test')
-    with c as calc:
-
-        print vasp_repr(calc)
-
-        print calc
