@@ -623,55 +623,90 @@ def Jasp(**kwargs):
 
     you must be in the directory where vasp will be run.
     '''
+
     if 'atoms' in kwargs:
         atoms = kwargs['atoms']
         del kwargs['atoms']
+        atoms_kwargs = True
+    else:
+        atoms_kwargs = False
 
-        try:
-            calc = Vasp(**kwargs)
-            atoms.set_calculator(calc)
-        except:
-            calc = Vasp()
+    # empty vasp dir. start from scratch
+    if (not os.path.exists('INCAR')
+        and not os.path.exists('POSCAR')
+        and not os.path.exists('KPOINTS')
+        and not os.path.exists('POTCAR')):
+        calc = Vasp(**kwargs)
+        if atoms_kwargs:
+            atoms.calc = calc
 
-    elif len(kwargs) == 0:
-        # eg Jasp(), returns calculator from what is in the directory
-        try:
-            calc = Vasp(restart=True)
-        except IOError:
-            # this happens if there is no CONTCAR, e.g. an empty directory
-            print 'empty directory with no CONTCAR'
-            calc = Vasp()
-        except UnboundLocalError:
-            '''
-            this happens when there is an incomplete OUTCAR
-            '''
-            calc = Vasp()
-            import ase.io
-            # Try to read sorting file
-            if os.path.isfile('ase-sort.dat'):
-                calc.sort = []
-                calc.resort = []
-                file = open('ase-sort.dat', 'r')
-                lines = file.readlines()
-                file.close()
-                for line in lines:
-                    data = line.split()
-                    calc.sort.append(int(data[0]))
-                    calc.resort.append(int(data[1]))
-                atoms = ase.io.read('CONTCAR', format='vasp')[calc.resort]
-            else:
-                atoms = ase.io.read('CONTCAR', format='vasp')
-                calc.sort = range(len(atoms))
-                calc.resort = range(len(atoms))
-            calc.atoms = atoms.copy()
-            calc.read_incar()
-            calc.read_kpoints()
-            calc.read_potcar()
-            calc.old_input_params = calc.input_params.copy()
-            calc.converged = calc.read_convergence()
+    # initialized directory, but no job has been run
+    elif (not os.path.exists('jobid')
+          and os.path.exists('INCAR')
+        # but no output files
+        and not os.path.exists('CONTCAR')
+        and not os.path.exists('vasprun.xml')):
+        calc = Vasp(**self.kwargs)
+        if atoms_kwargs:
+            atoms.calc = calc
+
+    # job created, and in queue, but not running
+    elif (os.path.exists('jobid')
+          and job_in_queue(None)
+          and not os.path.exists('running')):
+        calc = Vasp(**kwargs)
+        if atoms_kwargs:
+            atoms.calc = calc
+        calc.vasp_queued = True
+
+    # job created, and in queue, and running
+    elif (os.path.exists('jobid')
+          and job_in_queue(None)
+          and os.path.exists('running')):
+        calc = Vasp(**kwargs)
+        if atoms_kwargs:
+            atoms.calc = calc
+        calc.vasp_running = True
+
+    # job is created, not in queue, not running. finished and
+    # first time we are looking at it
+    elif (os.path.exists('jobid')
+          and not job_in_queue(None)
+          and not os.path.exists('running')):
+        # delete the jobid file, since it is done
+        os.unlink('jobid')
+
+        calc = Vasp(restart=True) #automatically loads results
+        # now update the atoms object if it was a kwarg
+        if atoms_kwargs:
+            atoms.set_cell(calc.atoms.get_cell())
+            atoms.set_positions(calc.atoms.get_positions())
+            atoms.calc = calc
+
+        # this is the first time we have finished, so now we run
+        # the post_run_hooks
+        if hasattr(calc,'post_run_hooks'):
+            for hook in calc.post_run_hooks:
+                hook(calc)
+
+    # job done long ago, jobid deleted, no running, and the
+    #  output files all exist
+    elif (not os.path.exists('jobid')
+          and not os.path.exists('running')
+          and os.path.exists('CONTCAR')
+          and os.path.exists('OUTCAR')
+          and os.path.exists('vasprun.xml')):
+        # job is done
+        calc = Vasp(restart=True)
+        if atoms_kwargs:
+            atoms.set_cell(calc.atoms.get_cell())
+            atoms.set_positions(calc.atoms.get_positions())
+            atoms.calc = calc
 
     else:
-        calc = Vasp(**kwargs)
+        raise VaspUnknownState, 'I do not recognize the state of this directory'
+
+
 
     # create a METADATA file if it does not exist.
     if not os.path.exists('METADATA'):
@@ -696,12 +731,26 @@ class jasp:
 
         self.cwd = os.getcwd() # directory we were in when jasp created
         self.vaspdir = vaspdir # directory vasp files will be in
-        self.kwargs = kwargs #this does not include the dir variable
+        self.kwargs = kwargs # this does not include the vaspdir variable
 
     def __enter__(self):
         '''
         on enter, make sure directory exists, create it if necessary,
         and change into the directory. then return the calculator.
+
+        try not to raise exceptions in here to avoid needing code like:
+        try:
+            with jasp() as calc:
+                do stuff
+        except:
+            do stuff.
+
+        I want this syntax:
+        with jasp() as calc:
+            try:
+                calc.do something
+            except (VaspException):
+                do somthing.
         '''
         # make directory if it doesnt already exist
         if not os.path.isdir(self.vaspdir):
@@ -710,103 +759,7 @@ class jasp:
         # now change to new working dir
         os.chdir(self.vaspdir)
 
-        # empty vasp dir. start from scratch
-        if (not os.path.exists('INCAR')
-            and not os.path.exists('POSCAR')
-            and not os.path.exists('KPOINTS')
-            and not os.path.exists('POTCAR')):
-            calc = Jasp(**self.kwargs)
-
-        # initialized directory, but no job has been run
-        elif (not os.path.exists('jobid')
-              and os.path.exists('INCAR')
-            # but no output files
-              and not os.path.exists('CONTCAR')
-              and not os.path.exists('vasprun.xml')):
-              calc = Jasp(**self.kwargs)
-
-        # job created, and in queue, but not running
-        elif (os.path.exists('jobid')
-              and job_in_queue(None)
-              and not os.path.exists('running')):
-
-            calc = Jasp() #automatically loads results
-            # now update the atoms object if it was a kwarg
-            if 'atoms' in self.kwargs:
-                atoms = self.kwargs['atoms']
-                atoms.set_cell(calc.atoms.get_cell())
-                atoms.set_positions(calc.atoms.get_positions())
-                atoms.calc = calc
-            calc.vasp_queued = True
-
-        # job created, and in queue, and running
-        elif (os.path.exists('jobid')
-              and job_in_queue(None)
-              and os.path.exists('running')):
-
-            calc = Jasp() #automatically loads results
-            # now update the atoms object if it was a kwarg
-            if 'atoms' in self.kwargs:
-                atoms = self.kwargs['atoms']
-                atoms.set_cell(calc.atoms.get_cell())
-                atoms.set_positions(calc.atoms.get_positions())
-                atoms.calc = calc
-            calc.vasp_running = True
-
-        # job created, run, not in queue, not running. finished and
-        # first time we are looking at it
-        elif (os.path.exists('jobid')
-              and not job_in_queue(None)
-              and not os.path.exists('running')):
-            # delete the jobid file, since it is done
-            os.unlink('jobid')
-
-            calc = Jasp() #automatically loads results
-            # now update the atoms object if it was a kwarg
-            if 'atoms' in self.kwargs:
-                atoms = self.kwargs['atoms']
-                atoms.set_cell(calc.atoms.get_cell())
-                atoms.set_positions(calc.atoms.get_positions())
-                atoms.calc = calc
-
-            # this is the first time we have finished, so now we run
-            # the post_run_hooks
-            if hasattr(calc,'post_run_hooks'):
-                for hook in calc.post_run_hooks:
-                    hook(calc)
-
-            if not calc.converged:
-                print 'Converged: ', calc.read_convergence()
-                if calc.int_params['ibrion'] > 0:
-                    if not calc.read_relaxed():
-                        print 'Ions/cell not converged'
-                raise VaspNotConverged
-
-        # job done long ago, jobid deleted, no running, and the
-        #  output files all exist
-        elif (not os.path.exists('jobid')
-              and not os.path.exists('running')
-              and os.path.exists('CONTCAR')
-              and os.path.exists('OUTCAR')
-              and os.path.exists('vasprun.xml')):
-            # job is done
-            calc = Jasp() # this will restart from the directory
-            if 'atoms' in self.kwargs:
-                atoms = self.kwargs['atoms']
-                atoms.set_cell(calc.atoms.get_cell())
-                atoms.set_positions(calc.atoms.get_positions())
-                atoms.calc = calc
-
-        # something bad probably happened if the running file is still
-        # here, but the job is not in the queue
-        elif (os.path.exists('jobid')
-              and not job_in_queue(None)
-              and os.path.exists('running')):
-            raise VaspUnknownState
-
-        else:
-            raise Exception, 'I do not recognize the state of this directory'
-
+        calc = Jasp(**self.kwargs)
         calc.vaspdir = self.vaspdir   # vasp directory
         calc.cwd = self.cwd   # directory we came from
         return calc
