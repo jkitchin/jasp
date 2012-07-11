@@ -58,37 +58,52 @@ def atoms_equal(self, other):
 
 Atoms.__eq__ = atoms_equal
 
-#######################################################
-# Vasp monkey patching this is done to ensure a job is submitted to
-# the queue if it needs to be run.
+class VaspQueued(exceptions.Exception):
+    pass
+
+class VaspSubmitted(exceptions.Exception):
+    pass
+
+class VaspRunning(exceptions.Exception):
+    pass
+
+class VaspNotFinished(exceptions.Exception):
+    pass
+
+class VaspUnknownState(exceptions.Exception):
+    pass
 
 # store original function so we can call it later
-original_initialize = Vasp.initialize
+## original_initialize = Vasp.initialize
 
-def initialize(self, atoms):
-    '''initialize and write out the input files
+## def initialize(self, atoms):
+##     '''initialize and write out the input files
 
-    when I wrote this, the initialize function did not write out all
-    the files, it only found the pseudopotentials.
-    '''
-    original_initialize(self, atoms)
-    from ase.io.vasp import write_vasp
-    write_vasp('POSCAR',
-               self.atoms_sorted,
-               symbol_count = self.symbol_count)
-    self.write_incar(atoms)
-    self.write_potcar()
-    self.write_kpoints()
-    self.write_sort_file()
-    self.create_metadata()
-    self.read_metadata()
+##     when I wrote this, the initialize function did not write out all
+##     the files, it only found the pseudopotentials.
+##     '''
+##     converged = self.read_convergence()
+##     original_initialize(self, atoms)
+##     self.converged = converged
+##     from ase.io.vasp import write_vasp
+##     write_vasp('POSCAR',
+##                self.atoms_sorted,
+##                symbol_count = self.symbol_count)
+##     self.write_incar(atoms)
+##     self.write_potcar()
+##     self.write_kpoints()
+##     self.write_sort_file()
+##     self.create_metadata()
+##     self.read_metadata()
 
-Vasp.initialize = initialize
-Vasp.original_initialize  = original_initialize
+## Vasp.initialize = initialize
+## Vasp.original_initialize  = original_initialize
 
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
-    ''' this is almost the exact code from the original initialize function, but all it does is get the pseudpotentials.
+    ''' this is almost the exact code from the original initialize
+    function, but all it does is get the pseudpotentials, and the
+    git-hash for each one
     '''
     atoms = self.get_atoms()
     p = self.input_params
@@ -217,17 +232,7 @@ def get_pseudopotentials(self):
 
 Vasp.get_pseudopotentials = get_pseudopotentials
 
-class VaspQueued(exceptions.Exception):
-    pass
 
-class VaspSubmitted(exceptions.Exception):
-    pass
-
-class VaspRunning(exceptions.Exception):
-    pass
-
-class VaspNotFinished(exceptions.Exception):
-    pass
 
 ''' pre_run and post_run hooks
 
@@ -258,12 +263,39 @@ def register_post_run_hook(function):
 Vasp.register_pre_run_hook = staticmethod(register_pre_run_hook)
 Vasp.register_post_run_hook = staticmethod(register_post_run_hook)
 
+
+def job_in_queue(self):
+    ''' return True or False if the directory has a job in the queue'''
+    if not os.path.exists('jobid'):
+        return False
+    else:
+        # get the jobid
+        jobid = open('jobid').readline().strip()
+
+        # see if jobid is in queue
+        jobids_in_queue = commands.getoutput('qselect').split('\n')
+        if jobid in jobids_in_queue:
+            # get details on specific jobid
+            status, output = commands.getstatusoutput('qstat %s' % jobid)
+            if status == 0:
+                lines = output.split('\n')
+                fields = lines[2].split()
+                job_status = fields[4]
+                if job_status == 'C':
+                    return False
+                else:
+                    return True
+        else:
+            return False
+Vasp.job_in_queue = job_in_queue
+
 def run(self):
     '''monkey patch to submit job through the queue
 
     If this is called, then the calculator thinks a job should be run.
     If we are in the queue, we should run it, otherwise, a job should be submitted.
     '''
+
     if hasattr(self,'pre_run_hooks'):
         for hook in self.pre_run_hooks:
             hook(self)
@@ -272,8 +304,8 @@ def run(self):
     if cmd is None:
         raise Exception, '$VASP_SCRIPT not found.'
 
-    # if we are in the queue and jasp is called, we should just run
-    # the job or if we want to use mode='run'
+    # if we are in the queue and jasp is called if we want to use
+    # mode='run' , we should just run the job
     if 'PBS_O_WORKDIR' in os.environ or JASPRC['mode']=='run':
         exitcode = os.system(cmd)
         return exitcode
@@ -309,18 +341,21 @@ def run(self):
             os.unlink('jobid')
     else:
         # no jobid, but maybe the calculation is done?
-        converged = self.read_convergence()
-        if converged:
-            return True
+        try:
+            converged = self.read_convergence()
+            if converged:
+                return True
+        except IOError:
+            JOBSTATUS = 'New'
 
-    # there was a jobid, but we have not returned or raised yet, so
+    '''    # there was a jobid, but we have not returned or raised yet, so
     # the job must have finished. so, we run the post-run-hooks and return.
     if JOBSTATUS is not None:
         if hasattr(self,'post_run_hooks'):
             for hook in self.post_run_hooks:
                 hook(self)
         return True
-
+    '''
     # if you get here, a job is getting submitted
     script = '''
 #!/bin/bash
@@ -329,12 +364,13 @@ cd {self.dir}  # this is the vasp directory
 {cmd}     # this is the vasp command
 #end'''.format(**locals())
 
-    p = Popen(['{queue.command}'.format(**JASPRC),
-               '{queue.options}'.format(**JASPRC),
+    p = Popen(['{0}'.format(JASPRC['queue.command']),
+               '{0}'.format(JASPRC['queue.options']),
                '-N', '{0}'.format(JASPRC['queue.jobname'] if JASPRC['queue.jobname'] is not None else self.dir),
-               '-l walltime={queue.walltime}'.format(**JASPRC),
-               '-l nodes={queue.nodes}:ppn={queue.ppn}'.format(**JASPRC),
-               '-l mem={queue.mem}'.format(**JASPRC)],
+               '-l walltime={0}'.format(JASPRC['queue.walltime']),
+               '-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
+                                                     JASPRC['queue.ppn']),
+               '-l mem={0}'.format(JASPRC['queue.mem'])],
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     out, err = p.communicate(script)
@@ -356,12 +392,14 @@ def pretty_print(self):
     pos = atoms.get_positions()
     syms = atoms.get_chemical_symbols()
 
-    converged = self.converged # save to reset later
+    self.converged = self.read_convergence()
 
     if self.converged:
         energy = atoms.get_potential_energy()
+        print energy
         forces = atoms.get_forces()
     else:
+        print 'Not converged', self.converged
         energy = np.nan
         forces = [np.array([np.nan, np.nan, np.nan]) for atom in atoms]
 
@@ -417,7 +455,6 @@ def pretty_print(self):
         s.append('            % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f' % tuple(stress))
     else:
         s += ['  Stress was not computed']
-    s.append('  Volume = %1.2f A^3\n' % volume)
 
     s.append(' Atom#  sym       position [x,y,z]        rmsForce')
     for i,atom in enumerate(atoms):
@@ -456,8 +493,6 @@ def pretty_print(self):
     s += ['\nPseudopotentials used:']
     s += ['----------------------']
 
-    #self.original_initialize(self.get_atoms())
-    #self.converged = converged #reset this because initialize makes this unconverged
     ppp_list = self.get_pseudopotentials()
     for sym,ppp,hash in ppp_list:
         s += ['{0}: {1} (git-hash: {2})'.format(sym,ppp,hash)]
@@ -616,6 +651,7 @@ def set_nbands(self, f=1.5):
 
 Vasp.set_nbands = set_nbands
 
+
 def Jasp(**kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
     of this function is to enable atoms as a keyword argument, and to
@@ -631,12 +667,15 @@ def Jasp(**kwargs):
         del kwargs['atoms']
         calc = Vasp(**kwargs)
         atoms.set_calculator(calc)
+
     elif len(kwargs) == 0:
         # eg Jasp(), returns calculator from what is in the directory
         try:
             calc = Vasp(restart=True)
+
         except IOError:
             # this happens if there is no CONTCAR, e.g. an empty directory
+            print 'empty directory with no CONTCAR'
             calc = Vasp()
     else:
         calc = Vasp(**kwargs)
@@ -645,23 +684,22 @@ def Jasp(**kwargs):
     # first we create a METADATA file if it does not exist.
     if not os.path.exists('METADATA'):
         calc.create_metadata()
+        calc.read_metadata() #read in metadata
 
-    calc.read_metadata() #read in metadata
-    calc.cwd = os.getcwd()
     return calc
 
 class jasp:
     '''Context manager for running Vasp calculations'''
-    def __init__(self, dir, **kwargs):
+    def __init__(self, vaspdir, **kwargs):
         '''
-        dir: the directory to run vasp in
+        vaspdir: the directory to run vasp in
 
         **kwargs: all the vasp keywords, including an atoms object
         '''
 
         self.cwd = os.getcwd() # directory we were in when jasp created
-        self.dir = dir # directory vasp files will be in
-        self.kwargs = kwargs
+        self.vaspdir = vaspdir # directory vasp files will be in
+        self.kwargs = kwargs #this does not include the dir variable
 
     def __enter__(self):
         '''
@@ -669,16 +707,93 @@ class jasp:
         and change into the directory. then return the calculator.
         '''
         # make directory if it doesnt already exist
-        if not os.path.isdir(self.dir):
-            os.makedirs(self.dir)
+        if not os.path.isdir(self.vaspdir):
+            os.makedirs(self.vaspdir)
 
             #print 'entering'
 
         # now change to new working dir
-        os.chdir(self.dir)
+        os.chdir(self.vaspdir)
 
-        calc = Jasp(**self.kwargs)
-        calc.dir = self.dir   # vasp directory
+        # empty vasp dir. start from scratch
+        if (not os.path.exists('INCAR')
+            and not os.path.exists('POSCAR')
+            and not os.path.exists('KPOINTS')
+            and not os.path.exists('POTCAR')):
+            calc = Jasp(**self.kwargs)
+            print 'case 1'
+
+        # initialized directory, but no job has been run
+        elif (not os.path.exists('jobid')
+              and os.path.exists('INCAR')
+            # but no output files
+              and not os.path.exists('CONTCAR')
+              and not os.path.exists('vasprun.xml')):
+              calc = Jasp(**self.kwargs)
+              print 'case 2'
+
+        # job created, and in queue, but not running
+        elif (os.path.exists('jobid')
+              and job_in_queue(None)
+              and not os.path.exists('running')):
+            print 'case 3'
+            raise VaspQueued
+
+        # job created, and in queue, and running
+        elif (os.path.exists('jobid')
+              and job_in_queue(None)
+              and os.path.exists('running')):
+            print 'case 4'
+            raise VaspRunning
+
+        # job created, run, not in queue, not running. finished and
+        # first time we are looking at it
+        elif (os.path.exists('jobid')
+              and not job_in_queue(None)
+              and not os.path.exists('running')):
+
+            os.unlink('jobid')
+
+            calc = Jasp()
+            if 'atoms' in self.kwargs:
+                atoms = self.kwargs['atoms']
+                atoms.set_cell(calc.atoms.get_cell())
+                atoms.set_positions(calc.atoms.get_positions())
+                atoms.calc = calc
+
+            # this is the first time we have finished, so now we run the post_run_hooks?
+            if hasattr(calc,'post_run_hooks'):
+                for hook in calc.post_run_hooks:
+                    hook(calc)
+            print 'case 5'
+
+        # job done long ago, jobid deleted, no running, and the
+        #  output files all exist
+        elif (not os.path.exists('jobid')
+              and not os.path.exists('running')
+              and os.path.exists('CONTCAR')
+              and os.path.exists('OUTCAR')
+              and os.path.exists('vasprun.xml')):
+            # job is done
+            calc = Jasp() # this will restart from the directory
+            if 'atoms' in self.kwargs:
+                atoms = self.kwargs['atoms']
+                atoms.set_cell(calc.atoms.get_cell())
+                atoms.set_positions(calc.atoms.get_positions())
+                atoms.calc = calc
+            print 'case 6'
+
+        # something bad probably happened if the running file is still
+        # here, but the job is not in the queue
+        elif (os.path.exists('jobid')
+              and not job_in_queue(None)
+              and os.path.exists('running')):
+            raise VaspUnknownState
+
+        else:
+            raise Exception, 'I do not recognize the state of this directory'
+
+        calc.vaspdir = self.vaspdir   # vasp directory
         calc.cwd = self.cwd   # directory we came from
         return calc
 
