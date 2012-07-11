@@ -728,7 +728,6 @@ def Jasp(**kwargs):
         calc.vasp_running = True
         log.debug('job created, and in queue, and running')
 
-
     # job is created, not in queue, not running. finished and
     # first time we are looking at it
     elif (os.path.exists('jobid')
@@ -765,12 +764,13 @@ def Jasp(**kwargs):
             atoms.set_positions(calc.atoms.get_positions())
             atoms.calc = calc
     else:
-        raise VaspUnknownState, 'I do not recognize the state of this directory'
+        raise VaspUnknownState, 'I do not recognize the state of this directory {0}'.format(os.getcwd())
 
     # create a METADATA file if it does not exist.
     if not os.path.exists('METADATA'):
         calc.create_metadata()
-        calc.read_metadata() #read in metadata
+
+    calc.read_metadata() #read in metadata
 
     return calc
 
