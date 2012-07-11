@@ -341,11 +341,14 @@ def pretty_print(self):
     pos = atoms.get_positions()
     syms = atoms.get_chemical_symbols()
 
-    self.converged = self.read_convergence()
+    try:
+        self.converged = self.read_convergence()
+    except IOError:
+        # eg no outcar
+        self.converged = False
 
     if self.converged:
         energy = atoms.get_potential_energy()
-        print energy
         forces = atoms.get_forces()
     else:
         energy = np.nan
@@ -354,8 +357,6 @@ def pretty_print(self):
     if self.converged:
         if hasattr(self,'stress'):
             stress = self.stress
-        if stress is not None:
-            stress *= 0.1 #conversion from kbar to GPa
     else:
         stress = None
 
@@ -612,6 +613,19 @@ Vasp.set_nbands = set_nbands
 # ###################################################################
 # Main function and jasp class
 # ###################################################################
+import logging
+log = logging.getLogger('Jasp')
+
+handler = logging.StreamHandler()
+if sys.version_info < (2,5): # no funcName in python 2.4
+    formatstring = ('%(levelname)-10s '
+                    'lineno: %(lineno)-4d %(message)s')
+else:
+    formatstring = ('%(levelname)-10s function: %(funcName)s '
+                    'lineno: %(lineno)-4d %(message)s')
+formatter = logging.Formatter(formatstring)
+handler.setFormatter(formatter)
+log.addHandler(handler)
 
 def Jasp(**kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
@@ -631,6 +645,10 @@ def Jasp(**kwargs):
     else:
         atoms_kwargs = False
 
+    if 'debug' in kwargs:
+        log.setLevel(kwargs['debug'])
+        del kwargs['debug']
+
     # empty vasp dir. start from scratch
     if (not os.path.exists('INCAR')
         and not os.path.exists('POSCAR')
@@ -639,6 +657,7 @@ def Jasp(**kwargs):
         calc = Vasp(**kwargs)
         if atoms_kwargs:
             atoms.calc = calc
+        log.debug('empty vasp dir. start from scratch')
 
     # initialized directory, but no job has been run
     elif (not os.path.exists('jobid')
@@ -649,30 +668,73 @@ def Jasp(**kwargs):
         calc = Vasp(**self.kwargs)
         if atoms_kwargs:
             atoms.calc = calc
+        log.debug('initialized directory, but no job has been run')
 
     # job created, and in queue, but not running
     elif (os.path.exists('jobid')
           and job_in_queue(None)
           and not os.path.exists('running')):
-        calc = Vasp(**kwargs)
+        '''this case is slightly tricky because you cannot restart if
+        there is no contcar or outcar. here is a modified version of
+        the restart_load function that avoids this problem.
+        '''
+        log.debug('job created, and in queue, but not running. tricky case')
+
+        self = Vasp()
+
+        import ase.io
+        # Try to read sorting file
+        if os.path.isfile('ase-sort.dat'):
+            self.sort = []
+            self.resort = []
+            file = open('ase-sort.dat', 'r')
+            lines = file.readlines()
+            file.close()
+            for line in lines:
+                data = line.split()
+                self.sort.append(int(data[0]))
+                self.resort.append(int(data[1]))
+            patoms = ase.io.read('POSCAR', format='vasp')[self.resort]
+        else:
+            patoms = ase.io.read('POSCAR', format='vasp')
+            self.sort = range(len(atoms))
+            self.resort = range(len(atoms))
+
+        self.read_incar()
+
+        self.read_kpoints()
+        self.read_potcar()
+
+        self.old_input_params = self.input_params.copy()
+        self.converged = False
+
+        calc = self
+
         if atoms_kwargs:
+            calc.atoms = atoms
             atoms.calc = calc
+        else:
+            self.atoms = patoms.copy()
+
         calc.vasp_queued = True
 
     # job created, and in queue, and running
     elif (os.path.exists('jobid')
           and job_in_queue(None)
           and os.path.exists('running')):
-        calc = Vasp(**kwargs)
+        calc = Vasp(restart=True)
         if atoms_kwargs:
             atoms.calc = calc
         calc.vasp_running = True
+        log.debug('job created, and in queue, and running')
+
 
     # job is created, not in queue, not running. finished and
     # first time we are looking at it
     elif (os.path.exists('jobid')
           and not job_in_queue(None)
           and not os.path.exists('running')):
+        log.debug('job is created, not in queue, not running. finished and first time we are looking at it')
         # delete the jobid file, since it is done
         os.unlink('jobid')
 
@@ -702,11 +764,8 @@ def Jasp(**kwargs):
             atoms.set_cell(calc.atoms.get_cell())
             atoms.set_positions(calc.atoms.get_positions())
             atoms.calc = calc
-
     else:
         raise VaspUnknownState, 'I do not recognize the state of this directory'
-
-
 
     # create a METADATA file if it does not exist.
     if not os.path.exists('METADATA'):
