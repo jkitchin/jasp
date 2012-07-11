@@ -11,12 +11,27 @@ jaspsum directoryname
 '''
 import os, sys
 from jasp import *
+from optparse import OptionParser
 
-if len(sys.argv[1:]) == 0:
+parser = OptionParser(usage='ncsum',
+                      version='0.1')
+parser.add_option('-d',
+                  nargs=0,
+                  help = 'turn debug on')
+
+options,args = parser.parse_args()
+
+if len(args) == 0:
     dirs = ['.']
 else:
-    dirs = sys.argv[1:]
+    dirs = args
+
+if options.d is not None:
+    debug = logging.DEBUG
+else:
+    debug = None
+
 
 for d in dirs:
-    with jasp(d) as calc:
+    with jasp(d, debug=debug) as calc:
         print calc
