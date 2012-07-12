@@ -76,6 +76,48 @@ class VaspNotConverged(exceptions.Exception):
 class VaspUnknownState(exceptions.Exception):
     pass
 
+
+def get_vibrational_frequencies(self):
+    '''
+     Eigenvectors and eigenvalues of the dynamical matrix
+ ----------------------------------------------------
+
+
+   1 f  =  115.004987 THz   722.597642 2PiTHz 3836.153312 cm-1   475.622564 meV
+             X         Y         Z           dx          dy          dz
+      0.596081  7.232293  0.000000     0.417705   -0.537764    0.010516
+      0.596081  0.767707  0.000000    -0.417705   -0.537764   -0.010516
+      0.000000  0.000000  7.985000     0.000000    0.269152    0.000000
+
+    '''
+    atoms = self.get_atoms()
+    N = len(atoms)
+
+    frequencies = []
+
+    f = open('OUTCAR', 'r')
+    while True:
+        line = f.readline()
+        if line.startswith(' Eigenvectors and eigenvalues of the dynamical matrix'):
+            break
+    f.readline() #skip ------
+    f.readline() # skip two blank lines
+    f.readline()
+    for i in range(3*N):
+        # the next line contains the frequencies
+        line = f.readline()
+        fields = line.split()
+        if 'f/i=' in line: #imaginary frequency
+            frequencies.append(complex(float(fields[6]), 0j)) # frequency in wave-numbers
+        else:
+            frequencies.append(float(fields[7]))
+
+        for j in range(5): f.readline() #skip the next few lines
+    f.close()
+    return frequencies
+
+Vasp.get_vibrational_frequencies = get_vibrational_frequencies
+
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
     ''' this is almost the exact code from the original initialize
@@ -311,7 +353,11 @@ cd {self.vaspdir}  # this is the vasp directory
 {cmd}     # this is the vasp command
 #end'''.format(**locals())
 
-    jobname = JASPRC.get('queue.jobname', self.vaspdir)
+    jobname = self.vaspdir
+    #jobname = JASPRC.get('queue.jobname')
+    #if jobname is None:
+    #    jobname = self.vaspdir
+    log.debug('{0} will be the jobname.'.format(jobname))
 
     p = Popen(['{0}'.format(JASPRC['queue.command']),
                '{0}'.format(JASPRC['queue.options']),
@@ -665,7 +711,7 @@ def Jasp(**kwargs):
         # but no output files
         and not os.path.exists('CONTCAR')
         and not os.path.exists('vasprun.xml')):
-        calc = Vasp(**self.kwargs)
+        calc = Vasp(**kwargs)
         if atoms_kwargs:
             atoms.calc = calc
         log.debug('initialized directory, but no job has been run')
