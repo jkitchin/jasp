@@ -6,6 +6,10 @@ this is a patched Vasp calculator with the following features:
 2. calculations are run through the queue, not at the command line.
 3. hook functions are enabled for pre and post processing
 4. atoms is now a keyword
+
+
+TODO:
+1. vasp does not read all KPOINTS files, and does not generate all options.
 '''
 
 import commands, exceptions, os, sys
@@ -87,16 +91,25 @@ def write_kpoints(self, **kwargs):
     the following kwargs can dictate special behavior:
     kpts = list of kpts to write
     kpts_format = 'rec', 'cart'
-    mode =  'automatic', 'line-mode'
+    mode =  'automatic', 'line'
     gamma = (a,b,c)  # the shift of gamma
 
     The usual way to call
     calc.write_kpts()
     """
-    p = self.input_params
 
-    # this should preserve the original behavior
+
+    # this should preserve the original behavior except, if KPOINTS
+    # exists,we do not overwrite it. That is probably not what is
+    # desired because it meansthe only way to change it is to delete
+    # KPOINTS. But, since this function is called in the calculate
+    # method with no kwargs, this is always run, which would overwrite
+    # any other way this was called.
     if len(kwargs) == 0:
+        if os.path.exists('KPOINTS'):
+            return
+
+        p = self.input_params
         kpoints = open('KPOINTS', 'w')
         kpoints.write('KPOINTS created by Atomic Simulation Environment\n')
         shape=np.array(p['kpts']).shape
@@ -123,11 +136,11 @@ def write_kpoints(self, **kwargs):
         kpoints.close()
     # Now we handle new kwargs
     # calc.write_kpoints(mode='line-mode', kpts_format='rec', kpts=[], intersections=10)
-    if kwargs.get('mode',None) == 'line-mode':
+    if kwargs.get('mode',None) == 'line':
         kpoints = open('KPOINTS', 'w')
         kpoints.write('KPOINTS created by Atomic Simulation Environment\n')
         intersections = kwargs.get('intersections',' 10')
-        kpoints.write(intersections + '\n')
+        kpoints.write('{0}\n'.format(intersections))
         kpoints.write('Line-mode\n')
         kpoints.write(kwargs.get('kpts_format','rec') + '\n')
         for kpt in kwargs['kpts']:
@@ -367,11 +380,14 @@ def job_in_queue(self):
 Vasp.job_in_queue = job_in_queue
 
 original_calculate = Vasp.calculate
-def calculate(self, atoms):
+def calculate(self, atoms=None):
     '''
     monkeypatched function to avoid calling calculate unless we really
     want to run a job. If a job is queued or running, we should exit
     here to avoid reinitializing the input files.
+
+    I also made it possible to not give an atoms here, since there
+    should be one on the calculator.
     '''
     if hasattr(self,'vasp_queued'):
         raise VaspQueued
@@ -380,6 +396,8 @@ def calculate(self, atoms):
         raise VaspRunning
 
     # if you get here, we call the original method, which calls run
+    if atoms is None:
+        atoms = self.get_atoms()
     original_calculate(self, atoms)
 
 Vasp.calculate = calculate
