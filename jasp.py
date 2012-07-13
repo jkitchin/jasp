@@ -77,6 +77,65 @@ class VaspUnknownState(exceptions.Exception):
     pass
 
 
+def write_kpoints(self, **kwargs):
+    """Writes the KPOINTS file.
+
+    7/13/2012 monkeypatch this function to make it more general. It is missing two functionalities:
+    1:  Linemode for band structures
+    2.  gamma offset
+
+    the following kwargs can dictate special behavior:
+    kpts = list of kpts to write
+    kpts_format = 'rec', 'cart'
+    mode =  'automatic', 'line-mode'
+    gamma = (a,b,c)  # the shift of gamma
+
+    The usual way to call
+    calc.write_kpts()
+    """
+    p = self.input_params
+
+    # this should preserve the original behavior
+    if len(kwargs) == 0:
+        kpoints = open('KPOINTS', 'w')
+        kpoints.write('KPOINTS created by Atomic Simulation Environment\n')
+        shape=np.array(p['kpts']).shape
+        if len(shape)==1:
+            kpoints.write('0\n')
+            if p['gamma']:
+                kpoints.write('Gamma\n')
+            else:
+                kpoints.write('Monkhorst-Pack\n')
+            [kpoints.write('%i ' % kpt) for kpt in p['kpts']]
+            kpoints.write('\n0 0 0\n')
+        elif len(shape)==2:
+            kpoints.write('%i \n' % (len(p['kpts'])))
+            if p['reciprocal']:
+                kpoints.write('Reciprocal\n')
+            else:
+                kpoints.write('Cartesian\n')
+            for n in range(len(p['kpts'])):
+                [kpoints.write('%f ' % kpt) for kpt in p['kpts'][n]]
+                if shape[1]==4:
+                    kpoints.write('\n')
+                elif shape[1]==3:
+                    kpoints.write('1.0 \n')
+        kpoints.close()
+    # Now we handle new kwargs
+    # calc.write_kpoints(mode='line-mode', kpts_format='rec', kpts=[], intersections=10)
+    if kwargs.get('mode',None) == 'line-mode':
+        kpoints = open('KPOINTS', 'w')
+        kpoints.write('KPOINTS created by Atomic Simulation Environment\n')
+        intersections = kwargs.get('intersections',' 10')
+        kpoints.write(intersections + '\n')
+        kpoints.write('Line-mode\n')
+        kpoints.write(kwargs.get('kpts_format','rec') + '\n')
+        for kpt in kwargs['kpts']:
+            x,y,z = kpt
+            kpoints.write('{0} {1} {2}\n'.format(x,y,z))
+        kpoints.close()
+Vasp.write_kpoints = write_kpoints
+
 def get_vibrational_frequencies(self):
     '''
      Eigenvectors and eigenvalues of the dynamical matrix
@@ -392,6 +451,9 @@ def pretty_print(self):
     except IOError:
         # eg no outcar
         self.converged = False
+
+    if not self.converged:
+        print self.read_relaxed()
 
     if self.converged:
         energy = atoms.get_potential_energy()
