@@ -179,12 +179,13 @@ def get_vibrational_frequencies(self):
         # the next line contains the frequencies
         line = f.readline()
         fields = line.split()
+        print fields
         if 'f/i=' in line: #imaginary frequency
             frequencies.append(complex(float(fields[6]), 0j)) # frequency in wave-numbers
         else:
             frequencies.append(float(fields[7]))
-
-        for j in range(5): f.readline() #skip the next few lines
+        #now skip 1 one line, a line for each atom, and a blank line
+        for j in range(1+N+1): f.readline() #skip the next few lines
     f.close()
     return frequencies
 
@@ -395,6 +396,10 @@ def calculate(self, atoms=None):
     if hasattr(self,'vasp_running'):
         raise VaspRunning
 
+    print self.converged
+    return
+
+
     # if you get here, we call the original method, which calls run
     if atoms is None:
         atoms = self.get_atoms()
@@ -598,7 +603,7 @@ Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),#slurp
 ],
               cell=$repr($atoms.get_cell()))
 
-with jasp('$calc.dir',
+with jasp('$calc.vaspdir',
 #for key in $calc.int_params
 #if $calc.int_params[key] is not None
           $key = $calc.int_params[key],
