@@ -22,6 +22,8 @@ from ase.calculators.vasp import Vasp
 # internal imports
 from jasprc import *     # configuration data
 from metadata import *   # jasp metadata
+from POTCAR import *
+from CHG import *
 
 def atoms_equal(self, other):
     '''
@@ -179,7 +181,7 @@ def get_vibrational_frequencies(self):
         # the next line contains the frequencies
         line = f.readline()
         fields = line.split()
-        print fields
+
         if 'f/i=' in line: #imaginary frequency
             frequencies.append(complex(float(fields[6]), 0j)) # frequency in wave-numbers
         else:
@@ -396,9 +398,9 @@ def calculate(self, atoms=None):
     if hasattr(self,'vasp_running'):
         raise VaspRunning
 
-    print self.converged
-    return
-
+    if hasattr(self,'converged'):
+        if self.converged:
+            return
 
     # if you get here, we call the original method, which calls run
     if atoms is None:
