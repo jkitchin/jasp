@@ -7,6 +7,8 @@ this is a patched Vasp calculator with the following features:
 3. hook functions are enabled for pre and post processing
 4. atoms is now a keyword
 
+(find-file "../ase/ase/calculators/vasp.py") C-x C-e
+
 
 TODO:
 1. vasp does not read all KPOINTS files, and does not generate all options.
@@ -23,7 +25,7 @@ from ase.calculators.vasp import Vasp
 from jasprc import *     # configuration data
 from metadata import *   # jasp metadata
 from POTCAR import *
-from CHG import *
+from volumetric_data import * # CHG and LOCPOT parsing
 
 def atoms_equal(self, other):
     '''
@@ -398,9 +400,21 @@ def calculate(self, atoms=None):
     if hasattr(self,'vasp_running'):
         raise VaspRunning
 
+    if 'mode' in JASPRC:
+        if JASPRC['mode'] is None:
+            raise Exception, '''JASPRC['mode'] is None. we should not be running!'''
+
     if hasattr(self,'converged'):
-        if self.converged:
-            return
+         if (self.converged
+             and ((self.float_params == self.old_float_params) or
+                  (self.exp_params == self.old_exp_params) or
+                  (self.string_params == self.old_string_params) or
+                  (self.int_params == self.old_int_params) or
+                  (self.bool_params == self.old_bool_params) or
+                  (self.list_params == self.old_list_params) or
+                  (self.input_params == self.old_input_params) or
+                  (self.dict_params == self.old_dict_params))):
+             return
 
     # if you get here, we call the original method, which calls run
     if atoms is None:
@@ -538,14 +552,15 @@ def pretty_print(self):
     else:
         s += ['  Stress was not computed']
 
-    s.append(' Atom#  sym       position [x,y,z]        rmsForce')
+    s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce')
     for i,atom in enumerate(atoms):
         rms_f = np.sum(forces[i]**2)**0.5
-        ts = '  {0:^4d} {1:^4s} [{2:<9.3f}{3:^9.3f}{4:9.3f}] {5:1.2f}'.format(i,
+        ts = '  {0:^4d} {1:^4s} [{2:<9.3f}{3:^9.3f}{4:9.3f}] {5:^6d}{6:1.2f}'.format(i,
                                                        atom.symbol,
                                                        atom.x,
                                                        atom.y,
                                                        atom.z,
+                                                       atom.tag,
                                                        rms_f)
 
         s.append(ts)
