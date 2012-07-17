@@ -19,7 +19,7 @@ from hashlib import sha1
 from subprocess import Popen, PIPE
 import numpy as np
 from ase import Atoms
-from ase.calculators.vasp import Vasp
+from ase.calculators.vasp import *
 
 # internal imports
 from jasprc import *     # configuration data
@@ -716,8 +716,11 @@ def checkerr_vasp(self):
             f = open('error', 'w')
             for i,line in errors:
                 f.write('{0}: {1}\n'.format(i,line))
-
             f.close()
+        else:
+            # no errors found, lets delete any error file that had existed.
+            if os.path.exists('error'):
+                os.unlink('error')
     else:
         print os.getcwd()
         print os.listdir('.')
