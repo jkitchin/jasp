@@ -19,6 +19,11 @@ parser.add_option('-d',
                   nargs=0,
                   help = 'turn debug on')
 
+parser.add_option('-t',
+                  nargs=0,
+                  help = 'plot trajectory')
+
+
 options,args = parser.parse_args()
 
 if len(args) == 0:
@@ -31,7 +36,12 @@ if options.d is not None:
 else:
     debug = None
 
-
 for d in dirs:
     with jasp(d, debug=debug) as calc:
+
+        if options.t is not None:
+            xd = xdat2traj('out.traj',calc=calc)
+            xd.convert()
+            os.system('ag out.traj; rm out.traj')
+
         print calc
