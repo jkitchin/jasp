@@ -613,16 +613,14 @@ from numpy import array
 from ase import Atom, Atoms
 from jasp import *
 
-atoms = Atoms([#slurp
-#for $i,$atom in enumerate($atoms)
+atoms = Atoms([Atom('$atoms[0].symbol',[$atoms[0].x, $atoms[0].y, $atoms[0].z]),\n#slurp
+#for $i,$atom in enumerate($atoms[1:-1])
                Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),\n#slurp
 #end for
-],
-              cell=[#slurp
-              #for $vector in $atoms.get_cell()
-              <%= '[{0: 12.8f}, {1: 12.8f}, {2: 12.8f}],'.format(vector[0], vector[1], vector[2])%>
-              #end for
-              ])
+               Atom('$atoms[-1].symbol',[$atoms[-1].x, $atoms[1].y, $atoms[1].z])],
+               cell = [[$atoms.cell[0][0], $atoms.cell[0][1], $atoms.cell[0][2]],
+                       [$atoms.cell[1][0], $atoms.cell[1][1], $atoms.cell[1][2]],
+                       [$atoms.cell[2][0], $atoms.cell[2][1], $atoms.cell[2][2]]])
 
 with jasp('$calc.vaspdir',
 #for key in $calc.int_params
