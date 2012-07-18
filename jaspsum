@@ -23,6 +23,9 @@ parser.add_option('-t',
                   nargs=0,
                   help = 'plot trajectory')
 
+parser.add_option('-r',
+                  nargs=0,
+                  help = 'prints code to make a new calculation')
 
 options,args = parser.parse_args()
 
@@ -44,4 +47,7 @@ for d in dirs:
             xd.convert()
             os.system('ag out.traj; rm out.traj')
 
-        print calc
+        if options.r is None:
+            print calc
+        else:
+            print repr(calc)
