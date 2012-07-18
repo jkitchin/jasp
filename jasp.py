@@ -615,10 +615,14 @@ from jasp import *
 
 atoms = Atoms([#slurp
 #for $i,$atom in enumerate($atoms)
-Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),#slurp
+               Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),\n#slurp
 #end for
 ],
-              cell=$repr($atoms.get_cell()))
+              cell=[#slurp
+              #for $vector in $atoms.get_cell()
+              <%= '[{0: 12.8f}, {1: 12.8f}, {2: 12.8f}],'.format(vector[0], vector[1], vector[2])%>
+              #end for
+              ])
 
 with jasp('$calc.vaspdir',
 #for key in $calc.int_params
