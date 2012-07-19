@@ -84,6 +84,34 @@ class VaspNotConverged(exceptions.Exception):
 class VaspUnknownState(exceptions.Exception):
     pass
 
+def clone(self,newdir, extra_files=[]):
+    '''copy a vasp directory to a new directory. Does not overwrite
+    existing files.
+
+    Does not copy METADATA. The point of cloning is that you will
+    change some parameter, and so the METADATA should be changed.
+    '''
+    # http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
+    vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
+                 'OUTCAR','vasprun.xml',
+                 'KPOINTS','IBZKPT','POSCAR','CONTCAR',
+                 'EXHCAR','CHGCAR', 'CHG','WAVECAR',
+                 'TMPCAR','EIGENVAL','DOSCAR','PROCAR',
+                 'OSZICAR','PCDAT','XDATCAR','LOCPOT',
+                 'ELFCAR','PROOUT','ase-sort.dat' ]
+
+    newdirpath = os.path.join(self.cwd, newdir)
+    import shutil
+    if not os.path.isdir(newdirpath):
+        os.makedirs(newdirpath)
+    for vf in vaspfiles+extra_files:
+
+        if (not os.path.exists(os.path.join(newdirpath,vf))
+            and os.path.exists(vf)):
+            shutil.copy(vf,newdirpath)
+
+
+Vasp.clone = clone
 
 def write_kpoints(self, **kwargs):
     """Writes the KPOINTS file.
@@ -264,6 +292,8 @@ def get_pseudopotentials(self):
         xc = '_gga/'
     elif p['xc'] == 'PBE':
         xc = '_pbe/'
+    elif p['xc'] == 'LDA':
+        xc = '_lda/'
     if 'VASP_PP_PATH' in os.environ:
         pppaths = os.environ['VASP_PP_PATH'].split(':')
     else:
@@ -307,6 +337,7 @@ def get_pseudopotentials(self):
                 self.ppp_list.append(filename+'.Z')
                 break
         if not found:
+            print 'Looked for %s' % name
             raise RuntimeError('No pseudopotential for %s!' % symbol)
 
         # get sha1 hashes similar to the way git does it
@@ -406,14 +437,15 @@ def calculate(self, atoms=None):
 
     if hasattr(self,'converged'):
          if (self.converged
-             and ((self.float_params == self.old_float_params) or
-                  (self.exp_params == self.old_exp_params) or
-                  (self.string_params == self.old_string_params) or
-                  (self.int_params == self.old_int_params) or
-                  (self.bool_params == self.old_bool_params) or
-                  (self.list_params == self.old_list_params) or
-                  (self.input_params == self.old_input_params) or
+             and ((self.float_params == self.old_float_params) and
+                  (self.exp_params == self.old_exp_params) and
+                  (self.string_params == self.old_string_params) and
+                  (self.int_params == self.old_int_params) and
+                  (self.bool_params == self.old_bool_params) and
+                  (self.list_params == self.old_list_params) and
+                  (self.input_params == self.old_input_params) and
                   (self.dict_params == self.old_dict_params))):
+
              return
 
     # if you get here, we call the original method, which calls run
