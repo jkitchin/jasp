@@ -129,8 +129,6 @@ def write_kpoints(self, **kwargs):
     The usual way to call
     calc.write_kpts()
     """
-
-
     # this should preserve the original behavior except, if KPOINTS
     # exists,we do not overwrite it. That is probably not what is
     # desired because it meansthe only way to change it is to delete
@@ -292,8 +290,6 @@ def get_pseudopotentials(self):
         xc = '_gga/'
     elif p['xc'] == 'PBE':
         xc = '_pbe/'
-    elif p['xc'] == 'LDA':
-        xc = '_lda/'
     if 'VASP_PP_PATH' in os.environ:
         pppaths = os.environ['VASP_PP_PATH'].split(':')
     else:
@@ -337,7 +333,12 @@ def get_pseudopotentials(self):
                 self.ppp_list.append(filename+'.Z')
                 break
         if not found:
-            print 'Looked for %s' % name
+            print '''Looking for %s
+                The pseudopotentials are expected to be in:
+                LDA:  $VASP_PP_PATH/potpaw/
+                PBE:  $VASP_PP_PATH/potpaw_PBE/
+                PW91: $VASP_PP_PATH/potpaw_GGA/'''  % name
+
             raise RuntimeError('No pseudopotential for %s!' % symbol)
 
         # get sha1 hashes similar to the way git does it
@@ -780,6 +781,9 @@ def set_nbands(self, f=1.5):
 
     for transition metals f may be as high as 2.
     '''
+    if not os.path.exists('POTCAR'):
+        self.initialize(self.get_atoms())
+        self.write_potcar()
     default_electrons = self.get_default_number_of_electrons()
 
     d = {}
