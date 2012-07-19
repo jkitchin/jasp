@@ -84,21 +84,24 @@ class VaspNotConverged(exceptions.Exception):
 class VaspUnknownState(exceptions.Exception):
     pass
 
+
+# http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
+vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
+             'OUTCAR','vasprun.xml',
+             'KPOINTS','IBZKPT','POSCAR','CONTCAR',
+             'EXHCAR','CHGCAR', 'CHG','WAVECAR',
+             'TMPCAR','EIGENVAL','DOSCAR','PROCAR',
+             'OSZICAR','PCDAT','XDATCAR','LOCPOT',
+             'ELFCAR','PROOUT','ase-sort.dat' ]
+
 def clone(self,newdir, extra_files=[]):
     '''copy a vasp directory to a new directory. Does not overwrite
-    existing files.
+    existing files. newdir is relative to the the directory the
+    calculator was created from, not the current working directory.
 
     Does not copy METADATA. The point of cloning is that you will
     change some parameter, and so the METADATA should be changed.
     '''
-    # http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
-    vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
-                 'OUTCAR','vasprun.xml',
-                 'KPOINTS','IBZKPT','POSCAR','CONTCAR',
-                 'EXHCAR','CHGCAR', 'CHG','WAVECAR',
-                 'TMPCAR','EIGENVAL','DOSCAR','PROCAR',
-                 'OSZICAR','PCDAT','XDATCAR','LOCPOT',
-                 'ELFCAR','PROOUT','ase-sort.dat' ]
 
     newdirpath = os.path.join(self.cwd, newdir)
     import shutil
@@ -112,6 +115,30 @@ def clone(self,newdir, extra_files=[]):
 
 
 Vasp.clone = clone
+
+def archive(self,archive, extra_files=[], append=False):
+    '''
+    create an archive file (.tar.gz) of the vasp files in the current directory.
+    This is a way to save intermediate results.
+    '''
+
+    import tarfile
+    archive_name = archive + '.tar.gz'
+    if not append and os.path.exists(archive_name):
+        # we do not overwrite existing archives except to append
+        return None
+    elif append and os.path.exists(archive_name):
+        mode = 'a:gz'
+    else:
+        mode = 'w:gz'
+
+    f = tarfile.open(archive_name, mode)
+    for vf in vaspfiles + extra_files:
+        if os.path.exists(vf):
+            f.add(vf)
+    f.close()
+
+Vasp.archive = archive
 
 def write_kpoints(self, **kwargs):
     """Writes the KPOINTS file.
