@@ -339,7 +339,9 @@ def get_pseudopotentials(self):
                 self.ppp_list.append(filename+'.Z')
                 break
         if not found:
-            raise RuntimeError('No pseudopotential for %s!' % symbol)
+            log.debug('Looked for %s'%name)
+            print 'Looked for %s'%name
+            raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,name))
     #print 'symbols', symbols
     for symbol in symbols:
         try:
@@ -365,7 +367,9 @@ def get_pseudopotentials(self):
                 LDA:  $VASP_PP_PATH/potpaw/
                 PBE:  $VASP_PP_PATH/potpaw_PBE/
                 PW91: $VASP_PP_PATH/potpaw_GGA/'''  % name
-
+            log.debug('Looked for %s'%name)
+            print 'Looked for %s'%name
+            raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,name))
             raise RuntimeError('No pseudopotential for %s!' % symbol)
 
         # get sha1 hashes similar to the way git does it
@@ -866,11 +870,9 @@ def Jasp(**kwargs):
         del kwargs['debug']
 
     # empty vasp dir. start from scratch
-    if (not os.path.exists('INCAR')
-        and not os.path.exists('POSCAR')
-        and not os.path.exists('KPOINTS')
-        and not os.path.exists('POTCAR')):
+    if (not os.path.exists('INCAR')):
         calc = Vasp(**kwargs)
+
         if atoms_kwargs:
             atoms.calc = calc
         log.debug('empty vasp dir. start from scratch')
@@ -881,9 +883,25 @@ def Jasp(**kwargs):
         # but no output files
         and not os.path.exists('CONTCAR')
         and not os.path.exists('vasprun.xml')):
-        calc = Vasp(**kwargs)
+
+        # this is kind of a weird case. There are input files, but
+        # maybe we have tried to start a jasp calculation from
+        # existing Vasp input files, and maybe need to set a few
+        # additional parameters.
+        calc = Vasp()
+        calc.read_incar()
+        calc.read_kpoints()
+
+        for kw in kwargs:
+            calc.set(**kwargs)
+
         if atoms_kwargs:
             atoms.calc = calc
+        else:
+            import ase.io
+            atoms = ase.io.read('POSCAR')
+            atoms.set_calculator(calc)
+
         log.debug('initialized directory, but no job has been run')
 
     # job created, and in queue, but not running
