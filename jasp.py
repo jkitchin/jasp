@@ -18,6 +18,8 @@ import commands, exceptions, os, sys
 from hashlib import sha1
 from subprocess import Popen, PIPE
 import numpy as np
+np.set_printoptions(precision=3, suppress=True)
+
 from ase import Atoms
 from ase.calculators.vasp import *
 
@@ -483,7 +485,13 @@ def calculate(self, atoms=None):
     # if you get here, we call the original method, which calls run
     if atoms is None:
         atoms = self.get_atoms()
+
+    # create a METADATA file if it does not exist.
+    if not os.path.exists('METADATA'):
+        self.create_metadata()
+
     original_calculate(self, atoms)
+
 
 Vasp.calculate = calculate
 
@@ -544,97 +552,111 @@ def pretty_print(self):
     '''
     __str__ function to print the calculator with a nice summary, e.g. jaspsum
     '''
-    atoms = self.get_atoms()
-    uc = atoms.get_cell()
-    pos = atoms.get_positions()
-    syms = atoms.get_chemical_symbols()
-
-    try:
-        self.converged = self.read_convergence()
-    except IOError:
-        # eg no outcar
-        self.converged = False
-
-    if not self.converged:
-        print self.read_relaxed()
-
-    if self.converged:
-        energy = atoms.get_potential_energy()
-        forces = atoms.get_forces()
-    else:
-        energy = np.nan
-        forces = [np.array([np.nan, np.nan, np.nan]) for atom in atoms]
-
-    if self.converged:
-        if hasattr(self,'stress'):
-            stress = self.stress
-    else:
-        stress = None
-
-    # get a,b,c,alpha,beta, gamma
-    from Scientific.Geometry import Vector
-    A = Vector(uc[0,:])
-    B = Vector(uc[1,:])
-    C = Vector(uc[2,:])
-    a = A.length()
-    b = B.length()
-    c = C.length()
-    alpha = B.angle(C)*180/np.pi
-    beta = A.angle(C)*180/np.pi
-    gamma = B.angle(C)*180/np.pi
-    volume = atoms.get_volume()
-
     s = []
     s.append(': -----------------------------')
     s.append('  VASP calculation from %s' % os.getcwd())
-    s.append('  converged: %s' % self.converged)
-    s.append('  Energy = %f eV' % energy)
-    s.append('\n  Unit cell vectors (angstroms)')
-    s.append('        x       y     z      length')
-    s.append('  a0 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[0][0],
-                                                 uc[0][1],
-                                                 uc[0][2],
-                                                 A.length()))
-    s.append('  a1 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[1][0],
-                                                 uc[1][1],
-                                                 uc[1][2],
-                                                 B.length()))
-    s.append('  a2 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[2][0],
-                                                 uc[2][1],
-                                                 uc[2][2],
-                                                 C.length()))
-    s.append('  a,b,c,alpha,beta,gamma (deg): %1.3f %1.3f %1.3f %1.1f %1.1f %1.1f' % (a,
-                                                                              b,
-                                                                              c,
-                                                                              alpha,
-                                                                              beta,gamma))
-    s.append('  Unit cell volume = {0:1.3f} Ang^3'.format(volume))
+    if hasattr(self,'converged'):
+        s.append('  converged: %s' % self.converged)
 
-    if stress is not None:
-        s.append('  Stress (GPa):xx,   yy,    zz,    yz,    xz,    xy')
-        s.append('            % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f' % tuple(stress))
+    try:
+        atoms = self.get_atoms()
+
+        uc = atoms.get_cell()
+        pos = atoms.get_positions()
+        syms = atoms.get_chemical_symbols()
+
+        try:
+            self.converged = self.read_convergence()
+        except IOError:
+            # eg no outcar
+            self.converged = False
+
+        if not self.converged:
+            try:
+                print self.read_relaxed()
+            except IOError:
+                print False
+        if self.converged:
+            energy = atoms.get_potential_energy()
+            forces = atoms.get_forces()
+        else:
+            energy = np.nan
+            forces = [np.array([np.nan, np.nan, np.nan]) for atom in atoms]
+
+        if self.converged:
+            if hasattr(self,'stress'):
+                stress = self.stress
+        else:
+            stress = None
+
+        # get a,b,c,alpha,beta, gamma
+        from Scientific.Geometry import Vector
+        A = Vector(uc[0,:])
+        B = Vector(uc[1,:])
+        C = Vector(uc[2,:])
+        a = A.length()
+        b = B.length()
+        c = C.length()
+        alpha = B.angle(C)*180/np.pi
+        beta = A.angle(C)*180/np.pi
+        gamma = B.angle(C)*180/np.pi
+        volume = atoms.get_volume()
+
+        s.append('  Energy = %f eV' % energy)
+        s.append('\n  Unit cell vectors (angstroms)')
+        s.append('        x       y     z      length')
+        s.append('  a0 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[0][0],
+                                                     uc[0][1],
+                                                     uc[0][2],
+                                                     A.length()))
+        s.append('  a1 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[1][0],
+                                                     uc[1][1],
+                                                     uc[1][2],
+                                                     B.length()))
+        s.append('  a2 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[2][0],
+                                                     uc[2][1],
+                                                     uc[2][2],
+                                                     C.length()))
+        s.append('  a,b,c,alpha,beta,gamma (deg): %1.3f %1.3f %1.3f %1.1f %1.1f %1.1f' % (a,
+                                                                                  b,
+                                                                                  c,
+                                                                                  alpha,
+                                                                                  beta,gamma))
+        s.append('  Unit cell volume = {0:1.3f} Ang^3'.format(volume))
+
+        if stress is not None:
+            s.append('  Stress (GPa):xx,   yy,    zz,    yz,    xz,    xy')
+            s.append('            % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f' % tuple(stress))
+        else:
+            s += ['  Stress was not computed']
+
+        s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce')
+        for i,atom in enumerate(atoms):
+            rms_f = np.sum(forces[i]**2)**0.5
+            ts = '  {0:^4d} {1:^4s} [{2:<9.3f}{3:^9.3f}{4:9.3f}] {5:^6d}{6:1.2f}'.format(i,
+                                                           atom.symbol,
+                                                           atom.x,
+                                                           atom.y,
+                                                           atom.z,
+                                                           atom.tag,
+                                                           rms_f)
+
+            s.append(ts)
+
+        s.append('--------------------------------------------------')
+        if self.get_spin_polarized() and self.converged:
+            s.append('Spin polarized: Magnetic moment = %1.2f' % self.get_magnetic_moment(atoms))
+
+    except AttributeError:
+        # no atoms
+        pass
+
+    if os.path.exists('INCAR'):
+        # print all parameters that are set
+        self.read_incar()
+        ppp_list = self.get_pseudopotentials()
     else:
-        s += ['  Stress was not computed']
-
-    s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce')
-    for i,atom in enumerate(atoms):
-        rms_f = np.sum(forces[i]**2)**0.5
-        ts = '  {0:^4d} {1:^4s} [{2:<9.3f}{3:^9.3f}{4:9.3f}] {5:^6d}{6:1.2f}'.format(i,
-                                                       atom.symbol,
-                                                       atom.x,
-                                                       atom.y,
-                                                       atom.z,
-                                                       atom.tag,
-                                                       rms_f)
-
-        s.append(ts)
-
-    s.append('--------------------------------------------------')
-    if self.get_spin_polarized():
-        s.append('Spin polarized: Magnetic moment = %1.2f' % self.get_magnetic_moment(atoms))
-
-    # print all parameters that are set
-    self.read_incar()
+        ppp_list=[(None, None, None)]
     s += ['\nINCAR Parameters:']
     s += ['-----------------']
     for d in [self.int_params,
@@ -654,7 +676,7 @@ def pretty_print(self):
     s += ['\nPseudopotentials used:']
     s += ['----------------------']
 
-    ppp_list = self.get_pseudopotentials()
+
     for sym,ppp,hash in ppp_list:
         s += ['{0}: {1} (git-hash: {2})'.format(sym,ppp,hash)]
 
@@ -678,10 +700,12 @@ from ase import Atom, Atoms
 from jasp import *
 
 atoms = Atoms([Atom('$atoms[0].symbol',[$atoms[0].x, $atoms[0].y, $atoms[0].z]),\n#slurp
+#if len($atoms) > 1
 #for $i,$atom in enumerate($atoms[1:-1])
                Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),\n#slurp
 #end for
                Atom('$atoms[-1].symbol',[$atoms[-1].x, $atoms[1].y, $atoms[1].z])],
+#end if
                cell = [[$atoms.cell[0][0], $atoms.cell[0][1], $atoms.cell[0][2]],
                        [$atoms.cell[1][0], $atoms.cell[1][1], $atoms.cell[1][2]],
                        [$atoms.cell[2][0], $atoms.cell[2][1], $atoms.cell[2][2]]])
@@ -887,10 +911,15 @@ def Jasp(**kwargs):
         # this is kind of a weird case. There are input files, but
         # maybe we have tried to start a jasp calculation from
         # existing Vasp input files, and maybe need to set a few
-        # additional parameters.
+        # additional parameters. If it is the first time running,
+        # e.g. no CONTCAR exists, then we cannot restart the
+        # calculation. we have to build it up.
         calc = Vasp()
         calc.read_incar()
-        calc.read_kpoints()
+        try:
+            calc.read_kpoints()
+        except IOError:
+            pass
 
         for kw in kwargs:
             calc.set(**kwargs)
@@ -1000,10 +1029,6 @@ def Jasp(**kwargs):
     else:
         raise VaspUnknownState, 'I do not recognize the state of this directory {0}'.format(os.getcwd())
 
-    # create a METADATA file if it does not exist.
-    if not os.path.exists('METADATA'):
-        calc.create_metadata()
-
     calc.read_metadata() #read in metadata
 
     return calc
@@ -1024,6 +1049,9 @@ class jasp:
 
         self.cwd = os.getcwd() # directory we were in when jasp created
         self.vaspdir = vaspdir # directory vasp files will be in
+        if 'xc' not in kwargs:
+            kwargs['xc'] = 'PBE'
+
         self.kwargs = kwargs # this does not include the vaspdir variable
 
     def __enter__(self):
