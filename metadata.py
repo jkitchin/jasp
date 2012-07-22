@@ -62,6 +62,9 @@ Vasp.create_metadata = create_metadata
 
 def read_metadata(self, fname='METADATA'):
     '''read metadata file in'''
+    if not os.path.exists(fname):
+        self.metadata = None
+        return
 
     d = {}
 
