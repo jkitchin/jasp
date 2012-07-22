@@ -19,6 +19,10 @@ parser.add_option('-d',
                   nargs=0,
                   help = 'turn debug on')
 
+parser.add_option('-p',
+                  nargs=0,
+                  help = 'plot in ag')
+
 parser.add_option('-t',
                   nargs=0,
                   help = 'plot trajectory')
@@ -26,6 +30,14 @@ parser.add_option('-t',
 parser.add_option('-r',
                   nargs=0,
                   help = 'prints code to make a new calculation')
+
+parser.add_option('-j',
+                  nargs=0,
+                  help = 'prints json representation')
+
+parser.add_option('-x',
+                  nargs=0,
+                  help = 'prints xml representation')
 
 options,args = parser.parse_args()
 
@@ -47,7 +59,18 @@ for d in dirs:
             xd.convert()
             os.system('ag out.traj; rm out.traj')
 
-        if options.r is None:
-            print calc
-        else:
+        if options.p is not None:
+            atoms = calc.get_atoms()
+            from ase.visualize import view
+            view(atoms)
+
+        if options.r is not None:
             print repr(calc)
+        elif options.j is not None:
+            from serialize import *
+            print calc.json
+        elif options.x is not None:
+            from serialize import *
+            print calc.xml
+        else:
+            print calc
