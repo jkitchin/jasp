@@ -10,7 +10,7 @@ def atoms_to_dict(atoms):
     d['symbols'] = atoms.get_chemical_symbols()
     d['positions'] = atoms.positions.tolist()
     d['pbc'] = atoms.get_pbc().tolist()
-    print d['pbc'], atoms.get_pbc()
+
     return d
 
 def calc_to_dict(calc):
@@ -74,6 +74,94 @@ def calc_to_xml(self):
     d = vasp(calc_to_dict(self))
     return pyxser.serialize(obj=d, enc='utf-8')
 Vasp.xml = property(calc_to_xml)
+
+def vasp_repr(self):
+    '''this function generates python code to make the calculator.
+
+    Missing functionality: constraints, magnetic moments
+    '''
+    from Cheetah.Template import Template
+
+    atoms = self.get_atoms()
+    calc = self
+
+    template = '''\
+from numpy import array
+from ase import Atom, Atoms
+from jasp import *
+
+atoms = Atoms([Atom('$atoms[0].symbol',[$atoms[0].x, $atoms[0].y, $atoms[0].z]),\n#slurp
+#if len($atoms) > 1
+#for $i,$atom in enumerate($atoms[1:-1])
+               Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),\n#slurp
+#end for
+               Atom('$atoms[-1].symbol',[$atoms[-1].x, $atoms[1].y, $atoms[1].z])],
+#end if
+               cell = [[$atoms.cell[0][0], $atoms.cell[0][1], $atoms.cell[0][2]],
+                       [$atoms.cell[1][0], $atoms.cell[1][1], $atoms.cell[1][2]],
+                       [$atoms.cell[2][0], $atoms.cell[2][1], $atoms.cell[2][2]]])
+
+with jasp('$calc.vaspdir',
+#for key in $calc.int_params
+#if $calc.int_params[key] is not None
+          $key = $calc.int_params[key],
+#end if
+#end for
+#
+#for key in $calc.float_params
+#if $calc.float_params[key] is not None
+          $key = $calc.float_params[key],
+#end if
+#end for
+#
+#for key in $calc.string_params
+#if $calc.string_params[key] is not None
+          $key = '$calc.string_params[key]',
+#end if
+#end for
+#
+#for key in $calc.exp_params
+#if $calc.exp_params[key] is not None
+          $key = '$calc.exp_params[key]',
+#end if
+#end for
+#
+#for key in $calc.bool_params
+#if $calc.bool_params[key] is not None
+          $key = $calc.bool_params[key],
+#end if
+#end for
+#
+#for key in $calc.list_params
+#if $calc.list_params[key] is not None
+          $key = $repr($calc.list_params[key]),
+#end if
+#end for
+#
+#for key in $calc.dict_params
+#if $calc.dict_params[key] is not None
+          $key = $repr($calc.dict_params[key]),
+#end if
+#end for
+#
+#for key in $calc.special_params
+#if $calc.special_params[key] is not None
+          $key = $repr($calc.special_params[key]),
+#end if
+#end for
+#
+#for key in $calc.input_params
+#if $calc.input_params[key] is not None
+          $key = $repr($calc.input_params[key]),
+#end if
+#end for
+#
+          atoms=atoms) as calc:
+    # your code here
+'''
+    return Template(template,searchList=[locals()]).respond()
+
+Vasp.__repr__ = vasp_repr
 
 Vasp.python = property(vasp_repr)
 
