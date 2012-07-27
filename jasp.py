@@ -28,6 +28,8 @@ from jasprc import *     # configuration data
 from metadata import *   # jasp metadata
 from POTCAR import *
 from volumetric_data import * # CHG and LOCPOT parsing
+from serialize import *
+from jasp_neb import *
 
 def atoms_equal(self, other):
     '''
@@ -465,9 +467,10 @@ def calculate(self, atoms=None):
     if hasattr(self,'vasp_running'):
         raise VaspRunning
 
-    if 'mode' in JASPRC:
-        if JASPRC['mode'] is None:
-            raise Exception, '''JASPRC['mode'] is None. we should not be running!'''
+    # I amnot sure why I have to read this here. I thought it should
+    # be set when restart=True is used.
+    if os.path.exists('CONTCAR'):
+        self.converged  = self.read_convergence()
 
     if hasattr(self,'converged'):
          if (self.converged
@@ -479,8 +482,16 @@ def calculate(self, atoms=None):
                   (self.list_params == self.old_list_params) and
                   (self.input_params == self.old_input_params) and
                   (self.dict_params == self.old_dict_params))):
-
              return
+
+    if 'mode' in JASPRC:
+        if JASPRC['mode'] is None:
+            log.debug(self)
+            log.debug('self.converged" %s',self.converged)
+            log.debug('Converged: %s',self.read_convergence())
+            log.debug('read relaxed: %s',self.read_relaxed())
+
+            raise Exception, '''JASPRC['mode'] is None. we should not be running!'''
 
     # if you get here, we call the original method, which calls run
     if atoms is None:
@@ -491,7 +502,6 @@ def calculate(self, atoms=None):
         self.create_metadata()
 
     original_calculate(self, atoms)
-
 
 Vasp.calculate = calculate
 
@@ -684,94 +694,6 @@ def pretty_print(self):
 
 Vasp.__str__ = pretty_print
 
-def vasp_repr(self):
-    '''this function generates python code to make the calculator.
-
-    Missing functionality: constraints, magnetic moments
-    '''
-    from Cheetah.Template import Template
-
-    atoms = self.get_atoms()
-    calc = self
-
-    template = '''\
-from numpy import array
-from ase import Atom, Atoms
-from jasp import *
-
-atoms = Atoms([Atom('$atoms[0].symbol',[$atoms[0].x, $atoms[0].y, $atoms[0].z]),\n#slurp
-#if len($atoms) > 1
-#for $i,$atom in enumerate($atoms[1:-1])
-               Atom('$atom.symbol',[$atom.x, $atom.y, $atom.z]),\n#slurp
-#end for
-               Atom('$atoms[-1].symbol',[$atoms[-1].x, $atoms[1].y, $atoms[1].z])],
-#end if
-               cell = [[$atoms.cell[0][0], $atoms.cell[0][1], $atoms.cell[0][2]],
-                       [$atoms.cell[1][0], $atoms.cell[1][1], $atoms.cell[1][2]],
-                       [$atoms.cell[2][0], $atoms.cell[2][1], $atoms.cell[2][2]]])
-
-with jasp('$calc.vaspdir',
-#for key in $calc.int_params
-#if $calc.int_params[key] is not None
-          $key = $calc.int_params[key],
-#end if
-#end for
-#
-#for key in $calc.float_params
-#if $calc.float_params[key] is not None
-          $key = $calc.float_params[key],
-#end if
-#end for
-#
-#for key in $calc.string_params
-#if $calc.string_params[key] is not None
-          $key = '$calc.string_params[key]',
-#end if
-#end for
-#
-#for key in $calc.exp_params
-#if $calc.exp_params[key] is not None
-          $key = '$calc.exp_params[key]',
-#end if
-#end for
-#
-#for key in $calc.bool_params
-#if $calc.bool_params[key] is not None
-          $key = $calc.bool_params[key],
-#end if
-#end for
-#
-#for key in $calc.list_params
-#if $calc.list_params[key] is not None
-          $key = $repr($calc.list_params[key]),
-#end if
-#end for
-#
-#for key in $calc.dict_params
-#if $calc.dict_params[key] is not None
-          $key = $repr($calc.dict_params[key]),
-#end if
-#end for
-#
-#for key in $calc.special_params
-#if $calc.special_params[key] is not None
-          $key = $repr($calc.special_params[key]),
-#end if
-#end for
-#
-#for key in $calc.input_params
-#if $calc.input_params[key] is not None
-          $key = $repr($calc.input_params[key]),
-#end if
-#end for
-#
-          atoms=atoms) as calc:
-    # your code here
-'''
-    return Template(template,searchList=[locals()]).respond()
-
-Vasp.__repr__ = vasp_repr
-
 #########################################################################
 def checkerr_vasp(self):
     ''' Checks vasp output in OUTCAR for errors. adapted from atat code'''
@@ -880,7 +802,56 @@ def Jasp(**kwargs):
     **kwargs is the same as ase.calculators.vasp except that atoms can be used.
 
     you must be in the directory where vasp will be run.
+
+    Nudged elastic band calculations are special, and different.
     '''
+
+    log.debug('Jasp called in %s',os.getcwd())
+
+    if 'spring' in kwargs:
+        # special NEB case
+        log.debug('Entering NEB setup')
+
+        neb_images = kwargs['atoms'] # you must include a list of images!
+        del kwargs['atoms']
+
+        # make a Vasp object and set the images tag
+        calc = Vasp(**kwargs)
+
+        NIMAGES = len(neb_images)-2
+        calc.set(images=NIMAGES) #number of images not counting endpoints
+        calc.neb_images = neb_images
+        calc.neb_nimages = NIMAGES
+        calc.neb = True
+
+        # how to get the initial and final energies?
+        initial = neb_images[0]
+        log.debug(initial)
+        calc0 = initial.get_calculator()
+        log.debug(calc0.cwd)
+        log.debug(calc0.vaspdir)
+
+        CWD = os.getcwd()
+        try:
+            os.chdir(os.path.join(calc0.cwd, calc0.vaspdir))
+            e0 = calc0.read_energy()[1]
+        finally:
+            os.chdir(CWD)
+
+        final = neb_images[-1]
+        log.debug(final)
+        calc_final = final.get_calculator()
+        log.debug(calc_final.cwd)
+        log.debug(calc_final.vaspdir)
+        try:
+            os.chdir(os.path.join(calc_final.cwd, calc_final.vaspdir))
+            efinal = calc_final.read_energy()[1]
+        finally:
+            os.chdir(CWD)
+
+        calc.neb_initial_energy = e0
+        calc.neb_final_energy = efinal
+        return calc
 
     if 'atoms' in kwargs:
         atoms = kwargs['atoms']
@@ -905,8 +876,7 @@ def Jasp(**kwargs):
     elif (not os.path.exists('jobid')
           and os.path.exists('INCAR')
         # but no output files
-        and not os.path.exists('CONTCAR')
-        and not os.path.exists('vasprun.xml')):
+        and not os.path.exists('CONTCAR')):
 
         # this is kind of a weird case. There are input files, but
         # maybe we have tried to start a jasp calculation from
@@ -928,8 +898,12 @@ def Jasp(**kwargs):
             atoms.calc = calc
         else:
             import ase.io
-            atoms = ase.io.read('POSCAR')
-            atoms.set_calculator(calc)
+            try:
+                atoms = ase.io.read('POSCAR')
+                atoms.set_calculator(calc)
+            except IOError:
+                #no POSCAR found
+                pass
 
         log.debug('initialized directory, but no job has been run')
 
