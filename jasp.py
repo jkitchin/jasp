@@ -212,16 +212,7 @@ Vasp.write_kpoints = write_kpoints
 
 def get_vibrational_frequencies(self):
     '''
-     Eigenvectors and eigenvalues of the dynamical matrix
- ----------------------------------------------------
-
-
-   1 f  =  115.004987 THz   722.597642 2PiTHz 3836.153312 cm-1   475.622564 meV
-             X         Y         Z           dx          dy          dz
-      0.596081  7.232293  0.000000     0.417705   -0.537764    0.010516
-      0.596081  0.767707  0.000000    -0.417705   -0.537764   -0.010516
-      0.000000  0.000000  7.985000     0.000000    0.269152    0.000000
-
+    returns frequencies in wavenumbers
     '''
     atoms = self.get_atoms()
     N = len(atoms)
@@ -251,6 +242,76 @@ def get_vibrational_frequencies(self):
     return frequencies
 
 Vasp.get_vibrational_frequencies = get_vibrational_frequencies
+
+def get_vibrational_modes(self, mode=None, show=False, npoints=20, amplitude=1.0):
+    '''
+    read the OUTCAR and get the eigenvectors
+
+    mode= None returns all modes
+    mode= 2 returns mode 2
+    mode=[1,2] returns modes 1 and 2
+
+    show=True makes a trajectory that can be visualized
+    npoints = number of points in the trajectory
+    amplitude = magnitude of the vibrations
+
+    I am not sure if these eigenvectors are mass-weighted. And I am not sure if the order of the eigenvectors in OUTCAR is the same as the atoms.
+    '''
+    atoms = self.get_atoms()
+    N = len(atoms)
+
+    frequencies, eigenvectors = [], []
+
+    f = open('OUTCAR', 'r')
+    while True:
+        line = f.readline()
+        if line.startswith(' Eigenvectors and eigenvalues of the dynamical matrix'):
+            break
+    f.readline() #skip ------
+    f.readline() # skip two blank lines
+    f.readline()
+    for i in range(3*N):
+        freqline = f.readline()
+        fields = freqline.split()
+
+        if 'f/i=' in line: #imaginary frequency
+            frequencies.append(complex(float(fields[-2])*0.001, 0j)) # frequency in wave-numbers
+        else:
+            frequencies.append(float(fields[-2])*0.001)
+        f.readline() #        X         Y         Z           dx          dy          dz
+        thismode = []
+        for i in range(N):
+            line = f.readline().strip()
+            X,Y,Z,dx,dy,dz = [float(x) for x in line.split()]
+            thismode.append(np.array([dx, dy, dz]))
+        f.readline() # blank line
+        eigenvectors.append(thismode)
+    f.close()
+    frequencies = np.array(frequencies)
+    eigenvectors = np.array(eigenvectors)
+
+    if mode is None:
+        retval = (frequencies, eigenvectors)
+    else:
+        retval = (frequencies[mode], eigenvectors[mode])
+
+    if show:
+        from ase.visualize import view
+        if mode is None:
+            mode=0
+        X = np.append(np.linspace(-1,1,npoints), np.linspace(1,-1,npoints))*amplitude
+
+        for m in mode:
+            traj = []
+            for i,x in enumerate(X):
+                a = atoms.copy()
+                a.positions += x*eigenvectors[m]
+                traj += [a]
+
+            view(traj)
+    return retval
+
+Vasp.get_vibrational_modes = get_vibrational_modes
 
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
