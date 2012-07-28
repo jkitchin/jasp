@@ -701,7 +701,25 @@ def pretty_print(self):
         else:
             s += ['  Stress was not computed']
 
-        s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce')
+
+
+        constraints = None
+        if hasattr(atoms, 'constraints'):
+            from ase.constraints import FixAtoms, FixScaled
+            constraints = [[None, None, None] for atom in atoms]
+            for constraint in atoms.constraints:
+                if isinstance(constraint, FixAtoms):
+                    print dir(constraint)
+                    for i in  constraint.index:
+                        constraints[i] = [True, True, True]
+                if isinstance(constraint, FixScaled):
+                    warning.warn('FixScaled constraints not implemented  yet'
+
+        if constraints is None:
+            s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce')
+        else:
+            s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce constraints')
+
         for i,atom in enumerate(atoms):
             rms_f = np.sum(forces[i]**2)**0.5
             ts = '  {0:^4d} {1:^4s} [{2:<9.3f}{3:^9.3f}{4:9.3f}] {5:^6d}{6:1.2f}'.format(i,
@@ -711,6 +729,11 @@ def pretty_print(self):
                                                            atom.z,
                                                            atom.tag,
                                                            rms_f)
+            if constraints is not None:
+                ts += '      {0} {1} {2}'.format('T' if constraints[i][0] is True else 'F',
+                                                 'T' if constraints[i][1] is True else 'F',
+                                                 'T' if constraints[i][2] is True else 'F')
+
 
             s.append(ts)
 
