@@ -100,8 +100,9 @@ def get_neb(self, npi=1):
 
         # run the job
         # what about an NEB metadata?
-        if not os.path.exists('METADATA'):
-            self.create_metadata()
+        #        if not os.path.exists('METADATA'):
+        # we need atoms to write metadata!
+        #   self.create_metadata()
 
         JASPRC['queue.nodes'] = npi*self.neb_nimages
         self.run() # this will raise VaspSubmitted
