@@ -709,11 +709,10 @@ def pretty_print(self):
             constraints = [[None, None, None] for atom in atoms]
             for constraint in atoms.constraints:
                 if isinstance(constraint, FixAtoms):
-                    print dir(constraint)
                     for i in  constraint.index:
                         constraints[i] = [True, True, True]
                 if isinstance(constraint, FixScaled):
-                    warning.warn('FixScaled constraints not implemented  yet'
+                    constraints[constraint.a] = constraint.mask.tolist()
 
         if constraints is None:
             s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce')
@@ -730,9 +729,9 @@ def pretty_print(self):
                                                            atom.tag,
                                                            rms_f)
             if constraints is not None:
-                ts += '      {0} {1} {2}'.format('T' if constraints[i][0] is True else 'F',
-                                                 'T' if constraints[i][1] is True else 'F',
-                                                 'T' if constraints[i][2] is True else 'F')
+                ts += '      {0} {1} {2}'.format('F' if constraints[i][0] is True else 'T',
+                                                 'F' if constraints[i][1] is True else 'T',
+                                                 'F' if constraints[i][2] is True else 'T')
 
 
             s.append(ts)
