@@ -29,6 +29,7 @@ from metadata import *   # jasp metadata
 from POTCAR import *
 from volumetric_data import * # CHG and LOCPOT parsing
 from serialize import *
+from jasp_vib import *
 from jasp_neb import *
 
 def atoms_equal(self, other):
@@ -70,6 +71,24 @@ def atoms_equal(self, other):
 
 Atoms.__eq__ = atoms_equal
 
+def set_volume(self, volume, scale_atoms=True):
+    '''
+    convenience function to set the volume of a unit cell.
+
+    by default the atoms are scaled to the new volume
+    '''
+    v0 = self.get_volume()
+    cell0 = self.get_cell()
+
+    f = (volume/v0)**(1./3.)
+    self.set_cell(f*cell0, scale_atoms=scale_atoms)
+
+Atoms.set_volume = set_volume
+
+#############################################
+# Jasp Exceptions
+#############################################
+
 class VaspQueued(exceptions.Exception):
     pass
 
@@ -88,6 +107,9 @@ class VaspNotConverged(exceptions.Exception):
 class VaspUnknownState(exceptions.Exception):
     pass
 
+##############################################
+# ase.calculators.vasp extensions
+#############################################
 
 # http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
 vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
@@ -210,108 +232,6 @@ def write_kpoints(self, **kwargs):
         kpoints.close()
 Vasp.write_kpoints = write_kpoints
 
-def get_vibrational_frequencies(self):
-    '''
-    returns frequencies in wavenumbers
-    '''
-    atoms = self.get_atoms()
-    N = len(atoms)
-
-    frequencies = []
-
-    f = open('OUTCAR', 'r')
-    while True:
-        line = f.readline()
-        if line.startswith(' Eigenvectors and eigenvalues of the dynamical matrix'):
-            break
-    f.readline() #skip ------
-    f.readline() # skip two blank lines
-    f.readline()
-    for i in range(3*N):
-        # the next line contains the frequencies
-        line = f.readline()
-        fields = line.split()
-
-        if 'f/i=' in line: #imaginary frequency
-            frequencies.append(complex(float(fields[6]), 0j)) # frequency in wave-numbers
-        else:
-            frequencies.append(float(fields[7]))
-        #now skip 1 one line, a line for each atom, and a blank line
-        for j in range(1+N+1): f.readline() #skip the next few lines
-    f.close()
-    return frequencies
-
-Vasp.get_vibrational_frequencies = get_vibrational_frequencies
-
-def get_vibrational_modes(self, mode=None, show=False, npoints=20, amplitude=1.0):
-    '''
-    read the OUTCAR and get the eigenvectors
-
-    mode= None returns all modes
-    mode= 2 returns mode 2
-    mode=[1,2] returns modes 1 and 2
-
-    show=True makes a trajectory that can be visualized
-    npoints = number of points in the trajectory
-    amplitude = magnitude of the vibrations
-
-    I am not sure if these eigenvectors are mass-weighted. And I am not sure if the order of the eigenvectors in OUTCAR is the same as the atoms.
-    '''
-    atoms = self.get_atoms()
-    N = len(atoms)
-
-    frequencies, eigenvectors = [], []
-
-    f = open('OUTCAR', 'r')
-    while True:
-        line = f.readline()
-        if line.startswith(' Eigenvectors and eigenvalues of the dynamical matrix'):
-            break
-    f.readline() #skip ------
-    f.readline() # skip two blank lines
-    f.readline()
-    for i in range(3*N):
-        freqline = f.readline()
-        fields = freqline.split()
-
-        if 'f/i=' in line: #imaginary frequency
-            frequencies.append(complex(float(fields[-2])*0.001, 0j)) # frequency in wave-numbers
-        else:
-            frequencies.append(float(fields[-2])*0.001)
-        f.readline() #        X         Y         Z           dx          dy          dz
-        thismode = []
-        for i in range(N):
-            line = f.readline().strip()
-            X,Y,Z,dx,dy,dz = [float(x) for x in line.split()]
-            thismode.append(np.array([dx, dy, dz]))
-        f.readline() # blank line
-        eigenvectors.append(thismode)
-    f.close()
-    frequencies = np.array(frequencies)
-    eigenvectors = np.array(eigenvectors)
-
-    if mode is None:
-        retval = (frequencies, eigenvectors)
-    else:
-        retval = (frequencies[mode], eigenvectors[mode])
-
-    if show:
-        from ase.visualize import view
-        if mode is None:
-            mode=0
-        X = np.append(np.linspace(-1,1,npoints), np.linspace(1,-1,npoints))*amplitude
-
-        for m in mode:
-            traj = []
-            for i,x in enumerate(X):
-                a = atoms.copy()
-                a.positions += x*eigenvectors[m]
-                traj += [a]
-
-            view(traj)
-    return retval
-
-Vasp.get_vibrational_modes = get_vibrational_modes
 
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
@@ -823,13 +743,15 @@ def checkerr_vasp(self):
 
 Vasp.register_post_run_hook(checkerr_vasp)
 
-def cleanvasp(self):
+def strip(self, extrafiles = []):
     '''removes large uncritical output files from directory'''
-    files_to_remove = ['CHG', 'CHGCAR', 'WAVECAR',
-                       'EIGENVAL', 'IBZKPT', 'PCDAT', 'XDATCAR']
+    files_to_remove = ['CHG', 'CHGCAR', 'WAVECAR'] + extrafiles
+
     for f in files_to_remove:
         if os.path.exists(f):
             os.unlink(f)
+
+Vasp.strip = strip
 
 def set_nbands(self, f=1.5):
     ''' convenience function to automatically compute nbands
