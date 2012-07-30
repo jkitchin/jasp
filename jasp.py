@@ -543,6 +543,17 @@ def pretty_print(self):
     '''
     __str__ function to print the calculator with a nice summary, e.g. jaspsum
     '''
+    # special case for neb calculations
+    if self.int_params['images'] is not None:
+        # we have an neb.
+        s = []
+        s.append(': -----------------------------')
+        s.append('  VASP NEB calculation from %s' % os.getcwd())
+        images, energies = self.get_neb()
+        for i,e in enumerate(energies):
+            s += ['image {0}: {1: 1.3f}'.format(i,e)]
+        return '\n'.join(s)
+
     s = []
     s.append(': -----------------------------')
     s.append('  VASP calculation from %s' % os.getcwd())
@@ -810,6 +821,7 @@ formatter = logging.Formatter(formatstring)
 handler.setFormatter(formatter)
 log.addHandler(handler)
 
+
 def Jasp(**kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
     of this function is to enable atoms as a keyword argument, and to
@@ -825,8 +837,8 @@ def Jasp(**kwargs):
 
     log.debug('Jasp called in %s',os.getcwd())
 
+    # special initialization NEB case
     if 'spring' in kwargs:
-        # special NEB case
         log.debug('Entering NEB setup')
 
         neb_images = kwargs['atoms'] # you must include a list of images!
@@ -841,12 +853,20 @@ def Jasp(**kwargs):
         log.debug(calc0.cwd)
         log.debug(calc0.vaspdir)
 
+        # we have to store the initial and final energies because
+        # otherwise they will not be available when reread the
+        # directory in another script, e.g. jaspsum. The only other
+        # option is to make the initial and final directories full
+        # vasp calculations.
         CWD = os.getcwd()
         try:
-            os.chdir(os.path.join(calc0.cwd, calc0.vaspdir))
-            e0 = calc0.read_energy()[1]
+                os.chdir(os.path.join(calc0.cwd, calc0.vaspdir))
+                e0 = calc0.read_energy()[1]
+                calc.neb_initial_energy = e0
+
+
         finally:
-            os.chdir(CWD)
+                os.chdir(CWD)
 
         final = neb_images[-1]
         log.debug(final)
@@ -854,15 +874,13 @@ def Jasp(**kwargs):
         log.debug(calc_final.cwd)
         log.debug(calc_final.vaspdir)
         try:
-            os.chdir(os.path.join(calc_final.cwd, calc_final.vaspdir))
-            efinal = calc_final.read_energy()[1]
+                os.chdir(os.path.join(calc_final.cwd, calc_final.vaspdir))
+                efinal = calc_final.read_energy()[1]
+                calc.neb_final_energy = efinal
         finally:
-            os.chdir(CWD)
+                os.chdir(CWD)
 
-        calc.neb_initial_energy = e0
-        calc.neb_final_energy = efinal
-
-       # make a Vasp object and set inputs to initial image
+        # make a Vasp object and set inputs to initial image
         calc.int_params.update(calc0.int_params)
         calc.float_params.update(calc0.float_params)
         calc.exp_params.update(calc0.exp_params)
@@ -874,7 +892,6 @@ def Jasp(**kwargs):
 
         # now update this call's kwargs
         calc.set(**kwargs)
-
 
         calc.neb_kwargs = kwargs
         NIMAGES = len(neb_images)-2
@@ -918,9 +935,14 @@ def Jasp(**kwargs):
         # calculation. we have to build it up.
         calc = Vasp()
         calc.read_incar()
+
+        if calc.int_params['images'] is not None:
+            return read_neb_calculator()
+
         try:
             calc.read_kpoints()
         except IOError:
+            # no KPOINTS
             pass
 
         for kw in kwargs:
@@ -991,7 +1013,13 @@ def Jasp(**kwargs):
     elif (os.path.exists('jobid')
           and job_in_queue(None)
           and os.path.exists('running')):
-        calc = Vasp(restart=True)
+        calc = Vasp()
+        calc.read_incar()
+        if calc.int_params['images'] is not None:
+            return read_neb_calculator()
+        else:
+            calc = Vasp(restart=True) #automatically loads results
+
         if atoms_kwargs:
             atoms.calc = calc
         calc.vasp_running = True
@@ -1006,7 +1034,14 @@ def Jasp(**kwargs):
         # delete the jobid file, since it is done
         os.unlink('jobid')
 
-        calc = Vasp(restart=True) #automatically loads results
+        calc = Vasp()
+        calc.read_incar()
+        if calc.int_params['images'] is not None:
+            log.debug('returning neb calculator')
+            return read_neb_calculator()
+        else:
+            calc = Vasp(restart=True) #automatically loads results
+
         # now update the atoms object if it was a kwarg
         if atoms_kwargs:
             atoms.set_cell(calc.atoms.get_cell())
