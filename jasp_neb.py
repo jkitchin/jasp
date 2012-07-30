@@ -1,5 +1,4 @@
 from jasp import *
-
 from ase.io import read, write
 from ase.io.vasp import write_vasp
 
@@ -33,6 +32,7 @@ with jasp('O-diffusion',
 The spring tag triggers the setup of an NEB calculation for Jasp.
 
 '''
+
 import logging
 log = logging.getLogger('Jasp')
 
@@ -225,22 +225,44 @@ def get_neb(self, npi=1):
 
 Vasp.get_neb = get_neb
 
-def plot_neb(self):
+def plot_neb(self, show=True):
     '''
     retrieve the energies and atoms from the band
+    by default shows the plot figure
     '''
-    images, energies = self.get_neb()
-    print images[1].numbers
-    print images[1].get_chemical_symbols()
-    # view
+    import jasp
+    try:
+        images, energies = self.get_neb()
+    except (jasp.VaspQueued):
+        calc = read_neb_calculator()
+
+        images = calc.neb_images
+        energies = []
+        energies += [float(open('00/energy').readline())]
+        for i in range(1,len(images)-1):
+            f = open('0{0}/OUTCAR'.format(i))
+            elines = []
+            for line in f:
+                if 'energy w' in line:
+                    elines += [line]
+            f.close()
+
+            # take last line
+            fields = elines[-1].split()
+            energies += [float(fields[-1])]
+        energies += [float(open('0{0}/energy'.format(len(images)-1)).readline())]
+        energies = np.array(energies)
+
     from ase.visualize import view
     view(images)
 
     import matplotlib.pyplot as plt
-    plt.plot(energies)
+    p = plt.plot(energies-min(energies))
     plt.xlabel('Image')
     plt.ylabel('Energy (eV)')
-    plt.show()
+    if show:
+        plt.show()
+    return p
 
 Vasp.plot_neb = plot_neb
 
@@ -255,14 +277,20 @@ def read_neb_calculator():
     images = []
     for i in range(calc.int_params['images'] + 2):
         cwd = os.getcwd()
-        try:
-            os.chdir('0{0}'.format(i))
-            if os.path.exists('CONTCAR'):
-                images += [read('CONTCAR'.format(i), format='vasp')]
+
+        os.chdir('0{0}'.format(i))
+        if os.path.exists('CONTCAR'):
+            f = open('CONTCAR')
+            if f.read() == '':
+                log.debug('CONTCAR was empty, vasp probably still running')
+                fname = 'POSCAR'
             else:
-                images += [read('POSCAR'.format(i), format='vasp')]
-        finally:
-            os.chdir(cwd)
+                fname = 'CONTCAR'
+        else:
+            fname = 'POSCAR'
+
+        images += [read(fname, format='vasp')]
+        os.chdir(cwd)
 
     f = open('00/energy')
     calc.neb_initial_energy = float(f.readline().strip())
