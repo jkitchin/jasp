@@ -693,6 +693,18 @@ def pretty_print(self):
     for sym,ppp,hash in ppp_list:
         s += ['{0}: {1} (git-hash: {2})'.format(sym,ppp,hash)]
 
+    #  if ibrion in [5,6,7,8] print frequencies
+    if self.int_params['ibrion'] in [5,6,7,8]:
+        freq,modes = self.get_vibrational_modes()
+        s += ['\nVibrational frequencies']
+        s += ['mode   frequency']
+        s += ['------------------']
+        for i,f in enumerate(freq):
+
+            if isinstance(f, float):
+                s +=  ['{0:4d}{1: 10.3f} eV'.format(i,f)]
+            elif isinstance(f, complex):
+                s +=  ['{0:4d}{1: 10.3f} eV'.format(i,-f.real)]
     return '\n'.join(s)
 
 Vasp.__str__ = pretty_print
@@ -820,14 +832,7 @@ def Jasp(**kwargs):
         neb_images = kwargs['atoms'] # you must include a list of images!
         del kwargs['atoms']
 
-        # make a Vasp object and set the images tag
-        calc = Vasp(**kwargs)
-
-        NIMAGES = len(neb_images)-2
-        calc.set(images=NIMAGES) #number of images not counting endpoints
-        calc.neb_images = neb_images
-        calc.neb_nimages = NIMAGES
-        calc.neb = True
+        calc = Vasp()
 
         # how to get the initial and final energies?
         initial = neb_images[0]
@@ -856,6 +861,28 @@ def Jasp(**kwargs):
 
         calc.neb_initial_energy = e0
         calc.neb_final_energy = efinal
+
+       # make a Vasp object and set inputs to initial image
+        calc.int_params.update(calc0.int_params)
+        calc.float_params.update(calc0.float_params)
+        calc.exp_params.update(calc0.exp_params)
+        calc.string_params.update(calc0.string_params)
+        calc.bool_params.update(calc0.bool_params)
+        calc.list_params.update(calc0.list_params)
+        calc.dict_params.update(calc0.dict_params)
+        calc.input_params.update(calc0.input_params)
+
+        # now update this call's kwargs
+        calc.set(**kwargs)
+
+
+        calc.neb_kwargs = kwargs
+        NIMAGES = len(neb_images)-2
+        calc.set(images=NIMAGES) #number of images not counting endpoints
+        calc.neb_images = neb_images
+        calc.neb_nimages = NIMAGES
+        calc.neb = True
+
         return calc
 
     if 'atoms' in kwargs:
