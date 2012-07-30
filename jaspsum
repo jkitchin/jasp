@@ -11,6 +11,10 @@ jaspsum directoryname
 '''
 import os, sys
 from jasp import *
+
+# this should not start calculations
+JASPRC['mode'] = None
+
 from optparse import OptionParser
 
 parser = OptionParser(usage='ncsum',
@@ -39,6 +43,15 @@ parser.add_option('-x',
                   nargs=0,
                   help = 'prints xml representation')
 
+parser.add_option('-v',
+                  nargs=1,
+                  help = 'animate a vibrational mode, args= comma-separated list')
+
+parser.add_option('--neb',
+                  nargs=0,
+                  help = 'plot the neb')
+
+
 options,args = parser.parse_args()
 
 if len(args) == 0:
@@ -52,6 +65,9 @@ else:
     debug = None
 
 for d in dirs:
+    if not os.path.isdir(d):
+        raise Exception, '{0} does not exist!'.format(d)
+
     with jasp(d, debug=debug) as calc:
 
         if options.t is not None:
@@ -74,3 +90,10 @@ for d in dirs:
             print calc.xml
         else:
             print calc
+
+        if options.v is not None:
+            for mode in [int(x) for x in options.v.split(',')]:
+                calc.get_vibrational_modes(mode, show=True)
+
+        if options.neb is not None:
+            calc.plot_neb()
