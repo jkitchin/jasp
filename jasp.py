@@ -549,9 +549,12 @@ def pretty_print(self):
         s = []
         s.append(': -----------------------------')
         s.append('  VASP NEB calculation from %s' % os.getcwd())
-        images, energies = self.get_neb()
-        for i,e in enumerate(energies):
-            s += ['image {0}: {1: 1.3f}'.format(i,e)]
+        try:
+            images, energies = self.get_neb()
+            for i,e in enumerate(energies):
+                s += ['image {0}: {1: 1.3f}'.format(i,e)]
+        except (VaspQueued):
+            s += ['Job is in queue']
         return '\n'.join(s)
 
     s = []
@@ -972,6 +975,10 @@ def Jasp(**kwargs):
         log.debug('job created, and in queue, but not running. tricky case')
 
         self = Vasp()
+        self.read_incar()
+
+        if self.int_params['images'] is not None:
+            return read_neb_calculator()
 
         import ase.io
         # Try to read sorting file
@@ -991,7 +998,7 @@ def Jasp(**kwargs):
             self.sort = range(len(atoms))
             self.resort = range(len(atoms))
 
-        self.read_incar()
+
 
         self.read_kpoints()
         self.read_potcar()
