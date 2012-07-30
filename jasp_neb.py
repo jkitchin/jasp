@@ -1,6 +1,8 @@
 from jasp import *
 
 from ase.io import read, write
+from ase.io.vasp import write_vasp
+
 '''
 code for running NEB calculations in jasp
 
@@ -77,10 +79,10 @@ def get_neb(self, npi=1):
                 f.close()
                 return False
 
-    converged = [subdir_converged('0{0}/OUTCAR'.format(i)) for i in range(1,len(self.neb_images)-1)]
+            converged = [subdir_converged('0{0}/OUTCAR'.format(i)) for i in range(1,len(self.neb_images)-1)]
 
-    if False in converged:
-        print '0{0} does not appear converged'.format(converged.index(False))
+            if False in converged:
+                print '0{0} does not appear converged'.format(converged.index(False))
 
     if calc_required:
         '''
@@ -90,13 +92,85 @@ def get_neb(self, npi=1):
         potcar.
         '''
 
+        # write out all the images, including initial and final
         for i,atoms in enumerate(self.neb_images):
             image_dir = '0{0}'.format(i)
 
             if not os.path.isdir(image_dir):
                 # create if needed.
                 os.makedirs(image_dir)
-                write('{0}/POSCAR'.format(image_dir),atoms,format='vasp')
+
+                # this code is copied from initialize to get the sorting correct.
+                p = self.input_params
+
+                self.all_symbols = atoms.get_chemical_symbols()
+                self.natoms = len(atoms)
+                self.spinpol = atoms.get_initial_magnetic_moments().any()
+                atomtypes = atoms.get_chemical_symbols()
+
+                # Determine the number of atoms of each atomic species
+                # sorted after atomic species
+                special_setups = []
+                symbols = {}
+                if self.input_params['setups']:
+                    for m in self.input_params['setups']:
+                        try :
+                            #special_setup[self.input_params['setups'][m]] = int(m)
+                            special_setups.append(int(m))
+                        except:
+                            #print 'setup ' + m + ' is a groups setup'
+                            continue
+                    #print 'special_setups' , special_setups
+
+                for m,atom in enumerate(atoms):
+                    symbol = atom.symbol
+                    if m in special_setups:
+                        pass
+                    else:
+                        if not symbols.has_key(symbol):
+                            symbols[symbol] = 1
+                        else:
+                            symbols[symbol] += 1
+
+                # Build the sorting list
+                self.sort = []
+                self.sort.extend(special_setups)
+
+                for symbol in symbols:
+                    for m,atom in enumerate(atoms):
+                        if m in special_setups:
+                            pass
+                        else:
+                            if atom.symbol == symbol:
+                                self.sort.append(m)
+                self.resort = range(len(self.sort))
+                for n in range(len(self.resort)):
+                    self.resort[self.sort[n]] = n
+                self.atoms_sorted = atoms[self.sort]
+
+                # Check if the necessary POTCAR files exists and
+                # create a list of their paths.
+                self.symbol_count = []
+                for m in special_setups:
+                    self.symbol_count.append([atomtypes[m],1])
+                for m in symbols:
+                    self.symbol_count.append([m,symbols[m]])
+                    # end copied initialization code
+
+                write_vasp('{0}/POSCAR'.format(image_dir),
+                           self.atoms_sorted,
+                           symbol_count = self.symbol_count)
+
+
+        f = open('00/energy','w')
+        f.write(str(self.neb_initial_energy))
+        f.close()
+
+        f = open('0{0}/energy'.format(len(self.neb_images)-1),'w')
+        f.write(str(self.neb_final_energy))
+        f.close()
+
+        f = open
 
         if not os.path.exists('KPOINTS'):
             self.write_kpoints()
@@ -170,6 +244,7 @@ def plot_neb(self):
 
 Vasp.plot_neb = plot_neb
 
+# this is a static method
 def read_neb_calculator():
     ''' read calculator from working directory'''
     calc = Vasp()
