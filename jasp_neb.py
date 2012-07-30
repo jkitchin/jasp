@@ -234,6 +234,7 @@ def plot_neb(self, show=True):
     try:
         images, energies = self.get_neb()
     except (jasp.VaspQueued):
+        # let's get a snapshot of the progress
         calc = read_neb_calculator()
 
         images = calc.neb_images
@@ -251,7 +252,8 @@ def plot_neb(self, show=True):
             fields = elines[-1].split()
             energies += [float(fields[-1])]
         energies += [float(open('0{0}/energy'.format(len(images)-1)).readline())]
-        energies = np.array(energies)
+
+    energies = np.array(energies)
 
     from ase.visualize import view
     view(images)
