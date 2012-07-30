@@ -49,9 +49,12 @@ def get_neb(self, npi=1):
     '''
     calc_required = False
 
-    if os.path.exists('jobid'):
+    if self.job_in_queue():
         from jasp import VaspQueued
         raise VaspQueued
+    else:
+        if os.path.exists('jobid'):
+            os.unlink('jobid')
 
     # check for OUTCAR in each image dir
     for i in range(1, self.neb_nimages +1):
@@ -61,11 +64,20 @@ def get_neb(self, npi=1):
             break
         else:
             # there was an OUTCAR, now we need to check for
-            # convergence. if we cannot find convergence, it may be
-            # necessary to restart the calculations.
-            import warning
-            warning.warn('No jobid found, and OUTCARS exist. check for convergence.')
-            pass
+            # convergence.
+            def subdir_converged(fname):
+                f = open(fname)
+                for line in f:
+                    if 'reached required accuracy - stopping structural energy minimisation' in line:
+                        return True
+                f.close()
+                return False
+
+    converged = [subdir_converged('0{0}/OUTCAR'.format(i)) for i in range(1,len(self.neb_images)-1)]
+
+    if False in converged:
+        print '0{0} does not appear converged'.format(converged.index(False))
+
 
     if calc_required:
         '''
@@ -74,6 +86,8 @@ def get_neb(self, npi=1):
         write out the poscar for all the images. write out the kpoints and
         potcar.
         '''
+
+        self.set
 
         for i,atoms in enumerate(self.neb_images):
             image_dir = '0{0}'.format(i)
@@ -110,13 +124,14 @@ def get_neb(self, npi=1):
 
     #############################################
     # now we are just retrieving results
+
     images = [self.neb_images[0]]
     energies = [self.neb_initial_energy] #this is a tricky point. unless
                                      #the calc stores an absolute
                                      #path, it may be tricky to call
                                      #get_potential energy
 
-    for i in range(1,nimages+1):
+    for i in range(1,self.neb_nimages+1):
         nebd = '0{0}'.format(i)
         try:
             os.chdir(nebd)
@@ -126,7 +141,7 @@ def get_neb(self, npi=1):
         finally:
             os.chdir('..')
 
-    images += [self.images[-1]]
+    images += [self.neb_images[-1]]
     energies += [self.neb_final_energy]
 
     return (images, energies)
