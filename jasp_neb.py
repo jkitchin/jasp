@@ -1,4 +1,5 @@
 from jasp import *
+
 from ase.io import read, write
 '''
 code for running NEB calculations in jasp
@@ -30,6 +31,8 @@ with jasp('O-diffusion',
 The spring tag triggers the setup of an NEB calculation for Jasp.
 
 '''
+import logging
+log = logging.getLogger('Jasp')
 
 def get_neb(self, npi=1):
     '''
@@ -57,9 +60,10 @@ def get_neb(self, npi=1):
             os.unlink('jobid')
 
     # check for OUTCAR in each image dir
-    for i in range(1, self.neb_nimages +1):
+    for i in range(1, len(self.neb_images)-1):
         wf = '0{0}/OUTCAR'.format(i)
         if not os.path.exists(wf):
+            log.debug('calc_required in {0}'.format(wf))
             calc_required = True
             break
         else:
@@ -78,7 +82,6 @@ def get_neb(self, npi=1):
     if False in converged:
         print '0{0} does not appear converged'.format(converged.index(False))
 
-
     if calc_required:
         '''
         this creates the directories and files if needed.
@@ -86,8 +89,6 @@ def get_neb(self, npi=1):
         write out the poscar for all the images. write out the kpoints and
         potcar.
         '''
-
-        self.set
 
         for i,atoms in enumerate(self.neb_images):
             image_dir = '0{0}'.format(i)
@@ -131,10 +132,12 @@ def get_neb(self, npi=1):
                                      #path, it may be tricky to call
                                      #get_potential energy
 
-    for i in range(1,self.neb_nimages+1):
+    for i in range(1,self.neb_nimages-1):
         nebd = '0{0}'.format(i)
         try:
             os.chdir(nebd)
+            log.debug('in %s' % nebd)
+            log.debug(os.listdir('.'))
             energies += [self.read_energy()[1]]
             atoms = read('CONTCAR',format='vasp')
             images += [atoms]
@@ -153,7 +156,8 @@ def plot_neb(self):
     retrieve the energies and atoms from the band
     '''
     images, energies = self.get_neb()
-
+    print images[1].numbers
+    print images[1].get_chemical_symbols()
     # view
     from ase.visualize import view
     view(images)
@@ -165,3 +169,34 @@ def plot_neb(self):
     plt.show()
 
 Vasp.plot_neb = plot_neb
+
+def read_neb_calculator():
+    ''' read calculator from working directory'''
+    calc = Vasp()
+    calc.vaspdir = os.getcwd()
+    calc.read_incar()
+    calc.read_kpoints()
+
+    images = []
+    for i in range(calc.int_params['images'] + 2):
+        cwd = os.getcwd()
+        try:
+            os.chdir('0{0}'.format(i))
+            if os.path.exists('CONTCAR'):
+                images += [read('CONTCAR'.format(i), format='vasp')]
+            else:
+                images += [read('POSCAR'.format(i), format='vasp')]
+        finally:
+            os.chdir(cwd)
+
+    f = open('00/energy')
+    calc.neb_initial_energy = float(f.readline().strip())
+    f.close()
+    f = open('0{0}/energy'.format(len(images)-1))
+    calc.neb_final_energy = float(f.readline().strip())
+    f.close()
+
+    calc.neb_images = images
+    calc.neb_nimages = len(images)
+    calc.neb=True
+    return calc
