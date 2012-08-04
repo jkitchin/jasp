@@ -977,26 +977,32 @@ def Jasp(debug=None,
 
         if self.int_params['images'] is not None:
             calc = read_neb_calculator()
-
-        import ase.io
-        # Try to read sorting file
-        if os.path.isfile('ase-sort.dat'):
-            self.sort = []
-            self.resort = []
-            file = open('ase-sort.dat', 'r')
-            lines = file.readlines()
-            file.close()
-            for line in lines:
-                data = line.split()
-                self.sort.append(int(data[0]))
-                self.resort.append(int(data[1]))
-            patoms = ase.io.read('POSCAR', format='vasp')[self.resort]
         else:
-            patoms = ase.io.read('POSCAR', format='vasp')
-            self.sort = range(len(atoms))
-            self.resort = range(len(atoms))
 
+            import ase.io
+            # Try to read sorting file
+            if os.path.isfile('ase-sort.dat'):
+                self.sort = []
+                self.resort = []
+                file = open('ase-sort.dat', 'r')
+                lines = file.readlines()
+                file.close()
+                for line in lines:
+                    data = line.split()
+                    self.sort.append(int(data[0]))
+                    self.resort.append(int(data[1]))
+                patoms = ase.io.read('POSCAR', format='vasp')[self.resort]
+            else:
+                log.debug('you are in %s',os.getcwd())
+                patoms = ase.io.read('POSCAR', format='vasp')
+                self.sort = range(len(atoms))
+                self.resort = range(len(atoms))
 
+            if atoms is not None:
+                calc.atoms = atoms
+                atoms.calc = calc
+            else:
+                self.atoms = patoms.copy()
 
         self.read_kpoints()
         self.read_potcar()
@@ -1005,12 +1011,6 @@ def Jasp(debug=None,
         self.converged = False
 
         calc = self
-
-        if atoms_kwargs:
-            calc.atoms = atoms
-            atoms.calc = calc
-        else:
-            self.atoms = patoms.copy()
 
         calc.vasp_queued = True
 

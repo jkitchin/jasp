@@ -82,7 +82,10 @@ def vasp_repr(self):
     '''
     from Cheetah.Template import Template
 
-    atoms = self.get_atoms()
+    try:
+        atoms = self.get_atoms()
+    except AttributeError:
+        return 'No atoms maybe you are an NEB calculation?'
     calc = self
 
     template = '''\
