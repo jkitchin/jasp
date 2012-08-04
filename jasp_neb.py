@@ -1,6 +1,6 @@
 from jasp import *
 from ase.io import read, write
-from ase.io.vasp import write_vasp
+from ase.io.vasp import read_vasp, write_vasp
 
 '''
 code for running NEB calculations in jasp
@@ -49,8 +49,8 @@ def get_neb(self, npi=1):
 
     if no jobid, and no OUTCAR for each image, then calculation required.
 
-    if there is an OUTCAR in each image, but no jobid, we need to check for some
-    convergence criteria in each image directory.
+    It is also possible a keyword has changed, and that a calculation
+    is required.
     '''
     calc_required = False
 
@@ -84,6 +84,17 @@ def get_neb(self, npi=1):
             if False in converged:
                 print '0{0} does not appear converged'.format(converged.index(False))
 
+    # make sure no keywords have changed
+    if not ((self.float_params == self.old_float_params) and
+            (self.exp_params == self.old_exp_params) and
+            (self.string_params == self.old_string_params) and
+            (self.int_params == self.old_int_params) and
+            (self.bool_params == self.old_bool_params) and
+            (self.list_params == self.old_list_params) and
+            (self.input_params == self.old_input_params) and
+            (self.dict_params == self.old_dict_params)):
+        calc_required = True
+
     if calc_required:
         '''
         this creates the directories and files if needed.
@@ -91,6 +102,9 @@ def get_neb(self, npi=1):
         write out the poscar for all the images. write out the kpoints and
         potcar.
         '''
+
+        if os.path.exists('jobid'):
+            raise VaspQueued
 
         # write out all the images, including initial and final
         for i,atoms in enumerate(self.neb_images):
@@ -160,7 +174,10 @@ def get_neb(self, npi=1):
                 write_vasp('{0}/POSCAR'.format(image_dir),
                            self.atoms_sorted,
                            symbol_count = self.symbol_count)
-
+                cwd = os.getcwd()
+                os.chdir(image_dir)
+                self.write_sort_file()
+                os.chdir(cwd)
 
         f = open('00/energy','w')
         f.write(str(self.neb_initial_energy))
@@ -170,58 +187,59 @@ def get_neb(self, npi=1):
         f.write(str(self.neb_final_energy))
         f.close()
 
-        f = open
+        # originally I only created these if they did not exist. that
+        # doesn't modfiy the incar if you add variables though. I am
+        # too lazy right now to write code that checks if a change was
+        # made, and we just write it out here.
+        self.write_kpoints()
+        self.initialize(self.neb_images[0])
+        self.write_potcar()
+        self.write_incar(self.neb_images[0])
 
-        if not os.path.exists('KPOINTS'):
-            self.write_kpoints()
-
-        if not os.path.exists('POTCAR'):
-            # we need an atoms object to get a potcar. we use the initial state
-            self.initialize(self.neb_images[0])
-            self.write_potcar()
-
-        if not os.path.exists('INCAR'):
-            # we need an atoms object to get an incar
-            self.write_incar(self.neb_images[0])
-
-        if os.path.exists('jobid'):
-            raise VaspQueued
-
-        # run the job
-        # what about an NEB metadata?
-        #        if not os.path.exists('METADATA'):
-        # we need atoms to write metadata!
-        #   self.create_metadata()
-
-        JASPRC['queue.nodes'] = npi*self.neb_nimages
+        JASPRC['queue.nodes'] = npi*(self.neb_nimages)
+        log.debug('Running on %i nodes',JASPRC['queue.nodes'])
         self.run() # this will raise VaspSubmitted
-
 
     #############################################
     # now we are just retrieving results
-
     images = [self.neb_images[0]]
     energies = [self.neb_initial_energy] #this is a tricky point. unless
                                      #the calc stores an absolute
                                      #path, it may be tricky to call
                                      #get_potential energy
 
-    for i in range(1,self.neb_nimages-1):
+    log.debug('self.neb_nimages = %i',self.neb_nimages)
+    for i in range(1,self.neb_nimages+1):
+        log.debug(self.neb_images[i].numbers)
         nebd = '0{0}'.format(i)
         try:
             os.chdir(nebd)
             log.debug('in %s' % nebd)
             log.debug(os.listdir('.'))
             energies += [self.read_energy()[1]]
-            atoms = read('CONTCAR',format='vasp')
-            images += [atoms]
+
+            atoms = read('CONTCAR')
+
+            # I do not understand why this is needed to resort the
+            # atoms! If I don't do it, the calculations are wrong. If
+            # I do it here, it is wrong somewhere else.
+            f = open('ase-sort.dat')
+            sort, resort = [],[]
+            for line in f:
+                s,r = [int(x) for x in line.split()]
+                sort.append(s)
+                resort.append(r)
+
+            log.debug('read %i: %s',i,str(atoms.numbers))
+            log.debug('read %i: %s',i,str(atoms.get_chemical_symbols()))
+            images += [atoms[resort]]
         finally:
             os.chdir('..')
 
     images += [self.neb_images[-1]]
     energies += [self.neb_final_energy]
 
-    return (images, energies)
+    return (images, np.array(energies))
 
 Vasp.get_neb = get_neb
 
@@ -253,16 +271,36 @@ def plot_neb(self, show=True):
             energies += [float(fields[-1])]
         energies += [float(open('0{0}/energy'.format(len(images)-1)).readline())]
 
-    energies = np.array(energies)
+    energies = np.array(energies) - energies[0]
 
-    from ase.visualize import view
-    view(images)
+    # add fitted line to band energies. we make a cubic spline
+    # interpolating function of the negative energy so we can find the
+    # minimum which corresponds to the barrier
+    from scipy.interpolate import interp1d
+    from scipy.optimize import fmin
+    f = interp1d(range(len(energies)),
+                 -energies,
+                 kind='cubic', bounds_error=False)
+    x0 = len(energies)/2. #guess barrier is at half way
+    xmax = fmin(f, x0)
+
+    xfit = np.linspace(0,len(energies)-1)
+    bandfit = -f(xfit)
 
     import matplotlib.pyplot as plt
-    p = plt.plot(energies-min(energies))
+    p = plt.plot(energies-energies[0],'bo ',label='images')
+    plt.plot(xfit, bandfit,'r-',label='fit')
+    plt.plot(xmax,-f(xmax),'* ',label='max')
     plt.xlabel('Image')
     plt.ylabel('Energy (eV)')
+    s = ['$\Delta E$ = {0:1.3f} eV'.format(float(energies[-1]-energies[0])),
+         '$E^\ddag$ = {0:1.3f} eV'.format(float(-f(xmax)))]
+
+    plt.title('\n'.join(s))
+    plt.legend(loc='best', numpoints=1)
     if show:
+        from ase.visualize import view
+        view(images)
         plt.show()
     return p
 
@@ -277,7 +315,9 @@ def read_neb_calculator():
     calc.read_kpoints()
 
     images = []
-    for i in range(calc.int_params['images'] + 2):
+    log.debug('calc.int_params[images] = %i',calc.int_params['images'])
+    for i in range(calc.int_params['images']+2):
+        log.debug('reading neb calculator: 0%i',i)
         cwd = os.getcwd()
 
         os.chdir('0{0}'.format(i))
@@ -291,8 +331,19 @@ def read_neb_calculator():
         else:
             fname = 'POSCAR'
 
-        images += [read(fname, format='vasp')]
+        atoms = read(fname, format='vasp')
+
+        f = open('ase-sort.dat')
+        sort, resort = [],[]
+        for line in f:
+            s,r = [int(x) for x in line.split()]
+            sort.append(s)
+            resort.append(r)
+
+        images += [atoms[resort]]
         os.chdir(cwd)
+
+    log.debug('len(images) = %i', len(images))
 
     f = open('00/energy')
     calc.neb_initial_energy = float(f.readline().strip())
@@ -302,6 +353,6 @@ def read_neb_calculator():
     f.close()
 
     calc.neb_images = images
-    calc.neb_nimages = len(images)
+    calc.neb_nimages = len(images)-2
     calc.neb=True
     return calc
