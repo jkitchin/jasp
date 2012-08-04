@@ -139,6 +139,14 @@ def clone(self,newdir, extra_files=[]):
             and os.path.exists(vf)):
             shutil.copy(vf,newdirpath)
 
+    # if we are an neb calculation we need to copy the image
+    # directories
+    if hasattr(self,'neb'):
+        import glob
+        for imagedir in glob.glob('0[0-9]'):
+            dst = os.path.join(newdirpath,imagedir)
+            if not os.path.exists(dst):
+                shutil.copytree(imagedir,dst)
 
 Vasp.clone = clone
 
@@ -515,9 +523,6 @@ cd {self.vaspdir}  # this is the vasp directory
 #end'''.format(**locals())
 
     jobname = self.vaspdir
-    #jobname = JASPRC.get('queue.jobname')
-    #if jobname is None:
-    #    jobname = self.vaspdir
     log.debug('{0} will be the jobname.'.format(jobname))
 
     p = Popen(['{0}'.format(JASPRC['queue.command']),
@@ -528,6 +533,8 @@ cd {self.vaspdir}  # this is the vasp directory
                                                      JASPRC['queue.ppn']),
                '-l mem={0}'.format(JASPRC['queue.mem'])],
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    log.debug(script)
 
     out, err = p.communicate(script)
     print out,err
@@ -763,9 +770,8 @@ def checkerr_vasp(self):
             if os.path.exists('error'):
                 os.unlink('error')
     else:
-        print os.getcwd()
-        print os.listdir('.')
-        raise Exception, 'no OUTCAR found'
+        if not hasattr(self,'neb'):
+            raise Exception, 'no OUTCAR` found'
 
 Vasp.register_post_run_hook(checkerr_vasp)
 
@@ -825,18 +831,22 @@ handler.setFormatter(formatter)
 log.addHandler(handler)
 
 
-def Jasp(**kwargs):
+def Jasp(debug=None,
+         atoms=None,
+         **kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
     of this function is to enable atoms as a keyword argument, and to
     restart the calculator from the current directory if no keywords
     are given.
 
-    **kwargs is the same as ase.calculators.vasp except that atoms can be used.
+    **kwargs is the same as ase.calculators.vasp.
 
     you must be in the directory where vasp will be run.
 
     Nudged elastic band calculations are special, and different.
     '''
+    if debug:
+        log.setLevel(debug)
 
     log.debug('Jasp called in %s',os.getcwd())
 
@@ -844,17 +854,19 @@ def Jasp(**kwargs):
     if 'spring' in kwargs:
         log.debug('Entering NEB setup')
 
-        neb_images = kwargs['atoms'] # you must include a list of images!
-        del kwargs['atoms']
+        neb_images = atoms # you must include a list of images!
+
+        for a in neb_images:
+            log.debug(a.numbers)
 
         calc = Vasp()
 
         # how to get the initial and final energies?
         initial = neb_images[0]
-        log.debug(initial)
+        log.debug(initial.numbers)
         calc0 = initial.get_calculator()
-        log.debug(calc0.cwd)
-        log.debug(calc0.vaspdir)
+        log.debug('Calculator cwd = %s',calc0.cwd)
+        log.debug('Calculator vaspdir = %s',calc0.vaspdir)
 
         # we have to store the initial and final energies because
         # otherwise they will not be available when reread the
@@ -866,13 +878,11 @@ def Jasp(**kwargs):
                 os.chdir(os.path.join(calc0.cwd, calc0.vaspdir))
                 e0 = calc0.read_energy()[1]
                 calc.neb_initial_energy = e0
-
-
         finally:
                 os.chdir(CWD)
 
         final = neb_images[-1]
-        log.debug(final)
+        log.debug(final.numbers)
         calc_final = final.get_calculator()
         log.debug(calc_final.cwd)
         log.debug(calc_final.vaspdir)
@@ -897,30 +907,18 @@ def Jasp(**kwargs):
         calc.set(**kwargs)
 
         calc.neb_kwargs = kwargs
-        NIMAGES = len(neb_images)-2
-        calc.set(images=NIMAGES) #number of images not counting endpoints
+        # this is the vasp images tag. it does not include the endpoints
+        IMAGES = len(neb_images) - 2
+        calc.set(images=IMAGES)
         calc.neb_images = neb_images
-        calc.neb_nimages = NIMAGES
+        calc.neb_nimages = IMAGES
         calc.neb = True
 
-        return calc
-
-    if 'atoms' in kwargs:
-        atoms = kwargs['atoms']
-        del kwargs['atoms']
-        atoms_kwargs = True
-    else:
-        atoms_kwargs = False
-
-    if 'debug' in kwargs:
-        log.setLevel(kwargs['debug'])
-        del kwargs['debug']
-
     # empty vasp dir. start from scratch
-    if (not os.path.exists('INCAR')):
+    elif (not os.path.exists('INCAR')):
         calc = Vasp(**kwargs)
 
-        if atoms_kwargs:
+        if atoms is not None:
             atoms.calc = calc
         log.debug('empty vasp dir. start from scratch')
 
@@ -940,7 +938,7 @@ def Jasp(**kwargs):
         calc.read_incar()
 
         if calc.int_params['images'] is not None:
-            return read_neb_calculator()
+            calc = read_neb_calculator()
 
         try:
             calc.read_kpoints()
@@ -951,7 +949,7 @@ def Jasp(**kwargs):
         for kw in kwargs:
             calc.set(**kwargs)
 
-        if atoms_kwargs:
+        if atoms is not None:
             atoms.calc = calc
         else:
             import ase.io
@@ -978,7 +976,7 @@ def Jasp(**kwargs):
         self.read_incar()
 
         if self.int_params['images'] is not None:
-            return read_neb_calculator()
+            calc = read_neb_calculator()
 
         import ase.io
         # Try to read sorting file
@@ -1023,11 +1021,12 @@ def Jasp(**kwargs):
         calc = Vasp()
         calc.read_incar()
         if calc.int_params['images'] is not None:
-            return read_neb_calculator()
+            log.debug('reading neb calculator')
+            calc = read_neb_calculator()
         else:
             calc = Vasp(restart=True) #automatically loads results
 
-        if atoms_kwargs:
+        if atoms is not None:
             atoms.calc = calc
         calc.vasp_running = True
         log.debug('job created, and in queue, and running')
@@ -1044,13 +1043,13 @@ def Jasp(**kwargs):
         calc = Vasp()
         calc.read_incar()
         if calc.int_params['images'] is not None:
-            log.debug('returning neb calculator')
-            return read_neb_calculator()
+            log.debug('reading neb calculator')
+            calc = read_neb_calculator()
         else:
             calc = Vasp(restart=True) #automatically loads results
 
         # now update the atoms object if it was a kwarg
-        if atoms_kwargs:
+        if atoms is not None and not hasattr(calc,'neb'):
             atoms.set_cell(calc.atoms.get_cell())
             atoms.set_positions(calc.atoms.get_positions())
             atoms.calc = calc
@@ -1070,7 +1069,7 @@ def Jasp(**kwargs):
           and os.path.exists('vasprun.xml')):
         # job is done
         calc = Vasp(restart=True)
-        if atoms_kwargs:
+        if atoms is not None:
             atoms.set_cell(calc.atoms.get_cell())
             atoms.set_positions(calc.atoms.get_positions())
             atoms.calc = calc
@@ -1078,6 +1077,17 @@ def Jasp(**kwargs):
         raise VaspUnknownState, 'I do not recognize the state of this directory {0}'.format(os.getcwd())
 
     calc.read_metadata() #read in metadata
+
+    # save initial params to check for changes later
+    log.debug('saving initial parameters')
+    calc.old_float_params = calc.float_params.copy()
+    calc.old_exp_params = calc.exp_params.copy()
+    calc.old_string_params = calc.string_params.copy()
+    calc.old_int_params = calc.int_params.copy()
+    calc.old_input_params = calc.input_params.copy()
+    calc.old_bool_params = calc.bool_params.copy()
+    calc.old_list_params = calc.list_params.copy()
+    calc.old_dict_params = calc.dict_params.copy()
 
     return calc
 
