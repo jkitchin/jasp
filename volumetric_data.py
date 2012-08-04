@@ -54,6 +54,14 @@ def get_local_potential(self):
 
 Vasp.get_local_potential = get_local_potential
 
+
+def get_elf(self):
+    '''returns elf data'''
+    x,y,z,data = get_volumetric_data(self, filename='ELFCAR')
+    atoms = self.get_atoms()
+    return x,y,z,data[0]*atoms.get_volume()
+Vasp.get_elf = get_elf
+
 def get_electron_density_center(self,spin=0,scaled=True):
 
     atoms = self.get_atoms()
