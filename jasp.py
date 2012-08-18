@@ -1180,6 +1180,28 @@ class jasp:
         os.chdir(self.cwd)
         return False # allows exception to propogate out
 
+def isavaspdir(path):
+    # standard vaspdir
+    if (os.path.exists(os.path.join(path,'POSCAR')) and
+        os.path.exists(os.path.join(path,'INCAR')) and
+        os.path.exists(os.path.join(path,'KPOINTS')) and
+        os.path.exists(os.path.join(path,'POTCAR'))):
+        return True
+    # NEB vaspdir
+    elif (os.path.exists(os.path.join(path,'INCAR')) and
+        os.path.exists(os.path.join(path,'KPOINTS')) and
+        os.path.exists(os.path.join(path,'POTCAR'))):
+
+        incar = open(os.path.join(path,'INCAR')).read()
+        if 'IMAGES' in incar:
+            return True
+        else:
+            return False
+
+    else:
+        return False
+
+
 if __name__ == '__main__':
     ''' make the module a script!
 
@@ -1188,17 +1210,40 @@ if __name__ == '__main__':
 
     another place this could belong is jaspsum, where it runs the job
     if needed.
+
+    it would be nice to have a recursive option.
     '''
     from optparse import OptionParser
 
     parser = OptionParser('jasp.py')
+    parser.add_option('-r',
+                  nargs=0,
+                  help='recursively run jasp on each dir')
 
     options, args = parser.parse_args()
 
+    if args == []:
+        args = ['.']
+
     for arg in args:
 
-        with jasp(arg) as calc:
-            try:
-                calc.calculate()
-            except (VaspSubmitted, VaspQueued):
-                pass
+        if options.r is None:
+            if isavaspdir(arg):
+                with jasp(arg) as calc:
+                    try:
+                        print '{0:40s} {1}'.format(arg[-40:],
+                                                     calc.calculate())
+                    except (VaspSubmitted, VaspQueued), e:
+                        print e
+                        pass
+        else:
+            # recurse through each arg
+            for (path, dirs, files) in os.walk(arg):
+                if isavaspdir(path):
+                    with jasp(path) as calc:
+                        try:
+                            print '{0:40s} {1}'.format(path[-40:],
+                                                     calc.calculate())
+                        except (VaspSubmitted, VaspQueued),e:
+                            print e
+                            pass
