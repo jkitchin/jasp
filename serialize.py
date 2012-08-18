@@ -10,6 +10,7 @@ def atoms_to_dict(atoms):
     d['symbols'] = atoms.get_chemical_symbols()
     d['positions'] = atoms.positions.tolist()
     d['pbc'] = atoms.get_pbc().tolist()
+    d['tags'] = atoms.get_tags().tolist()
 
     return d
 
@@ -39,6 +40,12 @@ def calc_to_dict(calc):
             pass
     return d
 
+def calc_to_json(self):
+    d = calc_to_dict(self)
+    return json.dumps(d)
+
+Vasp.json = property(calc_to_json)
+
 def json_to_calc(jsonstring):
     '''
     convert a json string to a calculator
@@ -50,6 +57,7 @@ def json_to_calc(jsonstring):
     atoms.set_positions(d['atoms']['positions'])
     atoms.set_cell(d['atoms']['cell'])
     atoms.set_pbc(d['atoms']['pbc'])
+    atoms.set_tags(d['atoms']['tags'])
 
     # now create a calc
     kwargs = {}
@@ -58,12 +66,6 @@ def json_to_calc(jsonstring):
     calc = Vasp(**kwargs)
     atoms.set_calculator(calc)
     return calc
-
-def calc_to_json(self):
-    d = calc_to_dict(self)
-    return json.dumps(d)
-
-Vasp.json = property(calc_to_json)
 
 def calc_to_xml(self):
 

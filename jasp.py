@@ -24,6 +24,7 @@ from ase import Atoms
 from ase.calculators.vasp import *
 
 # internal imports
+from read_vasprun import * # overload to get data from xml
 from jasprc import *     # configuration data
 from metadata import *   # jasp metadata
 from POTCAR import *
@@ -477,8 +478,8 @@ def calculate(self, atoms=None):
         if JASPRC['mode'] is None:
             log.debug(self)
             log.debug('self.converged" %s',self.converged)
-            log.debug('Converged: %s',self.read_convergence())
-            log.debug('read relaxed: %s',self.read_relaxed())
+            #log.debug('Converged: %s',self.read_convergence())
+            #log.debug('read relaxed: %s',self.read_relaxed())
 
             raise Exception, '''JASPRC['mode'] is None. we should not be running!'''
 
@@ -490,6 +491,7 @@ def calculate(self, atoms=None):
     if not os.path.exists('METADATA'):
         self.create_metadata()
 
+    # finally run the original function
     original_calculate(self, atoms)
 
 Vasp.calculate = calculate
@@ -545,6 +547,23 @@ cd {self.vaspdir}  # this is the vasp directory
     raise VaspSubmitted
 
 Vasp.run = run
+
+def prepare_input_files(self):
+    # Initialize calculations
+    atoms = self.get_atoms()
+    self.initialize(atoms)
+
+    # Write input
+    from ase.io.vasp import write_vasp
+    write_vasp('POSCAR',
+               self.atoms_sorted,
+               symbol_count=self.symbol_count)
+    self.write_incar(atoms)
+    self.write_potcar()
+    self.write_kpoints()
+    self.write_sort_file()
+    self.create_metadata()
+Vasp.prepare_input_files = prepare_input_files
 
 def pretty_print(self):
     '''
@@ -999,8 +1018,8 @@ def Jasp(debug=None,
                 self.resort = range(len(atoms))
 
             if atoms is not None:
-                calc.atoms = atoms
-                atoms.calc = calc
+                self.atoms = atoms
+                atoms.calc = self
             else:
                 self.atoms = patoms.copy()
 
@@ -1046,7 +1065,12 @@ def Jasp(debug=None,
             log.debug('reading neb calculator')
             calc = read_neb_calculator()
         else:
-            calc = Vasp(restart=True) #automatically loads results
+            try:
+                calc = Vasp(restart=True) #automatically loads results
+            finally:
+                pass
+                #print 'CWD = ', os.getcwd()
+
 
         # now update the atoms object if it was a kwarg
         if atoms is not None and not hasattr(calc,'neb'):
@@ -1068,7 +1092,12 @@ def Jasp(debug=None,
           and os.path.exists('OUTCAR')
           and os.path.exists('vasprun.xml')):
         # job is done
-        calc = Vasp(restart=True)
+        try:
+            calc = Vasp(restart=True)
+        finally:
+            pass
+            #print 'CWD = ', os.getcwd()
+
         if atoms is not None:
             atoms.set_cell(calc.atoms.get_cell())
             atoms.set_positions(calc.atoms.get_positions())
@@ -1138,6 +1167,7 @@ class jasp:
         # now change to new working dir
         os.chdir(self.vaspdir)
 
+        # and get the new calculator
         calc = Jasp(**self.kwargs)
         calc.vaspdir = self.vaspdir   # vasp directory
         calc.cwd = self.cwd   # directory we came from
@@ -1149,3 +1179,26 @@ class jasp:
         '''
         os.chdir(self.cwd)
         return False # allows exception to propogate out
+
+if __name__ == '__main__':
+    ''' make the module a script!
+
+    you run this with an argument and the command changes into the
+    directory, and runs vasp.
+
+    another place this could belong is jaspsum, where it runs the job
+    if needed.
+    '''
+    from optparse import OptionParser
+
+    parser = OptionParser('jasp.py')
+
+    options, args = parser.parse_args()
+
+    for arg in args:
+
+        with jasp(arg) as calc:
+            try:
+                calc.calculate()
+            except (VaspSubmitted, VaspQueued):
+                pass
