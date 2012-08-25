@@ -124,27 +124,38 @@ def read_kpoints(self, filename='KPOINTS'):
         if ktype not in ['g', 'm']:
             raise NotImplementedError('Only Monkhorst-Pack and gamma centered grid supported for restart.')
         if ktype == 'g':
-            self.set(gamma=True)
+            line5 = np.array([float(lines[4].split()[i]) for i in range(3)])
+            if (line5 == np.array([0.0, 0.0, 0.0])).all():
+                self.set(gamma=True)
+            else:
+                self.set(gamma=line5)
         kpts = np.array([int(lines[3].split()[i]) for i in range(3)])
     elif nkpts > 0:
         # list of kpts provided
-        if ktype in ['c', 'k']:
+        if ktype in ['c', 'k', 'r']:
             kpts = []
-            for i in range(4,4 + nkpts):
+            for i in range(3,3 + nkpts):
+                # the kpts also have a weight attached to them
                 kpts.append(np.array([float(lines[i].split()[j])
-                                      for j in range(3)]))
-        elif ktype == 'r':
+                                      for j in range(4)]))
+        elif ktype in ['l']:
+            if lines[3][0].lower() == 'r':
+                self.set(reciprocal=True)
+            self.set(kpts_nintersections=nkpts)
             kpts = []
-            for i in range(4,4 + nkpts):
-                kpts.append(np.array([float(lines[i].split()[j])
-                                      for j in range(3)]))
-        elif ktype == 'l':
-            kpts = []
-            for i in range(4,4 + nkpts):
-                kpts.append(np.array([float(lines[i].split()[j])
-                                      for j in range(3)]))
+            for i in range(4,len(lines)):
+                if lines[i] == '':
+                    continue
+                else:
+                    kpts.append(np.array([float(lines[i].split()[j])
+                                          for j in range(3)]))
+
+
         else:
            raise NotImplementedError('ktype = %s' % lines[2])
+
+    if ktype == 'r':
+        self.set(reciprocal=True)
 
     self.set(kpts=kpts)
 
