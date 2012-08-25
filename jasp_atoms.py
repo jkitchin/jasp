@@ -1,0 +1,54 @@
+from ase import Atom, Atoms
+import numpy as np
+def atoms_equal(self, other):
+    '''
+    check if two atoms objects are identical
+
+    I monkeypatch the ase class because the ase.io read/write
+    functions often result in float errors that make atoms not be
+    equal. The problem is you may write out 2.0000000, but read in
+    1.9999999, which looks different by absolute comparison. I use
+    float tolerance for the comparison here.
+    '''
+    if other is None:
+        return False
+
+    TOLERANCE = 1e-6
+
+    a = self.arrays
+    b = other.arrays
+
+    # check if number of atoms have changed.
+    if len(self)!= len(other):
+        return False
+
+    if (a['numbers'] != b['numbers']).all():
+        # atom types have changed
+        return False
+
+    if (np.abs(a['positions'] - b['positions']) > TOLERANCE).any():
+        # something moved
+        return False
+
+    if (np.abs(self._cell - other.cell) > TOLERANCE).any():
+        # cell has changed
+        return False
+
+    # we do not consider pbc becaue vasp is always periodic
+    return True
+
+Atoms.__eq__ = atoms_equal
+
+def set_volume(self, volume, scale_atoms=True):
+    '''
+    convenience function to set the volume of a unit cell.
+
+    by default the atoms are scaled to the new volume
+    '''
+    v0 = self.get_volume()
+    cell0 = self.get_cell()
+
+    f = (volume/v0)**(1./3.)
+    self.set_cell(f*cell0, scale_atoms=scale_atoms)
+
+Atoms.set_volume = set_volume
