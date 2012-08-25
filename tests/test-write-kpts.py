@@ -26,7 +26,7 @@ Monkhorst-Pack
 
 @with_setup(setup_func, teardown_func)
 def test0():
-    "automatic with Monkhorstpack grid"
+    "write automatic with Monkhorstpack grid"
     calc = Vasp(kpts=(4,4,4))
     calc.write_kpoints()
 
@@ -45,7 +45,7 @@ Gamma
 '''
 @with_setup(setup_func, teardown_func)
 def test1():
-    "automatic with gamma centered Monkhorstpack grid"
+    "write automatic with gamma centered Monkhorstpack grid"
     calc = Vasp(kpts=(4,4,4), gamma=True)
     calc.write_kpoints()
     result = open('KPOINTS','r').read()
@@ -63,7 +63,7 @@ Gamma
 '''
 @with_setup(setup_func, teardown_func)
 def test2():
-    "automatic with specified gamma offset"
+    "write automatic with specified gamma offset"
     calc = Vasp(kpts=(4,4,4),
                 gamma=(0.25, 0.25,0.25))
     calc.write_kpoints()
@@ -84,7 +84,7 @@ Monkhorst-Pack
 
 @with_setup(setup_func, teardown_func)
 def test3():
-    "automatic with Monkhorstpack grid with default settings"
+    "write automatic with Monkhorstpack grid with default settings"
     calc = Vasp()
     calc.write_kpoints()
 
@@ -105,9 +105,8 @@ Cartesian
 '''
 @with_setup(setup_func, teardown_func)
 def test4():
-    'explicit listing of cartesian points'
-    calc = Vasp(kpts_format='cartesian',
-                kpts = [[0.0,  0.0,  0.0,   1.],
+    'write explicit listing of cartesian points'
+    calc = Vasp(kpts = [[0.0,  0.0,  0.0,   1.],
                         [0.0,  0.0,  0.5,   1.],
                         [0.0,  0.5,  0.5,   2.],
                         [0.5,  0.5,  0.5,   4.]])
@@ -128,8 +127,8 @@ Reciprocal
 0.5 0.5 0.5 4.0
 '''
 @with_setup(setup_func, teardown_func)
-def test4():
-    'explicit listing of reciprocal points'
+def test5():
+    'write explicit listing of reciprocal points'
     calc = Vasp(kpts = [[0.0,  0.0,  0.0,   1.],
                         [0.0,  0.0,  0.5,   1.],
                         [0.0,  0.5,  0.5,   2.],
@@ -163,6 +162,7 @@ Reciprocal
 '''
 @with_setup(setup_func, teardown_func)
 def test8():
+    'write linemode with reciprocal'
     calc=Vasp(reciprocal=True,
               kpts=[[0.0, 0.0, 0.0],
                     [0.5, 0.0, 0.0],
@@ -202,6 +202,7 @@ Cartesian
 '''
 @with_setup(setup_func, teardown_func)
 def test9():
+    'write linemode with cartesian'
     calc=Vasp(kpts=[[0.0, 0.0, 0.0],
                     [0.5, 0.0, 0.0],
                     [0.5, 0.0, 0.0],

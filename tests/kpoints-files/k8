@@ -1,0 +1,16 @@
+KPOINTS created by Atomic Simulation Environment
+20
+Line-mode
+Reciprocal
+0.0 0.0 0.0
+0.5 0.0 0.0
+0.5 0.0 0.0
+0.5 0.5 0.0
+0.5 0.5 0.0
+0.0 0.0 0.0
+0.0 0.0 0.0
+0.5 0.5 0.0
+0.5 0.5 0.0
+0.5 0.5 0.5
+0.5 0.5 0.5
+0.0 0.0 0.0
