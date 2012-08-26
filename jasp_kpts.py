@@ -129,15 +129,15 @@ def read_kpoints(self, filename='KPOINTS'):
                 self.set(gamma=True)
             else:
                 self.set(gamma=line5)
-        kpts = np.array([int(lines[3].split()[i]) for i in range(3)])
+        kpts = [int(lines[3].split()[i]) for i in range(3)]
     elif nkpts > 0:
         # list of kpts provided
         if ktype in ['c', 'k', 'r']:
             kpts = []
             for i in range(3,3 + nkpts):
                 # the kpts also have a weight attached to them
-                kpts.append(np.array([float(lines[i].split()[j])
-                                      for j in range(4)]))
+                kpts.append([float(lines[i].split()[j])
+                             for j in range(4)])
         elif ktype in ['l']:
             if lines[3][0].lower() == 'r':
                 self.set(reciprocal=True)
@@ -147,8 +147,8 @@ def read_kpoints(self, filename='KPOINTS'):
                 if lines[i] == '':
                     continue
                 else:
-                    kpts.append(np.array([float(lines[i].split()[j])
-                                          for j in range(3)]))
+                    kpts.append([float(lines[i].split()[j])
+                                 for j in range(3)])
 
 
         else:
