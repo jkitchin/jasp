@@ -5,13 +5,11 @@ import os, difflib
 def setup_func():
     "set up test fixtures"
     if os.path.exists('KPOINTS'):
-        print 'deleting KPOINTS'
         os.unlink('KPOINTS')
 
 def teardown_func():
     "tear down test fixtures"
     if os.path.exists('KPOINTS'):
-        print 'deleting KPOINTS'
         os.unlink('KPOINTS')
 
         ##################################################################

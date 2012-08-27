@@ -1,5 +1,7 @@
 from ase import Atom, Atoms
 import numpy as np
+import pickle
+
 def atoms_equal(self, other):
     '''
     check if two atoms objects are identical
@@ -32,6 +34,10 @@ def atoms_equal(self, other):
 
     if (np.abs(self._cell - other.cell) > TOLERANCE).any():
         # cell has changed
+        return False
+
+    # check constraints
+    if pickle.dumps(self._constraints) != pickle.dumps(other._constraints):
         return False
 
     # we do not consider pbc becaue vasp is always periodic

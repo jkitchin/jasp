@@ -24,24 +24,24 @@ from ase import Atoms
 from ase.calculators.vasp import *
 
 # internal imports
-from read_vasprun import * # overload to get data from xml
-from jasprc import *     # configuration data
-from metadata import *   # jasp metadata
-from POTCAR import *
+from jasprc import *          # configuration data
+from metadata import *        # jasp metadata, including atoms tags and
+                              # constraints
+from serialize import *       # all code for representing a calculation,
+                              # database, etc...
+from jasp_vib import *        # all vibrational code
+from jasp_neb import *        # all NEB code
+from jasp_atoms import *      # some extensions to ase.Atoms for jasp
+from jasp_exceptions import * # exception definitions
+from jasp_kpts import *       # extended read/write KPOINTS
+from jasp_extensions import * # extensions to vasp.py
+from read_vasprun import *    # monkey patched functions to get data from xml
+from POTCAR import *          # code to read POTCAR
 from volumetric_data import * # CHG and LOCPOT parsing
-from serialize import *
-from jasp_vib import *
-from jasp_neb import *
-from jasp_atoms import *
-from jasp_exceptions import *
-from jasp_kpts import *
-from jasp_extensions import *
-##############################################
-# ase.calculators.vasp extensions
-#############################################
+
 
 # ###################################################################
-# Main function and jasp class
+# Logger for handling information, warning and debugging
 # ###################################################################
 import logging
 log = logging.getLogger('Jasp')
@@ -57,6 +57,9 @@ formatter = logging.Formatter(formatstring)
 handler.setFormatter(formatter)
 log.addHandler(handler)
 
+# ###################################################################
+# Jasp function - returns a Vasp calculator
+# ###################################################################
 
 def Jasp(debug=None,
          atoms=None,
@@ -69,10 +72,8 @@ def Jasp(debug=None,
     **kwargs is the same as ase.calculators.vasp.
 
     you must be in the directory where vasp will be run.
-
-    Nudged elastic band calculations are special, and different.
     '''
-    if debug:
+    if debug is not None:
         log.setLevel(debug)
 
     log.debug('Jasp called in %s',os.getcwd())
@@ -324,6 +325,10 @@ def Jasp(debug=None,
 
     calc.set(**kwargs)
 
+    # create a METADATA file if it does not exist.
+    if not os.path.exists('METADATA'):
+        calc.create_metadata()
+
     return calc
 
 class jasp:
@@ -366,7 +371,7 @@ class jasp:
             except (VaspException):
                 do somthing.
         '''
-        # make directory if it doesnt already exist
+        # make directory if it doesn't already exist
         if not os.path.isdir(self.vaspdir):
             os.makedirs(self.vaspdir)
 

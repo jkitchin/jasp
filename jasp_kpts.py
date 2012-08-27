@@ -159,6 +159,4 @@ def read_kpoints(self, filename='KPOINTS'):
 
     self.set(kpts=kpts)
 
-
-
 Vasp.read_kpoints = read_kpoints

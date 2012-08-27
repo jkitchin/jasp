@@ -32,9 +32,8 @@ def create_metadata(self, fname='METADATA'):
     '''
     create the METADATA file.
 
-    we do not overwrite metadata files with this command unless you
-    use the overwrite function. you should delete the file and
-    recreate it.
+    we do not overwrite metadata files with this command. you should
+    delete the file and recreate it.
     '''
     if os.path.exists(fname):
         return None
@@ -83,6 +82,7 @@ def write_metadata(self, fname='METADATA'):
     f = open(fname,'w')
     f.write(json.dumps(self.metadata))
     f.close()
+Vasp.write_metadata = write_metadata
 
 def read_metadata(self, fname='METADATA'):
     '''read metadata file in'''
@@ -104,7 +104,7 @@ def read_metadata(self, fname='METADATA'):
         self.metadata
 
     self.metadata = d
-    self.atoms.set_tags(d.get('atoms.tags',[]))
+    self.atoms.set_tags(d.get('atoms.tags',[0 for atom in self.atoms]))
 
     # to reload constraints
     if 'atoms.constraints' in d:
