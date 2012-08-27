@@ -1,4 +1,5 @@
 from jasp import *
+import uuid
 
 # http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
 vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
@@ -7,15 +8,14 @@ vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
              'EXHCAR','CHGCAR', 'CHG','WAVECAR',
              'TMPCAR','EIGENVAL','DOSCAR','PROCAR',
              'OSZICAR','PCDAT','XDATCAR','LOCPOT',
-             'ELFCAR','PROOUT','ase-sort.dat' ]
+             'ELFCAR','PROOUT','ase-sort.dat','METADATA']
 
 def clone(self,newdir, extra_files=[]):
     '''copy a vasp directory to a new directory. Does not overwrite
     existing files. newdir is relative to the the directory the
     calculator was created from, not the current working directory.
 
-    Does not copy METADATA. The point of cloning is that you will
-    change some parameter, and so the METADATA should be changed.
+    what to do about METADATA, the uuid will be wrong!
     '''
 
     newdirpath = os.path.join(self.cwd, newdir)
@@ -37,32 +37,54 @@ def clone(self,newdir, extra_files=[]):
             if not os.path.exists(dst):
                 shutil.copytree(imagedir,dst)
 
+    # update metadata. remember we are in the vaspdir
+    d = {}
+    d['uuid'] = str(uuid.uuid1())
+    d['cloned on'] = time.ctime(time.time())
+
+    os.chdir(self.cwd)
+
+    from jasp import jasp
+    with jasp(newdir) as calc:
+        calc.metadata.update(d)
+        calc.write_metadata()
+    os.chdir(self.vaspdir)
+
 Vasp.clone = clone
 
-def archive(self,archive, extra_files=[], append=False):
+def archive(self, archive='vasp', extra_files=[], append=False):
     '''
-    create an archive file (.tar.gz) of the vasp files in the current directory.
-    This is a way to save intermediate results.
+    create an archive file (.tar.gz) of the vasp files in the current
+    directory.  This is a way to save intermediate results.
     '''
 
     import tarfile
-    archive_name = archive + '.tar.gz'
-    if not append and os.path.exists(archive_name):
+
+    if not archive.endswith('.tar.gz'):
+        archive = archive + '.tar.gz'
+
+    if not append and os.path.exists(archive):
         # we do not overwrite existing archives except to append
         return None
-    elif append and os.path.exists(archive_name):
+    elif append and os.path.exists(archive):
         mode = 'a:gz'
     else:
         mode = 'w:gz'
 
-    f = tarfile.open(archive_name, mode)
+    f = tarfile.open(archive, mode)
     for vf in vaspfiles + extra_files:
         if os.path.exists(vf):
             f.add(vf)
+
+    # if we are an neb calculation we need to copy the image
+    # directories
+    if hasattr(self,'neb'):
+        import glob
+        for imagedir in glob.glob('0[0-9]'):
+            f.add(imagedir)
     f.close()
 
 Vasp.archive = archive
-
 
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
@@ -279,22 +301,31 @@ def calculate(self, atoms=None):
     if hasattr(self,'vasp_running'):
         raise VaspRunning
 
+    if atoms is None:
+        atoms = self.get_atoms()
+
+
+    # I feel like this should be handled in Vasp.py
+    # calculation_required.
+
     # I amnot sure why I have to read this here. I thought it should
     # be set when restart=True is used.
-    if os.path.exists('CONTCAR'):
-        self.converged  = self.read_convergence()
+    #if os.path.exists('CONTCAR'):
+    #    self.converged  = self.read_convergence()
 
-    if hasattr(self,'converged'):
-         if (self.converged
-             and ((self.float_params == self.old_float_params) and
-                  (self.exp_params == self.old_exp_params) and
-                  (self.string_params == self.old_string_params) and
-                  (self.int_params == self.old_int_params) and
-                  (self.bool_params == self.old_bool_params) and
-                  (self.list_params == self.old_list_params) and
-             #                  (self.input_params == self.old_input_params) and
-                  (self.dict_params == self.old_dict_params))):
-             return
+    ## if hasattr(self,'converged'):
+    ##      if (self.converged
+    ##          and (atoms == self.get_atoms())
+    ##          and ((self.float_params == self.old_float_params) and
+    ##               (self.exp_params == self.old_exp_params) and
+    ##               (self.string_params == self.old_string_params) and
+    ##               (self.int_params == self.old_int_params) and
+    ##               (self.bool_params == self.old_bool_params) and
+    ##               (self.list_params == self.old_list_params) and
+    ##          # there is a problem with this simple comparison if lists and arrays exist in kpts
+    ##          #                  (self.input_params == self.old_input_params) and
+    ##               (self.dict_params == self.old_dict_params))):
+    ##          return
 
     if 'mode' in JASPRC:
         if JASPRC['mode'] is None:
@@ -302,14 +333,11 @@ def calculate(self, atoms=None):
             log.debug('self.converged" %s',self.converged)
             raise Exception, '''JASPRC['mode'] is None. we should not be running!'''
 
-    # if you get here, we call the original method, which calls run
-    if atoms is None:
-        atoms = self.get_atoms()
-
     # create a METADATA file if it does not exist.
     if not os.path.exists('METADATA'):
         self.create_metadata()
 
+    print 'running!'
     # finally run the original function
     original_calculate(self, atoms)
 
@@ -480,16 +508,15 @@ def pretty_print(self):
         else:
             s += ['  Stress was not computed']
 
-
-
         constraints = None
         if hasattr(atoms, 'constraints'):
             from ase.constraints import FixAtoms, FixScaled
             constraints = [[None, None, None] for atom in atoms]
             for constraint in atoms.constraints:
                 if isinstance(constraint, FixAtoms):
-                    for i in  constraint.index:
-                        constraints[i] = [True, True, True]
+                    for i, constrained in  enumerate(constraint.index):
+                        if constrained:
+                            constraints[i] = [True, True, True]
                 if isinstance(constraint, FixScaled):
                     constraints[constraint.a] = constraint.mask.tolist()
 
