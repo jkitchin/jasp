@@ -296,48 +296,24 @@ def calculate(self, atoms=None):
     should be one on the calculator.
     '''
     if hasattr(self,'vasp_queued'):
-        raise VaspQueued
+        raise VaspQueued('Queued',os.getcwd())
 
     if hasattr(self,'vasp_running'):
-        raise VaspRunning
+        raise VaspRunning('Running',os.getcwd())
 
     if atoms is None:
         atoms = self.get_atoms()
 
-
-    # I feel like this should be handled in Vasp.py
-    # calculation_required.
-
-    # I amnot sure why I have to read this here. I thought it should
-    # be set when restart=True is used.
-    #if os.path.exists('CONTCAR'):
-    #    self.converged  = self.read_convergence()
-
-    ## if hasattr(self,'converged'):
-    ##      if (self.converged
-    ##          and (atoms == self.get_atoms())
-    ##          and ((self.float_params == self.old_float_params) and
-    ##               (self.exp_params == self.old_exp_params) and
-    ##               (self.string_params == self.old_string_params) and
-    ##               (self.int_params == self.old_int_params) and
-    ##               (self.bool_params == self.old_bool_params) and
-    ##               (self.list_params == self.old_list_params) and
-    ##          # there is a problem with this simple comparison if lists and arrays exist in kpts
-    ##          #                  (self.input_params == self.old_input_params) and
-    ##               (self.dict_params == self.old_dict_params))):
-    ##          return
+    # this may not catch magmoms
+    if not self.calculation_required(atoms, []):
+        return
 
     if 'mode' in JASPRC:
         if JASPRC['mode'] is None:
             log.debug(self)
             log.debug('self.converged" %s',self.converged)
-            raise Exception, '''JASPRC['mode'] is None. we should not be running!'''
+            raise Exception('''JASPRC['mode'] is None. we should not be running!''')
 
-    # create a METADATA file if it does not exist.
-    if not os.path.exists('METADATA'):
-        self.create_metadata()
-
-    print 'running!'
     # finally run the original function
     original_calculate(self, atoms)
 
@@ -386,12 +362,11 @@ cd {self.vaspdir}  # this is the vasp directory
     log.debug(script)
 
     out, err = p.communicate(script)
-    print out,err
     f = open('jobid','w')
     f.write(out)
     f.close()
 
-    raise VaspSubmitted
+    raise VaspSubmitted(out)
 
 Vasp.run = run
 
