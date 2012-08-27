@@ -1,22 +1,22 @@
-import exceptions
+from exceptions import Exception
 #############################################
 # Jasp Exceptions
 #############################################
 
-class VaspQueued(exceptions.Exception):
+class VaspQueued(Exception):
     pass
 
-class VaspSubmitted(exceptions.Exception):
+class VaspSubmitted(Exception):
     pass
 
-class VaspRunning(exceptions.Exception):
+class VaspRunning(Exception):
     pass
 
-class VaspNotFinished(exceptions.Exception):
+class VaspNotFinished(Exception):
     pass
 
-class VaspNotConverged(exceptions.Exception):
+class VaspNotConverged(Exception):
     pass
 
-class VaspUnknownState(exceptions.Exception):
+class VaspUnknownState(Exception):
     pass
