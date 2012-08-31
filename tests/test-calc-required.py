@@ -78,7 +78,7 @@ def teardown_func():
     shutil.rmtree('c2')
 
 @with_setup(setup_func, teardown_func)
-def test3():
+def test4():
     "basic setup calculation that adds constraints so a calculation should be required"
 
     from ase.constraints import FixAtoms
@@ -90,3 +90,23 @@ def test3():
         c = FixAtoms(mask=[atom.symbol == 'O' for atom in atoms])
         atoms.set_constraint(c)
         assert calc.calculation_required(atoms,['energy'])
+# #############################################################
+
+def setup_func():
+    "set up test fixtures"
+    shutil.copytree('ref/c1', 'c1')
+
+def teardown_func():
+    "tear down test fixtures"
+    shutil.rmtree('c1')
+
+@with_setup(setup_func, teardown_func)
+def test5():
+    "basic setup calculation that tests if kpts are equal"
+
+    from ase.constraints import FixAtoms
+    with jasp('c1',
+              kpts=(1,1,1)) as calc:
+        print calc.input_params
+        print calc.old_input_params
+        assert not calc.calculation_required(calc.get_atoms(),[])

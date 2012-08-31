@@ -285,6 +285,49 @@ def job_in_queue(self):
             return False
 Vasp.job_in_queue = job_in_queue
 
+
+
+
+def calculation_required(self, atoms, quantities):
+    '''Monkey-patch original function because (4,4,4) != [4,4,4] which
+    makes the test on input_params fail'''
+    if self.positions is None:
+        return True
+    elif self.atoms != atoms:
+        return True
+    elif self.float_params != self.old_float_params:
+        return True
+    elif self.exp_params != self.old_exp_params:
+        return True
+    elif self.string_params != self.old_string_params:
+        return True
+    elif self.int_params != self.old_int_params:
+        return True
+    elif self.int_params != self.old_int_params:
+        return True
+    elif self.bool_params != self.old_bool_params:
+        return True
+    elif self.list_params != self.old_list_params:
+        return True
+    elif self.input_params != self.old_input_params:
+        for key in self.input_params:
+            if key == 'kpts':
+                if list(self.input_params[key]) != list(self.old_input_params[key]):
+                    return True
+            else:
+                if self.input_params[key] != self.old_input_params[key]:
+                    return True
+    elif self.dict_params != self.old_dict_params:
+        return True
+    elif not self.converged:
+        return True
+
+    if 'magmom' in quantities:
+        return not hasattr(self, 'magnetic_moment')
+
+    return False
+Vasp.calculation_required = calculation_required
+
 original_calculate = Vasp.calculate
 def calculate(self, atoms=None):
     '''
