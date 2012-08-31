@@ -285,9 +285,6 @@ def job_in_queue(self):
             return False
 Vasp.job_in_queue = job_in_queue
 
-
-
-
 def calculation_required(self, atoms, quantities):
     '''Monkey-patch original function because (4,4,4) != [4,4,4] which
     makes the test on input_params fail'''
