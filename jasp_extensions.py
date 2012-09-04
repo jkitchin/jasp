@@ -1,5 +1,6 @@
 from jasp import *
 import uuid
+import textwrap
 
 # http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
 vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
@@ -288,6 +289,7 @@ Vasp.job_in_queue = job_in_queue
 def calculation_required(self, atoms, quantities):
     '''Monkey-patch original function because (4,4,4) != [4,4,4] which
     makes the test on input_params fail'''
+
     if self.positions is None:
         return True
     elif self.atoms != atoms:
@@ -304,23 +306,49 @@ def calculation_required(self, atoms, quantities):
         return True
     elif self.bool_params != self.old_bool_params:
         return True
-    elif self.list_params != self.old_list_params:
-        return True
-    elif self.input_params != self.old_input_params:
-        for key in self.input_params:
-            if key == 'kpts':
-                if list(self.input_params[key]) != list(self.old_input_params[key]):
-                    return True
-            else:
-                if self.input_params[key] != self.old_input_params[key]:
-                    return True
     elif self.dict_params != self.old_dict_params:
         return True
-    elif not self.converged:
-        return True
+
+    for key in self.list_params:
+        if self.list_params[key] is None and self.old_list_params[key] is None:
+            continue
+
+        if list(self.list_params[key]) != list(self.old_list_params[key]):
+            print 'LISTPARAMS FAILED'
+            raise Exception
+            return True
+
+    for key in self.input_params:
+        if key == 'kpts':
+            if list(self.input_params[key]) != list(self.old_input_params[key]):
+                print '1. ',list(self.input_params[key])
+                print '2. ',list(self.old_input_params[key])
+                print 'KPTS FAILED'
+                raise Exception
+                return True
+            else:
+                continue
+        elif key == 'setups':
+            log.warn('We do not know how to compare setups yet! silently continuing.')
+            continue
+        elif key == 'txt':
+            log.warn('We do not know how to compare txt yet! silently continuing.')
+            continue
+        else:
+            if self.input_params[key] != self.old_input_params[key]:
+                print '{0} FAILED'.format(key)
+                print self.input_params[key]
+                print self.old_input_params[key]
+                return True
 
     if 'magmom' in quantities:
         return not hasattr(self, 'magnetic_moment')
+
+    if self.converged is None:
+        self.converged = self.read_convergence()
+
+    if not self.converged:
+        return True
 
     return False
 Vasp.calculation_required = calculation_required
@@ -584,8 +612,17 @@ def pretty_print(self):
               self.input_params]:
 
         for key in d:
-            if d[key] is not None:
-                s.append('  %12s: %s' % (key, str(d[key])))
+            if key is 'magmom':
+                np.set_printoptions(precision=3)
+                value = textwrap.fill(str(d[key]),
+                                      width=56,
+                                      subsequent_indent=' '*17)
+                s.append('  %12s: %s' % (key, value))
+            elif d[key] is not None:
+                value = textwrap.fill(str(d[key]),
+                                      width=56,
+                                      subsequent_indent=' '*17)
+                s.append('  %12s: %s' % (key, value))
 
     s += ['\nPseudopotentials used:']
     s += ['----------------------']
