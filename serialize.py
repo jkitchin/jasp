@@ -43,8 +43,13 @@ def calc_to_dict(calc):
 def calc_to_json(self):
     d = calc_to_dict(self)
     return json.dumps(d)
-
 Vasp.json = property(calc_to_json)
+
+def calc_to_pretty_json(self):
+    d = calc_to_dict(self)
+    return json.dumps(d, sort_keys=True, indent=4)
+Vasp.pretty_json = property(calc_to_pretty_json)
+
 
 def json_to_calc(jsonstring):
     '''
