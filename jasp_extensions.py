@@ -315,7 +315,6 @@ def calculation_required(self, atoms, quantities):
 
         if list(self.list_params[key]) != list(self.old_list_params[key]):
             print 'LISTPARAMS FAILED'
-            raise Exception
             return True
 
     for key in self.input_params:
