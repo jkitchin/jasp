@@ -73,6 +73,7 @@ def Jasp(debug=None,
 
     you must be in the directory where vasp will be run.
     '''
+
     if debug is not None:
         log.setLevel(debug)
 
@@ -326,7 +327,8 @@ def Jasp(debug=None,
     calc.set(**kwargs)
 
     # create a METADATA file if it does not exist.
-    if not os.path.exists('METADATA'):
+    if (not os.path.exists('METADATA')
+        and not getattr(calc,'neb',False)):
         calc.create_metadata()
 
     return calc
@@ -384,7 +386,7 @@ class jasp:
         calc.cwd = self.cwd   # directory we came from
         return calc
 
-    def __exit__(self,exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         '''
         on exit, change back to the original directory.
         '''
