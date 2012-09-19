@@ -1,0 +1,8 @@
+INCAR created by Atomic Simulation Environment
+ SPRING = -5.000000
+ ENCUT = 350.000000
+ PREC = Normal
+ IBRION = 1
+ NBANDS = 75
+ IMAGES = 3
+ NSW = 90
