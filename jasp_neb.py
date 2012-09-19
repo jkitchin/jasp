@@ -45,7 +45,7 @@ def get_neb(self, npi=1):
 
     # how do we know if we need to run jobs?
     '''
-    if jobid exists that means it is queued
+    if jobid exists that means it is or was queued
 
     if no jobid, and no OUTCAR for each image, then calculation required.
 
@@ -79,7 +79,8 @@ def get_neb(self, npi=1):
                 f.close()
                 return False
 
-            converged = [subdir_converged('0{0}/OUTCAR'.format(i)) for i in range(1,len(self.neb_images)-1)]
+            converged = [subdir_converged('0{0}/OUTCAR'.format(i))
+                         for i in range(1,len(self.neb_images)-1)]
 
             if False in converged:
                 print '0{0} does not appear converged'.format(converged.index(False))
@@ -94,6 +95,18 @@ def get_neb(self, npi=1):
             (self.input_params == self.old_input_params) and
             (self.dict_params == self.old_dict_params)):
         calc_required = True
+        ## print self.float_params == self.old_float_params
+        ## print self.exp_params == self.old_exp_params
+        ## print self.string_params == self.old_string_params
+        ## print self.int_params == self.old_int_params
+        ## print self.bool_params == self.old_bool_params
+        ## print self.list_params == self.old_list_params
+        ## print 'input: ', self.input_params == self.old_input_params
+        ## print self.dict_params == self.old_dict_params
+        ## print self.input_params
+        ## print self.old_input_params
+        ## log.debug('Calculation is required')
+        ## import sys; sys.exit()
 
     if calc_required:
         '''
@@ -313,6 +326,10 @@ def read_neb_calculator():
     calc.vaspdir = os.getcwd()
     calc.read_incar()
     calc.read_kpoints()
+
+    # set default functional
+    if calc.string_params['gga'] is None:
+        calc.input_params['xc']='PBE'
 
     images = []
     log.debug('calc.int_params[images] = %i',calc.int_params['images'])
