@@ -95,26 +95,26 @@ def get_vibrational_modes(self,
 
         if massweighted:
             # construct M
+            numbers = [a.get_atomic_number() for a in atoms]
             M = []
             for i in range(len(atoms)):
                 for j in range(3):
-                    an = atoms[i].get_atomic_number()
-                    M.append(np.sqrt(atomic_masses[an]))
+                    an = numbers[i]
+                    M.append(1./np.sqrt(atomic_masses[an]))
             M = np.array(M)
-            M = np.diag(M)
+            M = np.diag(M) # diagonal array
 
-            thismode = np.dot(M, np.dot(thismode.flat, M))
+            thismode = np.dot(M, thismode.flat)
 
             thismode = thismode.reshape((len(atoms),3))
-            # renormalize the mode
-            mag = np.linalg.norm(thismode)
-            thismode /= mag
+        # renormalize the mode
+        mag = np.linalg.norm(thismode)
+        thismode /= mag
 
         eigenvectors.append(thismode)
     f.close()
 
     eigenvectors = np.array(eigenvectors)
-
 
     if mode is None:
         retval = (frequencies, eigenvectors)
