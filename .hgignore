@@ -1,5 +1,7 @@
 syntax: glob
-
+POTCAR
+WAVECAR
+CHGCAR
 *.pyc
 *~
 examples
