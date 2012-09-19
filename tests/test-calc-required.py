@@ -104,9 +104,26 @@ def teardown_func():
 def test5():
     "basic setup calculation that tests if kpts are equal"
 
-    from ase.constraints import FixAtoms
     with jasp('c1',
               kpts=(1,1,1)) as calc:
         print calc.input_params
         print calc.old_input_params
         assert not calc.calculation_required(calc.get_atoms(),[])
+
+## # #############################################################
+
+## def setup_func():
+##     "set up test fixtures"
+##     shutil.copytree('ref/neb', 'neb')
+
+## def teardown_func():
+##     "tear down test fixtures"
+##     #shutil.rmtree('neb')
+##     pass
+
+## @with_setup(setup_func, teardown_func)
+## def test6():
+##     "basic setup calculation that tests calc required in finished neb"
+
+##     with jasp('neb') as calc:
+##         assert not calc.calculation_required(calc.get_atoms(),[])
