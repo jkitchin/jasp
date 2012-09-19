@@ -581,7 +581,6 @@ def pretty_print(self):
                                                  'F' if constraints[i][1] is True else 'T',
                                                  'F' if constraints[i][2] is True else 'T')
 
-
             s.append(ts)
 
         s.append('--------------------------------------------------')
@@ -625,7 +624,6 @@ def pretty_print(self):
 
     s += ['\nPseudopotentials used:']
     s += ['----------------------']
-
 
     for sym,ppp,hash in ppp_list:
         s += ['{0}: {1} (git-hash: {2})'.format(sym,ppp,hash)]
