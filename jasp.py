@@ -82,63 +82,8 @@ def Jasp(debug=None,
     # special initialization NEB case
     if 'spring' in kwargs:
         log.debug('Entering NEB setup')
-
-        neb_images = atoms # you must include a list of images!
-
-        for a in neb_images:
-            log.debug(a.numbers)
-
-        calc = Vasp()
-
-        # how to get the initial and final energies?
-        initial = neb_images[0]
-        log.debug(initial.numbers)
-        calc0 = initial.get_calculator()
-        log.debug('Calculator cwd = %s',calc0.cwd)
-        log.debug('Calculator vaspdir = %s',calc0.vaspdir)
-
-        # we have to store the initial and final energies because
-        # otherwise they will not be available when reread the
-        # directory in another script, e.g. jaspsum. The only other
-        # option is to make the initial and final directories full
-        # vasp calculations.
-        CWD = os.getcwd()
-        try:
-                os.chdir(os.path.join(calc0.cwd, calc0.vaspdir))
-                e0 = calc0.read_energy()[1]
-                calc.neb_initial_energy = e0
-        finally:
-                os.chdir(CWD)
-
-        final = neb_images[-1]
-        log.debug(final.numbers)
-        calc_final = final.get_calculator()
-        log.debug(calc_final.cwd)
-        log.debug(calc_final.vaspdir)
-        try:
-                os.chdir(os.path.join(calc_final.cwd, calc_final.vaspdir))
-                efinal = calc_final.read_energy()[1]
-                calc.neb_final_energy = efinal
-        finally:
-                os.chdir(CWD)
-
-        # make a Vasp object and set inputs to initial image
-        calc.int_params.update(calc0.int_params)
-        calc.float_params.update(calc0.float_params)
-        calc.exp_params.update(calc0.exp_params)
-        calc.string_params.update(calc0.string_params)
-        calc.bool_params.update(calc0.bool_params)
-        calc.list_params.update(calc0.list_params)
-        calc.dict_params.update(calc0.dict_params)
-        calc.input_params.update(calc0.input_params)
-
-        calc.neb_kwargs = kwargs
-        # this is the vasp images tag. it does not include the endpoints
-        IMAGES = len(neb_images) - 2
-        calc.set(images=IMAGES)
-        calc.neb_images = neb_images
-        calc.neb_nimages = IMAGES
-        calc.neb = True
+        calc = read_neb_calculator()
+        calc.set(**kwargs)
 
     # empty vasp dir. start from scratch
     elif (not os.path.exists('INCAR')):
@@ -311,7 +256,8 @@ def Jasp(debug=None,
     else:
         raise VaspUnknownState, 'I do not recognize the state of this directory {0}'.format(os.getcwd())
 
-    calc.read_metadata() #read in metadata
+    if os.path.exists('METADATA'):
+        calc.read_metadata() #read in metadata
 
     # save initial params to check for changes later
     log.debug('saving initial parameters')
@@ -326,9 +272,9 @@ def Jasp(debug=None,
 
     calc.set(**kwargs)
 
-    # create a METADATA file if it does not exist.
-    if (not os.path.exists('METADATA')
-        and not getattr(calc,'neb',False)):
+    # create a METADATA file if it does not exist and we are not an NEB.
+    if ((not os.path.exists('METADATA'))
+        and calc.int_params['images'] is None):
         calc.create_metadata()
 
     return calc
