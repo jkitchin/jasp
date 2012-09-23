@@ -58,3 +58,19 @@ def set_volume(self, volume, scale_atoms=True):
     self.set_cell(f*cell0, scale_atoms=scale_atoms)
 
 Atoms.set_volume = set_volume
+
+old_repr = Atoms.__repr__
+import textwrap
+def new_repr(self):
+    '''
+    wraps the old __repr__ to return a textwrapped string with fixed width.
+    '''
+    s = old_repr(self)
+    return textwrap.fill(s, width=70)
+Atoms.__repr__ = new_repr
+
+if __name__ == '__main__':
+    from ase.data.molecules import molecule
+
+    atoms = molecule('CH3CH2OH')
+    print atoms
