@@ -11,8 +11,8 @@ def get_vibrational_modes(self,
                           mode=None,
                           massweighted=False,
                           show=False,
-                          npoints=20,
-                          amplitude=1.0):
+                          npoints=30,
+                          amplitude=0.5):
     '''
     read the OUTCAR and get the eigenvectors
 
@@ -129,8 +129,11 @@ def get_vibrational_modes(self,
             mode = [mode] # make a list for next code
 
         # symmetric path from -1 to 1 to -1
-        X = np.append(np.linspace(-1,1,npoints),
-                      np.linspace(1,-1,npoints))*amplitude
+        X = np.append(np.linspace(0,  1, npoints/3),
+                      np.linspace(1, -1, npoints/3))
+        X = np.append(X,
+                      np.linspace(-1, 0, npoints/3))
+        X *= amplitude
 
         for m in mode:
             traj = []
