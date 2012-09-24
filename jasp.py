@@ -9,9 +9,6 @@ this is a patched Vasp calculator with the following features:
 
 (find-file "../ase/ase/calculators/vasp.py") C-x C-e
 
-
-TODO:
-1. vasp does not read all KPOINTS files, and does not generate all options.
 '''
 
 import commands, exceptions, os, sys
