@@ -95,18 +95,25 @@ def get_neb(self, npi=1):
             (self.input_params == self.old_input_params) and
             (self.dict_params == self.old_dict_params)):
         calc_required = True
-        ## print self.float_params == self.old_float_params
-        ## print self.exp_params == self.old_exp_params
-        ## print self.string_params == self.old_string_params
-        ## print self.int_params == self.old_int_params
-        ## print self.bool_params == self.old_bool_params
-        ## print self.list_params == self.old_list_params
-        ## print 'input: ', self.input_params == self.old_input_params
-        ## print self.dict_params == self.old_dict_params
-        ## print self.input_params
-        ## print self.old_input_params
-        ## log.debug('Calculation is required')
-        ## import sys; sys.exit()
+        print self.float_params == self.old_float_params
+        print self.exp_params == self.old_exp_params
+        print 'string: ',self.string_params == self.old_string_params
+        print 'int: ',self.int_params == self.old_int_params
+        for key in self.int_params:
+            if self.int_params[key] != self.old_int_params[key]:
+                print '    {0}: {1} {2}'.format(key,
+                                            self.int_params[key],
+                                            self.old_int_params[key])
+
+        print self.bool_params == self.old_bool_params
+        print self.list_params == self.old_list_params
+        print 'input: ', self.input_params == self.old_input_params
+        print self.dict_params == self.old_dict_params
+        print self.input_params
+        print self.old_input_params
+        log.debug('Calculation is required')
+        log.debug(self.vaspdir)
+        import sys; sys.exit()
 
     if calc_required:
         '''
@@ -322,6 +329,8 @@ Vasp.plot_neb = plot_neb
 # this is a static method
 def read_neb_calculator():
     ''' read calculator from working directory'''
+    log.debug('Entering read_neb_calculator in {0}'.format(os.getcwd()))
+
     calc = Vasp()
     calc.vaspdir = os.getcwd()
     calc.read_incar()
