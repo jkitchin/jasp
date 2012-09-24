@@ -26,9 +26,12 @@ def read_forces(self, atoms=None, all=False):
                 thisforce.append(f)
             forces.append(thisforce)
 
-    return np.array(forces[-1])[self.resort]
+    if not all:
+        return np.array(forces[-1])[self.resort]
+    else:
+        return np.array([np.array(f)[self.resort] for f in forces])
 
-Vasp.read_forces = read_forces
+    #Vasp.read_forces = read_forces
 
 if __name__ == '__main__':
     from jasp import *
