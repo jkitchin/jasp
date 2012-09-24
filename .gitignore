@@ -1,0 +1,7 @@
+*.py[cod]
+*~
+examples
+sandbox
+POTCAR
+WAVECAR
+CHGCAR
