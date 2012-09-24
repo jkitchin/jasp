@@ -66,7 +66,7 @@ def new_repr(self):
     wraps the old __repr__ to return a textwrapped string with fixed width.
     '''
     s = old_repr(self)
-    return textwrap.fill(s, width=70)
+    return textwrap.fill(s, width=70, subsequent_indent=' '*6)
 Atoms.__repr__ = new_repr
 
 if __name__ == '__main__':
