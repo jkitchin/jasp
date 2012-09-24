@@ -104,12 +104,14 @@ def read_metadata(self, fname='METADATA'):
         self.metadata
 
     self.metadata = d
-    self.atoms.set_tags(d.get('atoms.tags',[0 for atom in self.atoms]))
 
-    # to reload constraints
-    if 'atoms.constraints' in d:
-        constraints = pickle.loads(d['atoms.constraints'].encode('utf-8'))
-        self.atoms.set_constraint(constraints)
+    if getattr(self, 'atoms') is not None:
+        self.atoms.set_tags(d.get('atoms.tags',[0 for atom in self.atoms]))
+
+        # to reload constraints
+        if 'atoms.constraints' in d:
+            constraints = pickle.loads(d['atoms.constraints'].encode('utf-8'))
+            self.atoms.set_constraint(constraints)
 
 Vasp.read_metadata = read_metadata
 
