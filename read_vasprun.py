@@ -3,7 +3,6 @@ import xml
 from xml.etree import ElementTree
 
 def read_forces(self, atoms=None, all=False):
-
     with open('vasprun.xml','rt') as f:
         try:
             tree = ElementTree.parse(f)
@@ -31,7 +30,36 @@ def read_forces(self, atoms=None, all=False):
     else:
         return np.array([np.array(f)[self.resort] for f in forces])
 
-    #Vasp.read_forces = read_forces
+Vasp.read_forces = read_forces
+
+def read_stress(self):
+    with open('vasprun.xml','rt') as f:
+        try:
+            tree = ElementTree.parse(f)
+        except xml.parsers.expat.ExpatError:
+            # this will happen when a job is not finished
+            s = np.empty(6,1)
+            s[:] = np.nan
+            return s
+    stress = []
+    for e in tree.findall('.//varray'):
+        if e.get('name') == 'stress':
+            thisstress = []
+            for ee in e:
+                try:
+                    si = [float(x) for x in ee.text.split()]
+                except ValueError:
+                    si = [np.nan, np.nan, np.nan]
+                thisstress.append(si)
+            stress.append(thisstress)
+    stress = stress[-1]
+    return [stress[0][0], # sxx
+            stress[1][1], # syy
+            stress[2][2], # szz
+            stress[0][1], # sxy
+            stress[0][2], # sxz
+            stress[1][2]] # syz
+Vasp.read_stress = read_stress
 
 if __name__ == '__main__':
     from jasp import *
