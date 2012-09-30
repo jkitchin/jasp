@@ -56,9 +56,10 @@ def read_stress(self):
     return [stress[0][0], # sxx
             stress[1][1], # syy
             stress[2][2], # szz
-            stress[0][1], # sxy
+            stress[1][2], # syz
             stress[0][2], # sxz
-            stress[1][2]] # syz
+            stress[0][1], # sxy
+            ]
 Vasp.read_stress = read_stress
 
 if __name__ == '__main__':
