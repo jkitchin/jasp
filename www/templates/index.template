@@ -1,0 +1,21 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>Vasp browser</title>
+  </head>
+
+  <body>
+
+<p><a href="/?path=molecules/simple-co">jaspsum </a></p>
+<p><a href="/?path=molecules/simple-co&format=xml">jaspsum xml</a></p>
+<p><a href="/?path=molecules/simple-co&format=python">jaspsum python</a></p>
+<p><a href="/?path=molecules/simple-co&format=json">jaspsum json</a></p>
+<p><a href="?path=molecules/simple-co&action=atoms.get_potential_energy()">atoms.get_potential_energy()</a></p>
+<p><a href="?path=molecules/simple-co&action=file:INCAR">INCAR</a></p>
+<p><a href="?path=bulk/Cu2O-U=4.0">DFT+U</a></p>
+<p><a href="?path=surfaces/Pt-O-fcc-hcp-neb">NEB</a></p>
+<p> <a href="/?path=surfaces/Pt-slab-O-fcc-vib">vibrations</a></p>
+<p> <a href="/?path=contents">contents</a></p>
+
+  </body>
+</html>

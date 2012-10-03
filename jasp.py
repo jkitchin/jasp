@@ -367,7 +367,7 @@ if __name__ == '__main__':
     another place this could belong is jaspsum, where it runs the job
     if needed.
 
-    it would be nice to have a recursive option.
+    if you run jasp.py in a directory, it will submit the job if needed.
     '''
     from optparse import OptionParser
 

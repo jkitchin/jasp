@@ -30,7 +30,7 @@ def read_forces(self, atoms=None, all=False):
     else:
         return np.array([np.array(f)[self.resort] for f in forces])
 
-Vasp.read_forces = read_forces
+    #Vasp.read_forces = read_forces
 
 def read_stress(self):
     with open('vasprun.xml','rt') as f:
@@ -60,7 +60,7 @@ def read_stress(self):
             stress[0][2], # sxz
             stress[0][1], # sxy
             ]
-Vasp.read_stress = read_stress
+#Vasp.read_stress = read_stress
 
 if __name__ == '__main__':
     from jasp import *
