@@ -1,0 +1,9 @@
+{% if vaspdirs %}
+<ul>
+   {% for vaspdir in vaspdirs %}
+   <li><a href="{{vaspdir}}/">{{vaspdir}}</a></li>
+   {% endfor %}
+</ul>
+{% else %}
+<p> Welcome to the VASP browser. </p>
+{% endif %}
