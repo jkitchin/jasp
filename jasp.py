@@ -42,7 +42,7 @@ from volumetric_data import * # CHG and LOCPOT parsing
 # ###################################################################
 import logging
 log = logging.getLogger('Jasp')
-
+log.setLevel(logging.CRITICAL)
 handler = logging.StreamHandler()
 if sys.version_info < (2,5): # no funcName in python 2.4
     formatstring = ('%(levelname)-10s '
@@ -279,10 +279,14 @@ def Jasp(debug=None,
 class jasp:
     '''Context manager for running Vasp calculations
 
+    On entering, automatically change to working vasp directory, and
+    on exit, automatically change back to original working directory.
+
     Note: You do not want to raise exceptions here! it makes code
     using this really hard to write because you have to catch
     exceptions in the with statement.
     '''
+
     def __init__(self, vaspdir, **kwargs):
         '''
         vaspdir: the directory to run vasp in

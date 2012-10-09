@@ -2,7 +2,12 @@
 module for converting Vasp calculators to json
 '''
 from jasp import *
-import json, pyxser
+import json
+
+try:
+    import pyxser
+except:
+    pass
 
 def atoms_to_dict(atoms):
     d = {}
