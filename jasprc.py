@@ -26,7 +26,8 @@ JASPRC = {'mode':'queue', #other value is 'run'
           'queue.nodes':1,
           'queue.ppn':1,
           'queue.mem':'2GB',
-          'queue.jobname':None}
+          'queue.jobname':'None',
+          'multiprocessing.cores_per_process':'None'}
 
 def read_configuration(fname):
     f = open(fname)
