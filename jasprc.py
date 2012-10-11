@@ -19,7 +19,8 @@ then check for ./.jasprc
 import os
 
 # default settings
-JASPRC = {'mode':'queue', #other value is 'run'
+JASPRC = {'vasp.executable':'/opt/kitchingroup/vasp-5.2.12/build/bin/vasp-vtst',
+          'mode':'queue', #other value is 'run'
           'queue.command':'qsub',
           'queue.options':'-joe',
           'queue.walltime':'168:00:00',
