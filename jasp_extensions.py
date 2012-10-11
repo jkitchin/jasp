@@ -396,15 +396,63 @@ def run(self):
         for hook in self.pre_run_hooks:
             hook(self)
 
-    cmd = os.environ.get('VASP_SCRIPT',None)
-    if cmd is None:
-        raise Exception, '$VASP_SCRIPT not found.'
+            #cmd = os.environ.get('VASP_SCRIPT',None)
+            #if cmd is None:
+            #raise Exception, '$VASP_SCRIPT not found.'
 
-    # if we are in the queue and jasp is called if we want to use
-    # mode='run' , we should just run the job
+    vaspcmd = JASPRC['vasp.executable']
+
+    # if we are in the queue and jasp is called or if we want to use
+    # mode='run' , we should just run the job. First, we consider how.
     if 'PBS_O_WORKDIR' in os.environ or JASPRC['mode']=='run':
-        exitcode = os.system(cmd)
-        return exitcode
+        log.info('In the queue. determining how to run')
+        if 'PBS_NODEFILE' in os.environ:
+            # we are in the queue. determine if we should run serial
+            # or parallel
+            NPROCS = len(open(os.environ['PBS_NODEFILE']).readlines())
+            log.debug('Found {0} PROCS'.format(NPROCS))
+            if NPROCS == 1:
+                # no question. running in serial.
+                log.debug('NPROCS = 1. running in serial')
+                exitcode = os.system(vaspcmd)
+                return exitcode
+            else:
+                # vanilla MPI run. multiprocessing does not work on more
+                # than one node, and you must specify in JASPRC to use it
+                if (JASPRC['queue.nodes'] > 1
+                    or (JASPRC['queue.nodes'] == 1
+                        and JASPRC['queue.ppn'] > 1
+                        and JASPRC['multiprocessing.cores_per_process'] == 'None')):
+                    log.debug('queue.nodes = {0}'.format(JASPRC['queue.nodes']))
+                    log.debug('queue.ppn = {0}'.format(JASPRC['queue.ppn']))
+                    log.debug('multiprocessing.cores_per_process = {0}'.format(JASPRC['multiprocessing.cores_per_process'] ))
+                    log.debug('running vanilla MPI job')
+
+                    print 'MPI NPROCS = ',NPROCS
+                    parcmd = 'mpirun -np %i %s' % (NPROCS, vaspcmd)
+                    exitcode = os.system(parcmd)
+                    return exitcode
+                else:
+                    # we need to run an MPI job on cores_per_process
+                    if JASPRC['multiprocessing.cores_per_process'] == 1:
+                        log.debug('running single core multiprocessing job')
+                        exitcode = os.system(vaspcmd)
+                    elif JASPRC['multiprocessing.cores_per_process'] > 1:
+                        log.debug('running mpi multiprocessing job')
+                        NPROCS = JASPRC['multiprocessing.cores_per_process']
+                        print 'Multiprocessing NPROCS = ',NPROCS
+                        parcmd = 'mpirun -np %i %s' % (NPROCS, vaspcmd)
+                        exitcode = os.system(parcmd)
+                        return exitcode
+        else:
+            # probably running at cmd line, in serial.
+            open('running','w')
+            exitcode = os.system(vaspcmd)
+            if os.path.exists('running'):
+                os.unlink('running')
+            open('done','w')
+            return exitcode
+        #end
 
     # if you get here, a job is getting submitted
     script = '''
@@ -699,9 +747,11 @@ def strip(self, extrafiles = []):
 
 Vasp.strip = strip
 
-def set_nbands(self, f=1.5):
-    ''' convenience function to automatically compute nbands
+def set_nbands(self, N=None, f=1.5):
+    ''' convenience function to set NBANDS to N or automatically
+    compute nbands
 
+    for non-spin-polarized calculations
     nbands = int(nelectrons/2 + nions*f)
 
     this formula is suggested at
@@ -709,6 +759,18 @@ def set_nbands(self, f=1.5):
 
     for transition metals f may be as high as 2.
     '''
+    if N is not None:
+        self.set(nbands=int(N))
+        return
+    atoms = self.get_atoms()
+    nelectrons = self.get_valence_electrons()
+    nbands = int(np.ceil(nelectrons/2.) + len(atoms)*f)
+    self.set(nbands=nbands)
+
+Vasp.set_nbands = set_nbands
+
+def get_valence_electrons(self):
+    'return all the valence electrons for the atoms'
     if not os.path.exists('POTCAR'):
         self.initialize(self.get_atoms())
         self.write_potcar()
@@ -722,7 +784,6 @@ def set_nbands(self, f=1.5):
     nelectrons = 0
     for atom in atoms:
         nelectrons += d[atom.symbol]
-    nbands = int(nelectrons/2 + len(atoms)*f)
-    self.set(nbands=nbands)
+    return nelectrons
 
-Vasp.set_nbands = set_nbands
+Vasp.get_valence_electrons = get_valence_electrons
