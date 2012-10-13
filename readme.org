@@ -1,20 +1,13 @@
-This package is under mercurial version control.
+=jasp= is an extension module for ase.calculators.vasp.  Its primary purpose is smarter restarting capability, and job management/workflow, but it also has some enhanced capability too.
 
-https://bitbucket.org/jkitchin/jasp/overview
+1. jasp automatically changes into the calculation directory to run jobs, and automatically changes back out when it is done.
+2. jasp automatically submits jobs to the queue, and supports parallel and multiprocessing jobs.
+3. jasp supports a lot more data extraction than ase.calculators.vasp.
 
-* DONE make jasp work in the queue without submitting jobs
-  CLOSED: [2012-07-09 Mon 08:41]
-if you ever wnat to submit a script that uses jasp, it would be a problem if it was submitting jobs within the queue to the queue. this feature ignores everything in the run function if it is run within the queue system.
+jasp requires python 2.6+ to work, and the latest svn version of ase.
 
-* DONE add configuration capability to control job submission details
-  CLOSED: [2012-07-09 Mon 08:42]
-added a small dictionary of parameters.
+* Examples of using jasp
+see http://github.com/jkitchin/dft-book
 
-* DONE add sqlite database capability
-  CLOSED: [2012-07-09 Mon 12:19]
-* DONE integrate git into jasp hooks
-  CLOSED: [2012-07-09 Mon 12:19]
-* DONE add metadata functions to store things like username, uuid, etc...
-  CLOSED: [2012-07-09 Mon 12:19]
-
-* make .jasprc option for configuration
+* Long-term plans for jasp
+Everything that is in jasp may eventually be incorporated into ase.calculators.vasp. jasp will probably always be further on the development cycle than the ase.calculators.vasp. We try advanced concepts in workflow in jasp that may never be suitable for ase. We try using the latest features of python to see if it makes running calculations easier, faster or better in some way. ase strives to maintain a lot of compatibility with older python versions. jasp will not be constrained this way.
