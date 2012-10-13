@@ -160,3 +160,90 @@ def read_kpoints(self, filename='KPOINTS'):
     self.set(kpts=kpts)
 
 Vasp.read_kpoints = read_kpoints
+
+
+def set_kppra(self, kppra, even=False, slab=False):
+    '''
+    Returns a kpt grid that most uniformly samples each unit cell
+    vector direction, and provides at least the desired kpoints per
+    reciprocal atoms.
+
+    even:  constrains the grid to be even
+    slab:  if True, sets grid to (n1, n2, 1)
+        '''
+    atoms = self.get_atoms()
+    nreciprocal_atoms = 1./len(atoms)
+    NKPTS = kppra*nreciprocal_atoms
+
+    # lengths of unit cell vectors
+    u1, u2, u3 = np.sqrt(np.sum(atoms.get_cell()**2, 1))
+
+    '''
+    The algorithm is:
+    k1 * k2 * k3 = NKPTS
+
+    we want the following to be as close to true as possible:
+
+    u1*k1 = u2*k2 = u3*k3 = constant
+
+    where u1, u2, u3 are the lengths of the unit cell vectors, and k1,
+    k2, k3 are the number of kpoints in each direction. This means if
+    u2 is twice as long as u1, it should have half as many kpoints.
+
+    That means:
+    (u1*u2*u3)*(k1*k2*k3) = constant**3
+
+    or constant = ((u1*u2*u3)*NKPTS)**(1./3.)
+
+    We will start the algorighm below this value, say at 90% of the
+    constant because there will be rounding, and we will always round up.
+
+    now, k1 = int(np.ceil(constant/u1))
+
+    all we have to do is iteratively increase the constant until
+    k1 * k2 * k3 >= NKPTS
+    '''
+
+    constant =  0.9*(NKPTS*(u1*u2*u3))**(1./3.)
+
+    while True:
+
+        k1, k2, k3 = np.array([int(np.ceil(constant/u))
+                               for u in [u1, u2, u3]])
+
+        if even:
+            k1 -= k1 % 2
+            k2 -= k2 % 2
+            k3 -= k3 % 2
+
+        if slab:
+            k3 = 1
+
+        if k1*k2*k3 >= NKPTS:
+            break
+        else:
+            constant *= 1.01 # gradually increase the constant until
+            #the numkpts/atm is satisfied
+
+    return (k1, k2, k3)
+
+if __name__ == '__main__':
+    from ase.visualize import view
+    from jasp import *
+
+    kppra = 1000
+    with jasp('tests/ref/c0') as calc:
+        atoms = calc.get_atoms()
+        grid = set_kppra(calc, 1000)
+
+        print grid
+        print 'nkpts: ',np.multiply.reduce(grid)
+        print 'you asked for: ',kppra/len(atoms)
+
+
+    with jasp('../../dft-org/surfaces/Pt-slab-1x1') as calc:
+        grid = set_kppra(calc, 1000, slab=True, even=True)
+        print view(calc.get_atoms())
+        print grid
+        print 'nkpts: ',np.multiply.reduce(grid)
+        print 'you asked for: ',kppra/len(atoms)
