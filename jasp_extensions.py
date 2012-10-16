@@ -323,7 +323,7 @@ def calculation_required(self, atoms, quantities):
                 print '1. ',list(self.input_params[key])
                 print '2. ',list(self.old_input_params[key])
                 print 'KPTS FAILED'
-                raise Exception
+
                 return True
             else:
                 continue
@@ -787,3 +787,21 @@ def get_valence_electrons(self):
     return nelectrons
 
 Vasp.get_valence_electrons = get_valence_electrons
+
+def get_elapsed_time(self):
+    'return elapsed time in seconds fromthe OUTCAR file'
+    import re
+    regexp = re.compile('Elapsed time \(sec\):\s*(?P<time>[0-9]*\.[0-9]*)')
+
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+
+
+    m = re.search(regexp, lines[-8])
+
+    time = m.groupdict().get('time', None)
+    if time is not None:
+         return float(time)
+    else:
+         return None
+Vasp.get_elapsed_time = get_elapsed_time
