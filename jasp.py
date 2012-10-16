@@ -296,9 +296,6 @@ class jasp:
 
         self.cwd = os.getcwd() # directory we were in when jasp created
         self.vaspdir = os.path.expanduser(vaspdir) # directory vasp files will be in
-        print self.vaspdir
-        if 'xc' not in kwargs:
-            kwargs['xc'] = 'PBE'
 
         self.kwargs = kwargs # this does not include the vaspdir variable
 
