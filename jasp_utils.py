@@ -600,3 +600,19 @@ def strip(self, extrafiles = []):
             os.unlink(f)
 
 Vasp.strip = strip
+
+
+def get_elapsed_time(self):
+    with open('OUTCAR') as f:
+        outcar = f.read()
+
+    import re
+    regexp = re.compile('Elapsed time (sec):\s*(?P<time>[0-9]*\.[0-9]*)')
+    result = re.search(outcar)
+
+    time = result.groupdict().get('time', None)
+    if time is not None:
+        return float(time)
+    else:
+        return None
+Vasp.get_elapsed_time = get_elapsed_time
