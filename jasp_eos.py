@@ -1,24 +1,41 @@
 from jasp import *
 from ase.utils.eos import EquationOfState
+import matplotlib.pyplot as plt
+from ase.units import GPa
 
 def get_eos(self):
+    '''
+    calculate the equation of state for the attached atoms
 
+    this is a multistep process that first runs the calculation, then a zeroth order calculation to estimate the minimum
+
+    step1 is around this minimum with internal position relaxation
+    step2 is around the minimum of step1 also with shape changes
+    step3 is a full relaxation of the best result from step2
+    finally, a static calculation at high precision.
+    '''
+
+    org = [] # list of strings to make the org-file report
+
+    # first run basic calculation to make sure everything works
     self.calculate()
 
     cwd = os.getcwd()
 
     atoms = self.get_atoms()
+    original_atoms = atoms.copy()  # save for comparison later.
     v_init = atoms.get_volume()
+    org += ['#+STARTUP: showeverything']
+    org += ['* Initial guess']
+    org += [str(self)]
 
-    factors = [-0.1, 0.0, 0.1]
-
+    factors = [-0.1, -0.05, 0.0, 0.05, 0.1]
     volumes0, energies0 = [], []
 
     # step-0 quick way to find minimum with no relaxation
     ready = True
-    for f in factors:
-
-        wd = cwd + '/step-0/f-{0}'.format(f)
+    for i,f in enumerate(factors):
+        wd = cwd + '/step-0/f-{0}'.format(i)
         self.clone(wd)
 
         with jasp(wd,
@@ -30,6 +47,7 @@ def get_eos(self):
                 atoms.set_volume(v_init * ( 1 + f))
                 volumes0.append(atoms.get_volume())
                 energies0.append(atoms.get_potential_energy())
+                calc.strip()
             except (VaspSubmitted, VaspQueued):
                 ready = False
 
@@ -37,19 +55,44 @@ def get_eos(self):
         log.info('Step 0 is still running')
         import sys; sys.exit()
 
-    print volumes0
-    print energies0
-
     eos = EquationOfState(volumes0, energies0)
     v0, e0, B = eos.fit()
-    print v0
+    f = eos.plot(show=False)
+    f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
+    plt.xlabel(u'volume [$\AA^3$]')
+    plt.ylabel(u'energy [eV]')
+    plt.title(u'E: %.3f eV, V: %.3f $\AA^3$, B: %.3f GPa' %
+              (e0, v0, B / GPa))
 
-    # Step 1 - now we do the next step with isif=2, ibrion=2
+    plt.text(eos.v0,max(eos.e),'EOS: %s' % eos.eos_string)
+    f.savefig('eos-step0.png')
+
+    org += ['* step 0',
+            '[[./eos-step0.png]]',
+            '']
+
+    # evaluate how close we are to a good eos where the minimum is
+    # bracketed by several points.  we want to make sure the volume is
+    # within 30% of the initial starting point
+    if np.abs(1 - v0/v_init) >= 0.3:
+        print('starting volume was {0:1.3f} ang^3'.format(v_init))
+        print('Estimated minimum volume is {0:1.3f} ang^3'.format(v0))
+
+        s = ['first estimate of minimum volume is more than 20% away',
+            'rom starting point. Please restart with a better initial',
+            'guess. You will have to delete the calculation directory',
+            '{0} to proceed.'.format(cwd + '/step-0')]
+        raise Exception('\n'.join(s))
+
+    # Step 1 - now we do the next step with isif=2, ibrion=2 we do
+    # this around the minimum found in step0, and allow internal
+    # coordinates to relax, but keep constant shape and volume at each
+    # step
     volumes1, energies1 = [], []
     ready = True
     factors = [-0.09, -0.06, -0.03, 0.0, 0.03, 0.06, 0.09]
-    for f in factors:
-        wd = cwd + '/step-1/f-{0}'.format(f)
+    for i,f in enumerate(factors):
+        wd = cwd + '/step-1/f-{0}'.format(i)
         self.clone(wd)
 
         with jasp(wd,
@@ -62,7 +105,8 @@ def get_eos(self):
                 atoms.set_volume(v0 * ( 1 + f))
                 volumes1.append(atoms.get_volume())
                 energies1.append(atoms.get_potential_energy())
-                calc.clone('step-2/f-{0}'.format(f))
+                calc.clone('step-2/f-{0}'.format(i))
+                calc.strip()
 
             except (VaspSubmitted, VaspQueued):
                 ready = False
@@ -74,12 +118,27 @@ def get_eos(self):
     eos1 = EquationOfState(volumes1, energies1)
     v1, e1, B = eos1.fit()
 
+    f = eos1.plot(show=False)
+    f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
+    plt.xlabel(u'volume ($\AA^3$)')
+    plt.ylabel(u'energy (eV)')
+    plt.title(u'E: %.3f eV, V: %.3f $\AA^3$, B: %.3f GPa' %
+              (e0, v0, B / GPa))
+
+    plt.text(eos1.v0,max(eos1.e),'EOS: %s' % eos1.eos_string)
+    f.savefig('eos-step1.png')
+
+    org += ['* step 1 - relax ions',
+            '[[./eos-step1.png]]',
+            '']
+
     # step 2 - isif=4, ibrion=1
+    # now we allow the shape of each cell to change
     ready = True
     volumes2, energies2 = [], []
     factors = [-0.09, -0.06, -0.03, 0.0, 0.03, 0.06, 0.09]
-    for f in factors:
-        wd = cwd + '/step-2/f-{0}'.format(f)
+    for i,f in enumerate(factors):
+        wd = cwd + '/step-2/f-{0}'.format(i)
         with jasp(wd,
                   isif=4,
                   ibrion=1,
@@ -88,6 +147,7 @@ def get_eos(self):
                 atoms = calc.get_atoms()
                 volumes2 += [atoms.get_volume()]
                 energies2 += [atoms.get_potential_energy()]
+                calc.strip()
             except (VaspSubmitted, VaspQueued):
                 ready = False
 
@@ -96,7 +156,21 @@ def get_eos(self):
         import sys; sys.exit()
 
     eos2 = EquationOfState(volumes2, energies2)
-    v2, e2, B = eos1.fit()
+    v2, e2, B = eos2.fit()
+
+    f = eos2.plot(show=False)
+    f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
+    plt.xlabel(u'volume ($\AA^3$)')
+    plt.ylabel(u'energy (eV)')
+    plt.title(u'E: %.3f eV, V: %.3f $\AA^3$, B: %.3f GPa' %
+              (e0, v0, B / GPa))
+
+    plt.text(eos2.v0,max(eos2.e),'EOS: %s' % eos2.eos_string)
+    f.savefig('eos-step2.png')
+
+    org += ['* step 2 - relax shape',
+            '[[./eos-step2.png]]',
+            '']
 
     # statistical analysis of the equation of state
     EOS = ['sjeos',
@@ -106,7 +180,7 @@ def get_eos(self):
            'birchmurnaghan',
            'pouriertarantola',
            'vinet',
-           'antonschmidt']
+           'antonschmidt'] # The e0 in this eos is not the same as the others
 
     from ase.units import kJ
     Vs, Es, Bs = [], [], []
@@ -132,32 +206,79 @@ def get_eos(self):
     dof = n - 1
     alpha = 0.05
 
+    Vconf = t.ppf(1 - alpha/2., dof) * stdV * np.sqrt(1 + 1./n)
+    Bconf = t.ppf(1 - alpha/2., dof) * stdB * np.sqrt(1 + 1./n)
 
-    # final step should be isif = 3
-    # I know we need
+    org += ['** Statistical analysis',
+            '''
+Volume = {avgV:1.3f} \pm {Vconf:1.3f} \AA^3 at the 95% confidence level
+B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
+'''.format(**locals())]
 
-    with jasp('step2/f-0.0') as calc:
+    # step 3 should be isif = 3 where we let the volume change too
+    # start from the minimum in step2
+    emin_ind = np.argmin(energies2)
+    log.info('Minimum energy found in factor={0}.'.format(factors[emin_ind]))
+
+    with jasp('step-2/f-{0}'.format(emin_ind)) as calc:
         calc.clone('step-3')
 
-    with jasp('step3',
-              isif=3,
+    with jasp('step-3',
+              isif=3, # vol, shape and internal degrees of freedom
               ibrion=1,
               nsw=20) as calc:
         atoms = calc.get_atoms()
         atoms.set_volume(avgV)
         calc.calculate()
-
         calc.clone('final-step')
+        calc.strip()
 
-    # now the final step with ismear=-5 for the accurate case.
+        org += ['* step 3 - relax volume',
+                str(calc)]
+
+    # now the final step with ismear=-5 for the accurate energy
     with jasp('final-step',
               isif=None, ibrion=None, nsw=None,
+              icharg=2, # do not reuse charge
+              istart=1,
+              prec='high',
               ismear=-5) as calc:
         calc.calculate()
 
+        org += ['* final step - static calculation',
+                str(calc)]
+
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
 
     return ((avgV, t.ppf(1 - alpha/2., dof) * stdV * np.sqrt(1 + 1./n)),
-#(avgE, t.ppf(1 - alpha/2., dof) * stdE * np.sqrt(1 + 1./n)),
+            #(avgE, t.ppf(1 - alpha/2., dof) * stdE * np.sqrt(1 + 1./n)),
             (avgB, t.ppf(1 - alpha/2., dof) * stdB * np.sqrt(1 + 1./n)))
 
 Vasp.get_eos = get_eos
+
+
+if __name__ == '__main__':
+    from jasp import *
+
+    JASPRC['mode'] = 'run'
+
+    from ase import Atom, Atoms
+
+    a = 3.4
+
+    atoms = Atoms([Atom('Cu',  [0.000,      0.000,      0.000])],
+                  cell=  [[ a/2,  0.000,  a/2],
+                          [ a/2,  a/2,  0.000],
+                          [ 0.000,  a/2,  a/2]])
+
+    atoms.set_volume(12)
+
+    with jasp('/home/jkitchin/kitchin-python/jasp/sandbox/cu-eos',
+              xc='PBE',
+              encut=350,
+              kpts=(13,13,13),
+              nbands=9,
+              atoms=atoms) as calc:
+
+        print calc.get_eos()
