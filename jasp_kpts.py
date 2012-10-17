@@ -26,8 +26,8 @@ def write_kpoints(self, fname='KPOINTS'):
     """
 
     p = self.input_params
-    if os.path.exists('KPOINTS'):
-        return
+    #if os.path.exists('KPOINTS'):
+    #    return
 
     shape=np.array(p['kpts']).shape
     if len(shape) == 1:
