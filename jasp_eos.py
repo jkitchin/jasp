@@ -1,4 +1,6 @@
 from jasp import *
+from ase.calculators.vasp import Vasp
+
 from ase.utils.eos import EquationOfState
 import matplotlib.pyplot as plt
 from ase.units import GPa
@@ -28,6 +30,9 @@ def get_eos(self):
     org += ['#+STARTUP: showeverything']
     org += ['* Initial guess']
     org += [str(self)]
+
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
 
     factors = [-0.1, -0.05, 0.0, 0.05, 0.1]
     volumes0, energies0 = [], []
@@ -71,6 +76,9 @@ def get_eos(self):
             '[[./eos-step0.png]]',
             '']
 
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
+
     # evaluate how close we are to a good eos where the minimum is
     # bracketed by several points.  we want to make sure the volume is
     # within 30% of the initial starting point
@@ -83,6 +91,8 @@ def get_eos(self):
             'guess. You will have to delete the calculation directory',
             '{0} to proceed.'.format(cwd + '/step-0')]
         raise Exception('\n'.join(s))
+
+
 
     # Step 1 - now we do the next step with isif=2, ibrion=2 we do
     # this around the minimum found in step0, and allow internal
@@ -131,6 +141,9 @@ def get_eos(self):
     org += ['* step 1 - relax ions',
             '[[./eos-step1.png]]',
             '']
+
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
 
     # step 2 - isif=4, ibrion=1
     # now we allow the shape of each cell to change
@@ -215,6 +228,9 @@ Volume = {avgV:1.3f} \pm {Vconf:1.3f} \AA^3 at the 95% confidence level
 B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
 '''.format(**locals())]
 
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
+
     # step 3 should be isif = 3 where we let the volume change too
     # start from the minimum in step2
     emin_ind = np.argmin(energies2)
@@ -235,6 +251,9 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
 
         org += ['* step 3 - relax volume',
                 str(calc)]
+
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
 
     # now the final step with ismear=-5 for the accurate energy
     with jasp('final-step',
