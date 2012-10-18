@@ -36,7 +36,6 @@ from read_vasprun import *    # monkey patched functions to get data from xml
 from POTCAR import *          # code to read POTCAR
 from volumetric_data import * # CHG and LOCPOT parsing
 
-
 # ###################################################################
 # Logger for handling information, warning and debugging
 # ###################################################################
@@ -95,6 +94,7 @@ def Jasp(debug=None,
           and os.path.exists('INCAR')
         # but no output files
         and not os.path.exists('CONTCAR')):
+        log.debug('initialized directory, but no job has been run')
 
         # this is kind of a weird case. There are input files, but
         # maybe we have tried to start a jasp calculation from
@@ -125,7 +125,7 @@ def Jasp(debug=None,
                 #no POSCAR found
                 pass
 
-        log.debug('initialized directory, but no job has been run')
+
 
     # job created, and in queue, but not running
     elif (os.path.exists('jobid')
@@ -143,7 +143,6 @@ def Jasp(debug=None,
         if self.int_params['images'] is not None:
             calc = read_neb_calculator()
         else:
-
             import ase.io
             # Try to read sorting file
             if os.path.isfile('ase-sort.dat'):
@@ -183,6 +182,7 @@ def Jasp(debug=None,
     elif (os.path.exists('jobid')
           and job_in_queue(None)
           and os.path.exists('running')):
+        log.debug('job created, and in queue, and running')
         calc = Vasp()
         calc.read_incar()
         if calc.int_params['images'] is not None:
@@ -196,7 +196,6 @@ def Jasp(debug=None,
         if atoms is not None:
             atoms.calc = calc
         calc.vasp_running = True
-        log.debug('job created, and in queue, and running')
 
     # job is created, not in queue, not running. finished and
     # first time we are looking at it
@@ -209,6 +208,9 @@ def Jasp(debug=None,
 
         calc = Vasp()
         calc.read_incar()
+        log.debug(calc.old_dict_params)
+        log.debug(calc.dict_params)
+
         if calc.int_params['images'] is not None:
             log.debug('reading neb calculator')
             calc = read_neb_calculator()
@@ -239,9 +241,11 @@ def Jasp(debug=None,
           and os.path.exists('CONTCAR')
           and os.path.exists('OUTCAR')
           and os.path.exists('vasprun.xml')):
+        log.debug('job done long ago, jobid deleted, no running, and the output files all exist')
         # job is done
         try:
             calc = Vasp(restart=True)
+            print calc.read_ldau()
         finally:
             pass
             #print 'CWD = ', os.getcwd()
