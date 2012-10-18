@@ -125,8 +125,6 @@ def Jasp(debug=None,
                 #no POSCAR found
                 pass
 
-
-
     # job created, and in queue, but not running
     elif (os.path.exists('jobid')
           and job_in_queue(None)
@@ -219,8 +217,6 @@ def Jasp(debug=None,
                 calc = Vasp(restart=True) #automatically loads results
             finally:
                 pass
-                #print 'CWD = ', os.getcwd()
-
 
         # now update the atoms object if it was a kwarg
         if atoms is not None and not hasattr(calc,'neb'):
@@ -245,10 +241,8 @@ def Jasp(debug=None,
         # job is done
         try:
             calc = Vasp(restart=True)
-            print calc.read_ldau()
         finally:
             pass
-            #print 'CWD = ', os.getcwd()
 
         if atoms is not None:
             atoms.set_cell(calc.atoms.get_cell())
@@ -362,7 +356,6 @@ def isavaspdir(path):
 
     else:
         return False
-
 
 if __name__ == '__main__':
     ''' make the module a script!
