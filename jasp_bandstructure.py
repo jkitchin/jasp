@@ -55,7 +55,7 @@ def get_bandstructure(self,
                     band_energies[id-1].append(energy)
                 blankline = f.readline()
             f.close()
-            plt.subplot(121)
+            ax1 = plt.subplot(121)
             for i in range(nbands):
                 plt.plot(range(npoints), np.array(band_energies[i]) - ef)
 
@@ -77,7 +77,7 @@ def get_bandstructure(self,
             ax.set_xticklabels(L)
             plt.axhline(0,c='r')
 
-    plt.subplot(122)
+    plt.subplot(122, sharey=ax1)
     plt.plot(d,e)
     plt.axhline(0, c='r')
     plt.ylabel('energy (eV)')
