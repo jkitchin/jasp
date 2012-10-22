@@ -51,6 +51,10 @@ parser.add_option('--neb',
                   nargs=0,
                   help = 'plot the neb')
 
+parser.add_option('--eos',
+                  nargs=0,
+                  help = 'run/plot equation of state')
+
 
 options,args = parser.parse_args()
 
@@ -70,16 +74,37 @@ for d in dirs:
 
     with jasp(d, debug=debug) as calc:
 
+        # plot trajectory
         if options.t is not None:
             xd = xdat2traj('out.traj',calc=calc)
             xd.convert()
             os.system('ag out.traj; rm out.traj')
 
+        # plot the atoms
         if options.p is not None:
             atoms = calc.get_atoms()
             from ase.visualize import view
             view(atoms)
 
+        # vibrational movies
+        if options.v is not None:
+            for mode in [int(x) for x in options.v.split(',')]:
+                calc.get_vibrational_modes(mode, show=True)
+
+        if options.neb is not None:
+            calc.plot_neb()
+
+        if options.eos is not None:
+            from jasp.jasp_eos import *
+            JASPRC['mode']='queue'
+            try:
+                data = calc.get_eos()
+                print data
+            except (VaspSubmitted, VaspQueued, VaspRunning):
+                print 'job in the queue'
+            import sys; sys.exit()
+
+        # Finally print the calculator in some representation
         if options.r is not None:
             print repr(calc)
         elif options.j is not None:
@@ -90,10 +115,3 @@ for d in dirs:
             print calc.xml
         else:
             print calc
-
-        if options.v is not None:
-            for mode in [int(x) for x in options.v.split(',')]:
-                calc.get_vibrational_modes(mode, show=True)
-
-        if options.neb is not None:
-            calc.plot_neb()
