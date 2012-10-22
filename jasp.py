@@ -206,8 +206,8 @@ def Jasp(debug=None,
 
         calc = Vasp()
         calc.read_incar()
-        log.debug(calc.old_dict_params)
-        log.debug(calc.dict_params)
+        #log.debug(calc.old_dict_params)
+        #log.debug(calc.dict_params)
 
         if calc.int_params['images'] is not None:
             log.debug('reading neb calculator')
