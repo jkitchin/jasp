@@ -4,7 +4,7 @@ from exceptions import Exception
 #############################################
 
 class VaspQueued(Exception):
-    def __init__(self, msg, cwd):
+    def __init__(self, msg='Queued', cwd=None):
         self.msg = msg
         self.cwd = cwd
 
