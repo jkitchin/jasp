@@ -296,22 +296,30 @@ def calculation_required(self, atoms, quantities):
     makes the test on input_params fail'''
 
     if self.positions is None:
+        log.debug('self.positions is None')
         return True
     elif self.atoms != atoms:
+        log.debug('atoms have changed')
         return True
     elif self.float_params != self.old_float_params:
+        log.debug('float_params have changed')
         return True
     elif self.exp_params != self.old_exp_params:
+        log.debug('exp_params have changed')
         return True
     elif self.string_params != self.old_string_params:
+        log.debug('string_params have changed.')
         return True
     elif self.int_params != self.old_int_params:
-        return True
-    elif self.int_params != self.old_int_params:
+        log.debug('int_params have changed')
         return True
     elif self.bool_params != self.old_bool_params:
+        log.debug('bool_params have changed')
         return True
     elif self.dict_params != self.old_dict_params:
+        log.debug('current: {0}'.format(str(self.dict_params)))
+        log.debug('old: {0}'.format(str(self.old_dict_params)))
+        log.debug('dict_params have changed')
         return True
 
     for key in self.list_params:
@@ -319,7 +327,7 @@ def calculation_required(self, atoms, quantities):
             continue
 
         if list(self.list_params[key]) != list(self.old_list_params[key]):
-            print 'LISTPARAMS FAILED'
+            log.debug('list_params have changed')
             return True
 
     for key in self.input_params:
@@ -405,8 +413,6 @@ def run(self):
             #if cmd is None:
             #raise Exception, '$VASP_SCRIPT not found.'
 
-    vaspcmd = JASPRC['vasp.executable']
-
     # if we are in the queue and jasp is called or if we want to use
     # mode='run' , we should just run the job. First, we consider how.
     if 'PBS_O_WORKDIR' in os.environ or JASPRC['mode']=='run':
@@ -418,6 +424,7 @@ def run(self):
             log.debug('Found {0} PROCS'.format(NPROCS))
             if NPROCS == 1:
                 # no question. running in serial.
+                vaspcmd = JASPRC['vasp.executable.serial']
                 log.debug('NPROCS = 1. running in serial')
                 exitcode = os.system(vaspcmd)
                 return exitcode
@@ -434,6 +441,7 @@ def run(self):
                     log.debug('running vanilla MPI job')
 
                     print 'MPI NPROCS = ',NPROCS
+                    vaspcmd = JASPRC['vasp.executable.parallel']
                     parcmd = 'mpirun -np %i %s' % (NPROCS, vaspcmd)
                     exitcode = os.system(parcmd)
                     return exitcode
@@ -441,34 +449,37 @@ def run(self):
                     # we need to run an MPI job on cores_per_process
                     if JASPRC['multiprocessing.cores_per_process'] == 1:
                         log.debug('running single core multiprocessing job')
+                        vaspcmd = JASPRC['vasp.executable.serial']
                         exitcode = os.system(vaspcmd)
                     elif JASPRC['multiprocessing.cores_per_process'] > 1:
                         log.debug('running mpi multiprocessing job')
                         NPROCS = JASPRC['multiprocessing.cores_per_process']
-                        print 'Multiprocessing NPROCS = ',NPROCS
+
+                        vaspcmd = JASPRC['vasp.executable.parallel']
                         parcmd = 'mpirun -np %i %s' % (NPROCS, vaspcmd)
                         exitcode = os.system(parcmd)
                         return exitcode
         else:
             # probably running at cmd line, in serial.
-            open('running','w')
+            vaspcmd = JASPRC['vasp.executable.serial']
             exitcode = os.system(vaspcmd)
-            if os.path.exists('running'):
-                os.unlink('running')
-            open('done','w')
             return exitcode
         #end
 
     # if you get here, a job is getting submitted
+
+
     script = '''
 #!/bin/bash
 cd {self.cwd}  # this is the current working directory
 cd {self.vaspdir}  # this is the vasp directory
-{vaspcmd}     # this is the vasp command
+runjasp.py     # this is the vasp command
 #end'''.format(**locals())
 
     jobname = self.vaspdir
     log.debug('{0} will be the jobname.'.format(jobname))
+    log.debug('-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
+                                                     JASPRC['queue.ppn']))
 
     p = Popen(['{0}'.format(JASPRC['queue.command']),
                '{0}'.format(JASPRC['queue.options']),
@@ -482,6 +493,10 @@ cd {self.vaspdir}  # this is the vasp directory
     log.debug(script)
 
     out, err = p.communicate(script)
+
+    if out == '' or err != '':
+        raise Exception('something went wrong in qsub:\n\n{0}'.format(err))
+
     f = open('jobid','w')
     f.write(out)
     f.close()
@@ -810,3 +825,38 @@ def get_elapsed_time(self):
     else:
          return None
 Vasp.get_elapsed_time = get_elapsed_time
+
+old_read_ldau = Vasp.read_ldau
+
+def read_ldau(self):
+    '''Upon restarting the calculation, Vasp.read_incar() read
+    list_keys ldauu, ldauj, and ldaul as list params, even though we
+    are only allowed to define them through a dict key. If the
+    calculation is complete, this is never a problem because we
+    initially call read_incar(), and, seeing the ldauu, ldauj, and
+    ldaul keys in the INCAR, VASP believes we initially defined them
+    as lists. However, when we call restart a calculation and call
+    read_ldau, this reads the ldauu, ldaul, and ldauj keys from the
+    OUTCAR and sets the dictionary. We now have two instances where
+    the ldauu, ldauj, and ldaul tags are stored (in the dict and list
+    params)!
+
+    This is particularly troublesome for continuation
+    calculations. What happens is that Vasp writes the ldauu, ldaul,
+    and ldauj tags twice, because it is stored in both the list_params
+    and dict_params. The easiest way to get rid of this is when we
+    read the ldauu, ldauj, and ldaul tags from the OUTCAR upon
+    restart, we should erase the list params. This is what this
+    function does.
+
+    'Note: the problem persists with continuation calculations with
+    nbands and magmoms.
+    '''
+    ldau, ldauprint, ldautype, ldau_luj = old_read_ldau(self)
+
+    self.set(ldauu=None)
+    self.set(ldaul=None)
+    self.set(ldauj=None)
+    return ldau, ldauprint, ldautype, ldau_luj
+
+Vasp.read_ldau = read_ldau
