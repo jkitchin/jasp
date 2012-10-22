@@ -1,0 +1,10 @@
+INCAR created by Atomic Simulation Environment
+ PREC = Normal
+ ISPIN = 2
+ LORBIT = 11
+ LWAVE = .FALSE.
+ LDAU = .TRUE.
+ LDAUL = 2
+ LDAUU = 2.000
+ LDAUJ = 0.000
+ MAGMOM = 1*5.0000 
