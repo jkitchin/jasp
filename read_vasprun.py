@@ -2,7 +2,15 @@ from jasp import *
 import xml
 from xml.etree import ElementTree
 
+old_read_forces = Vasp.read_forces
+
 def read_forces(self, atoms=None, all=False):
+
+    try:
+        return old_read_forces(self,atoms,all)
+    except ValueError:
+        log.debug('ValueError in read_forces. trying vasprun.xml')
+
     with open('vasprun.xml','rt') as f:
         try:
             tree = ElementTree.parse(f)
@@ -30,9 +38,16 @@ def read_forces(self, atoms=None, all=False):
     else:
         return np.array([np.array(f)[self.resort] for f in forces])
 
-    #Vasp.read_forces = read_forces
+Vasp.read_forces = read_forces
+
+old_read_stress = Vasp.read_stress
 
 def read_stress(self):
+    try:
+        old_read_stress(self)
+    except ValueError:
+        log.debug('ValueError in read_stress. trying vasprun.xml')
+
     with open('vasprun.xml','rt') as f:
         try:
             tree = ElementTree.parse(f)
@@ -60,7 +75,7 @@ def read_stress(self):
             stress[0][2], # sxz
             stress[0][1], # sxy
             ]
-#Vasp.read_stress = read_stress
+Vasp.read_stress = read_stress
 
 if __name__ == '__main__':
     from jasp import *
