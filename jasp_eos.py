@@ -18,6 +18,7 @@ def get_eos(self):
     '''
 
     org = [] # list of strings to make the org-file report
+    data = {}
 
     # first run basic calculation to make sure everything works
     self.calculate()
@@ -58,10 +59,17 @@ def get_eos(self):
 
     if not ready:
         log.info('Step 0 is still running')
-        import sys; sys.exit()
+        raise VaspRunning
+
 
     eos = EquationOfState(volumes0, energies0)
     v0, e0, B = eos.fit()
+
+    data['step0'] = {}
+    data['step0']['volumes'] = volumes0
+    data['step0']['energies'] = energies0
+    data['step0']['eos'] = (v0, e0, B)
+
     f = eos.plot(show=False)
     f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
     plt.xlabel(u'volume [$\AA^3$]')
@@ -92,8 +100,6 @@ def get_eos(self):
             '{0} to proceed.'.format(cwd + '/step-0')]
         raise Exception('\n'.join(s))
 
-
-
     # Step 1 - now we do the next step with isif=2, ibrion=2 we do
     # this around the minimum found in step0, and allow internal
     # coordinates to relax, but keep constant shape and volume at each
@@ -123,10 +129,15 @@ def get_eos(self):
 
     if not ready:
         log.info('Step 1 is still running')
-        import sys; sys.exit()
+        raise VaspRunning
 
     eos1 = EquationOfState(volumes1, energies1)
     v1, e1, B = eos1.fit()
+
+    data['step1'] = {}
+    data['step1']['volumes'] = volumes1
+    data['step1']['energies'] = energies1
+    data['step1']['eos'] = (v1, e1, B)
 
     f = eos1.plot(show=False)
     f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
@@ -166,10 +177,15 @@ def get_eos(self):
 
     if not ready:
         log.info('Step 2 is still running')
-        import sys; sys.exit()
+        raise VaspRunning
 
     eos2 = EquationOfState(volumes2, energies2)
     v2, e2, B = eos2.fit()
+
+    data['step2'] = {}
+    data['step2']['volumes'] = volumes2
+    data['step2']['energies'] = energies2
+    data['step2']['eos'] = (v2, e2, B)
 
     f = eos2.plot(show=False)
     f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
@@ -192,8 +208,7 @@ def get_eos(self):
            'birch',
            'birchmurnaghan',
            'pouriertarantola',
-           'vinet',
-           'antonschmidt'] # The e0 in this eos is not the same as the others
+           'vinet']
 
     from ase.units import kJ
     Vs, Es, Bs = [], [], []
@@ -221,6 +236,11 @@ def get_eos(self):
 
     Vconf = t.ppf(1 - alpha/2., dof) * stdV * np.sqrt(1 + 1./n)
     Bconf = t.ppf(1 - alpha/2., dof) * stdB * np.sqrt(1 + 1./n)
+
+    data['step2']['avgV'] = avgV
+    data['step2']['Vconf95'] = Vconf
+    data['step2']['avgB'] = avgB
+    data['step2']['Bconf95'] = Bconf
 
     org += ['** Statistical analysis',
             '''
@@ -252,6 +272,11 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
         org += ['* step 3 - relax volume',
                 str(calc)]
 
+        atoms = calc.get_atoms()
+        data['step3']= {}
+        data['step3']['atoms'] = atoms
+        data['step3']['potential_energy'] = atoms.get_potential_energy()
+
     with open('eos.org', 'w') as f:
         f.write('\n'.join(org))
 
@@ -263,6 +288,11 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
               prec='high',
               ismear=-5) as calc:
         calc.calculate()
+        atoms = calc.get_atoms()
+
+        data['final-step']= {}
+        data['final-step']['atoms'] = atoms
+        data['final-step']['potential_energy'] = atoms.get_potential_energy()
 
         org += ['* final step - static calculation',
                 str(calc)]
@@ -270,9 +300,8 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
     with open('eos.org', 'w') as f:
         f.write('\n'.join(org))
 
-    return ((avgV, t.ppf(1 - alpha/2., dof) * stdV * np.sqrt(1 + 1./n)),
-            #(avgE, t.ppf(1 - alpha/2., dof) * stdE * np.sqrt(1 + 1./n)),
-            (avgB, t.ppf(1 - alpha/2., dof) * stdB * np.sqrt(1 + 1./n)))
+    return data
+
 
 Vasp.get_eos = get_eos
 
