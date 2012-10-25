@@ -312,6 +312,8 @@ def calculation_required(self, atoms, quantities):
         return True
     elif self.int_params != self.old_int_params:
         log.debug('int_params have changed')
+        log.debug('current: {0}'.format(self.int_params))
+        log.debug('old    : {0}'.format(self.old_int_params))
         return True
     elif self.bool_params != self.old_bool_params:
         log.debug('bool_params have changed')
@@ -328,6 +330,8 @@ def calculation_required(self, atoms, quantities):
 
         if list(self.list_params[key]) != list(self.old_list_params[key]):
             log.debug('list_params have changed')
+            log.debug('current: {0}'.format(self.list_params[key]))
+            log.debug('old:     {0}'.format(self.old_list_params[key]))
             return True
 
     for key in self.input_params:
@@ -644,6 +648,8 @@ def pretty_print(self):
                                                            atom.z,
                                                            atom.tag,
                                                            rms_f)
+            # VASP has the opposite convention of constrained
+            # Think: F = frozen
             if constraints is not None:
                 ts += '      {0} {1} {2}'.format('F' if constraints[i][0] is True else 'T',
                                                  'F' if constraints[i][1] is True else 'T',
