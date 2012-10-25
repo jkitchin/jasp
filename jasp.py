@@ -53,6 +53,28 @@ formatter = logging.Formatter(formatstring)
 handler.setFormatter(formatter)
 log.addHandler(handler)
 
+def calculation_is_ok(jobid=None):
+    # find job output file
+    output = ['No job output found for jobid = {0}.\n\n'.format(jobid)]
+    if jobid is not None:
+        for f in os.listdir('.'):
+            if 'o{0}'.format(jobid) in f:
+                with open(f) as outputfile:
+                    output = ['\n================================================================\n',
+                    '{0}:\n'.format(f)]
+                    output += outputfile.readlines()
+                    output += ['================================================================',
+                               '\n']
+
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+        if not 'Voluntary context switches' in lines[-1]:
+            output += ['Last 20 lines of OUTCAR:']
+            output += lines[-20:]
+            output += ['================================================================']
+            raise VaspNotFinished(''.join(output))
+    return True
+
 # ###################################################################
 # Jasp function - returns a Vasp calculator
 # ###################################################################
@@ -201,6 +223,14 @@ def Jasp(debug=None,
           and not job_in_queue(None)
           and not os.path.exists('running')):
         log.debug('job is created, not in queue, not running. finished and first time we are looking at it')
+
+        with open('jobid') as f:
+            jobid = f.readline().split('.')[0]
+
+
+        if calculation_is_ok(jobid):
+            pass
+
         # delete the jobid file, since it is done
         os.unlink('jobid')
 
