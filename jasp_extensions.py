@@ -325,8 +325,15 @@ def calculation_required(self, atoms, quantities):
         return True
 
     for key in self.list_params:
-        if self.list_params[key] is None and self.old_list_params[key] is None:
+        if (self.list_params[key] is None
+            and self.old_list_params[key] is None):
+            # no check required
             continue
+        elif (self.list_params[key] is None
+              or self.old_list_params[key] is None):
+            # handle this because one may be alist and the other is
+            # not, either way they are not the same.
+            return True
 
         if list(self.list_params[key]) != list(self.old_list_params[key]):
             log.debug('list_params have changed')
@@ -554,8 +561,6 @@ def pretty_print(self):
         atoms = self.get_atoms()
 
         uc = atoms.get_cell()
-        pos = atoms.get_positions()
-        syms = atoms.get_chemical_symbols()
 
         try:
             self.converged = self.read_convergence()
