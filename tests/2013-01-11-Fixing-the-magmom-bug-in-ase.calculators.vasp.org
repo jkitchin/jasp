@@ -1,0 +1,167 @@
+#+begin_html
+---
+layout: post
+title: Fixing the magmom bug in ase.calculators.vasp
+tags:
+categories:
+---
+#+end_html
+
+Today I am going to fix the bug in ase.calculators.vasp that results in duplicate entries of MAGMOMS being written to the INCAR file. This bug has not caused any known problems yet, but it is annoying and I want to test out a workflow with git in fixing it.
+
+First, I made sure to start with a clean repository.
+
+Next, I am making a branch
+
+git checkout -b magmom-fix
+
+Where I will do all the work in fixing the bug. If it goes wrong, I can just go back to master, which will undo all my changes. I run all the tests:
+
+#+BEGIN_SRC sh :results output
+cd tests
+make tests
+#+END_SRC
+
+#+RESULTS:
+: nosetests -v
+
+Interesting that does not work in org-mode. The tests finished fine.
+
+Now, I create a test that is going to fail because of the bug. I do that, so that after I fix it, the test will pass, showing it was fixed. 
+
+Here is the basic test. This works fine, and there is only one MAGMOM line in the INCAR.
+
+#+BEGIN_SRC python
+from jasp import *
+import shutil
+from ase.lattice.cubic import BodyCenteredCubic
+
+if os.path.isdir('Fe-magmom'):
+    print('deleting the Fe-magmom dir')
+    shutil.rmtree('Fe-magmom')
+
+atoms = BodyCenteredCubic(directions=[[1,0,0],
+                                      [0,1,0],
+                                      [0,0,1]],
+                          size=(1,1,1),
+                          symbol='Fe')
+
+for atom in atoms:
+    atom.magmom = 2
+
+with jasp('Fe-magmom',
+          xc='PBE',
+          encut=300,
+          kpts=(4,4,4),
+          ispin=2,
+          atoms=atoms) as calc:
+    calc.prepare_input_files()
+    
+counter = 0
+with open('Fe-magmom/INCAR') as f:
+    for line in f:
+        if 'MAGMOM' in line:
+            counter += 1
+
+print counter
+#+END_SRC
+
+#+RESULTS:
+: deleting the Fe-magmom dir
+: 1
+
+** no bug with just ispin=2
+I thought this would show a bug, but it does not
+#+BEGIN_SRC python
+#!/usr/bin/env python
+from jasp import *
+JASPRC['mode'] = 'run'
+from ase import Atom, Atoms
+import numpy as np
+
+a = 2.87
+a1 = np.array((-a/2, a/2, a/2))
+a2 = np.array((a/2, -a/2, a/2))
+a3 = np.array((a/2, a/2, -a/2))
+bulk = Atoms([Atom('Fe', (0, 0, 0), magmom=5)],
+             cell=(a1, a2, a3))
+
+with jasp('Fe-bcc-magmom', atoms=bulk,
+          xc='PBE', 
+          kpts=(2,2,2),
+          ispin=2) as calc:
+    try:
+        print bulk.get_potential_energy()
+    except (VaspSubmitted, VaspQueued):
+        pass
+
+#+END_SRC
+
+#+RESULTS:
+: -7.869676
+
+
+#+BEGIN_SRC sh
+cat Fe-bcc-magmom/INCAR
+#+END_SRC
+
+#+RESULTS:
+: INCAR created by Atomic Simulation Environment
+:  PREC = Normal
+:  ISPIN = 2
+:  MAGMOM = 1*5.0000 
+
+
+** Zhongnans bug
+Zhongnan originally told me about this bug with DFT+U. Here is the basic script he sent me. In the original version there were some bugs in his script that were problematic. This script seems to work fine. 
+
+#+BEGIN_SRC python
+#!/usr/bin/env python
+from jasp import *
+JASPRC['mode'] = 'run'
+
+from ase import Atom, Atoms
+import numpy as np
+
+a = 2.87
+a1 = np.array((-a/2, a/2, a/2))
+a2 = np.array((a/2, -a/2, a/2))
+a3 = np.array((a/2, a/2, -a/2))
+bulk = Atoms([Atom('Fe', (0, 0, 0), magmom=5)],
+             cell=(a1, a2, a3))
+with jasp('Fe-bcc-U', atoms=bulk,
+          xc='PBE', 
+          kpts=(8, 8, 8),
+          ispin=2, lorbit=11,
+          ldau = True,
+          ldau_luj={'Fe': {'L':2, 'U':2, 'J':0}},
+          lwave=False, debug=logging.DEBUG) as calc:
+    try:
+        print calc.calculation_required(bulk,[])
+        print bulk.get_potential_energy()
+    except (VaspSubmitted, VaspQueued):
+        pass
+#+END_SRC
+
+#+RESULTS:
+: False
+: -6.67292
+
+#+BEGIN_SRC sh
+cat Fe-bcc-U/INCAR
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+INCAR created by Atomic Simulation Environment
+ PREC = Normal
+ ISPIN = 2
+ LORBIT = 11
+ LWAVE = .FALSE.
+ LDAU = .TRUE.
+ LDAUL = 2
+ LDAUU = 2.000
+ LDAUJ = 0.000
+ MAGMOM = 1*5.0000 
+#+end_example
+
