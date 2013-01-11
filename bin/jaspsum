@@ -77,8 +77,11 @@ for d in dirs:
         # plot trajectory
         if options.t is not None:
             xd = xdat2traj('out.traj',calc=calc)
-            xd.convert()
-            os.system('ag out.traj; rm out.traj')
+            try:
+                xd.convert()
+                os.system('ag out.traj; rm out.traj')
+            except ValueError:
+                print('unable to show trajectory')
 
         # plot the atoms
         if options.p is not None:
