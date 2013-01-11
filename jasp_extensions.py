@@ -871,3 +871,49 @@ def read_ldau(self):
     return ldau, ldauprint, ldautype, ldau_luj
 
 Vasp.read_ldau = read_ldau
+
+
+def get_nearest_neighbor_table(self):
+    """read the nearest neighbor table from OUTCAR
+
+    returns a list of atom indices and the connecting neighbors. The
+    list is not sorted according to self.sorted or self.resorted.
+    """
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+
+    for i,line in enumerate(lines):
+        if 'nearest neighbor table' in line:
+            break
+
+    # i contains index of line
+    i += 1 # first line of the table
+
+    # sometimes there is carriover to the next line.
+    line_counter = 0
+
+    NN = []
+
+    while True:
+        line = lines[i]
+        if ('LATTYP' in line
+            or line.strip() == ''):
+            break
+        line = lines[i].strip()
+        if '        ' in lines[i+1]:
+            # this was a continuation line
+            line += lines[i+1]
+            i += 2
+        else:
+            i += 1
+
+        fields = line.split()
+        
+        atom_index = int(fields[0])
+        nearest_neigbors = fields[4:]
+        nn_indices = [int(nearest_neigbors[x]) for x in range(0,len(nearest_neigbors),2)]
+        nn_distances = [float(nearest_neigbors[x]) for x in range(1,len(nearest_neigbors),2)]
+        NN.append((atom_index, nn_indices))
+    return NN
+
+Vasp.get_nearest_neighbor_table = get_nearest_neighbor_table
