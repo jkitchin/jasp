@@ -128,6 +128,17 @@ def Jasp(debug=None,
         # e.g. no CONTCAR exists, then we cannot restart the
         # calculation. we have to build it up.
         calc = Vasp(restart, output_template, track_output)
+        # Try to read sorting file
+        if os.path.isfile('ase-sort.dat'):
+            calc.sort = []
+            calc.resort = []
+            file = open('ase-sort.dat', 'r')
+            lines = file.readlines()
+            file.close()
+            for line in lines:
+                data = line.split()
+                calc.sort.append(int(data[0]))
+                calc.resort.append(int(data[1]))
         calc.read_incar()
 
         if calc.int_params['images'] is not None:
