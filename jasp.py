@@ -80,6 +80,9 @@ def calculation_is_ok(jobid=None):
 # ###################################################################
 
 def Jasp(debug=None,
+         restart=None,
+         output_template='vasp',
+         track_output=False,
          atoms=None,
          **kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
@@ -105,7 +108,7 @@ def Jasp(debug=None,
 
     # empty vasp dir. start from scratch
     elif (not os.path.exists('INCAR')):
-        calc = Vasp()
+        calc = Vasp(restart, output_template, track_output)
 
         if atoms is not None:
             atoms.calc = calc
@@ -124,7 +127,7 @@ def Jasp(debug=None,
         # additional parameters. If it is the first time running,
         # e.g. no CONTCAR exists, then we cannot restart the
         # calculation. we have to build it up.
-        calc = Vasp()
+        calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
 
         if calc.int_params['images'] is not None:
@@ -157,7 +160,7 @@ def Jasp(debug=None,
         '''
         log.debug('job created, and in queue, but not running. tricky case')
 
-        self = Vasp()
+        self = Vasp(restart, output_template, track_output)
         self.read_incar()
 
         if self.int_params['images'] is not None:
@@ -203,7 +206,7 @@ def Jasp(debug=None,
           and job_in_queue(None)
           and os.path.exists('running')):
         log.debug('job created, and in queue, and running')
-        calc = Vasp()
+        calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
         if calc.int_params['images'] is not None:
             log.debug('reading neb calculator')
@@ -227,14 +230,13 @@ def Jasp(debug=None,
         with open('jobid') as f:
             jobid = f.readline().split('.')[0]
 
-
-        if calculation_is_ok(jobid):
-            pass
+            #if calculation_is_ok(jobid):
+            #pass
 
         # delete the jobid file, since it is done
         os.unlink('jobid')
 
-        calc = Vasp()
+        calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
         #log.debug(calc.old_dict_params)
         #log.debug(calc.dict_params)
