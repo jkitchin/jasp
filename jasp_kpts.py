@@ -162,7 +162,7 @@ def read_kpoints(self, filename='KPOINTS'):
 Vasp.read_kpoints = read_kpoints
 
 
-def set_kppra(self, kppra, even=False, slab=False, gamma=False):
+def get_kpts_from_kppra(atoms, kppra, even=False, slab=False, gamma=False):
     '''
     Returns a kpt grid that most uniformly samples each unit cell
     vector direction, and provides at least the desired kpoints per
@@ -171,8 +171,7 @@ def set_kppra(self, kppra, even=False, slab=False, gamma=False):
     even:  constrains the grid to be even
     slab:  if True, sets grid to (n1, n2, 1)
     gamma: wheter to offset
-        '''
-    atoms = self.get_atoms()
+    '''
     nreciprocal_atoms = 1./len(atoms)
     NKPTS = kppra*nreciprocal_atoms
 
@@ -227,7 +226,7 @@ def set_kppra(self, kppra, even=False, slab=False, gamma=False):
             #the numkpts/atm is satisfied
 
     return (k1, k2, k3)
-
+ 
 if __name__ == '__main__':
     from ase.visualize import view
     from jasp import *
