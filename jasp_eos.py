@@ -1,16 +1,22 @@
 from jasp import *
 from ase.calculators.vasp import Vasp
+import json
 
 from ase.utils.eos import EquationOfState
 import matplotlib.pyplot as plt
 from ase.units import GPa
 
-def get_eos(self):
+def get_eos(self, static=False):
     '''
     calculate the equation of state for the attached atoms. Returns a
     dictionary of data for each step. You do not need to specify any
     relaxation parameters.
     '''
+
+    # this returns if the data exists.
+    if os.path.exists('eos.json'):
+        with open('eos.json') as f:
+            return json.loads(f.read())
 
     # we need an initial calculation to get us going.
     self.calculate()
@@ -102,7 +108,7 @@ def get_eos(self):
     volumes2, energies2 = [], []
     factors = [-0.09, -0.06, -0.03, 0.0, 0.03, 0.06, 0.09]
 
-    org += ['* step 2 - relax shape',]
+    org += ['* step 2 - relax ions and shape with improved minimum estimate',]
 
     for i,f in enumerate(factors):
         wd = cwd + '/step-2/f-{0}'.format(i)
@@ -219,39 +225,45 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
         atoms = calc.get_atoms()
         atoms.set_volume(avgV)
         calc.calculate()
-        calc.clone('step-4')
         calc.strip()
 
         org += [str(calc)]
 
         atoms = calc.get_atoms()
         data['step3']= {}
-        data['step3']['atoms'] = atoms
         data['step3']['potential_energy'] = atoms.get_potential_energy()
+        data['step3']['volume'] = atoms.get_volume()
 
     with open('eos.org', 'w') as f:
         f.write('\n'.join(org))
 
     # now the final step with ismear=-5 for the accurate energy. This
-    # is recommended by the VASP manual.
-    with jasp('step-4',
-              isif=None, ibrion=None, nsw=None,
-              icharg=2, # do not reuse charge
-              istart=1,
-              prec='high',
-              ismear=-5) as calc:
-        calc.calculate()
-        atoms = calc.get_atoms()
+    # is recommended by the VASP manual. We only do this if you
+    # specify static=True as an argument
+    if static:
+        with jasp('step-3') as calc:
+            calc.clone('step-4')
+        with jasp('step-4',
+                  isif=None, ibrion=None, nsw=None,
+                  icharg=2, # do not reuse charge
+                  istart=1,
+                  prec='high',
+                  ismear=-5) as calc:
+            calc.calculate()
+            atoms = calc.get_atoms()
 
-        data['step4']= {}
-        data['step4']['atoms'] = atoms
-        data['step4']['potential_energy'] = atoms.get_potential_energy()
+            data['step4']= {}
+            data['step4']['potential_energy'] = atoms.get_potential_energy()
 
-        org += ['* step-4 - static calculation',
-                str(calc)]
+            org += ['* step-4 - static calculation',
+                    str(calc)]
 
-    with open('eos.org', 'w') as f:
-        f.write('\n'.join(org))
+        with open('eos.org', 'w') as f:
+            f.write('\n'.join(org))
+
+    # dump data to a json file
+    with open('eos.json','w') as f:
+        f.write(json.dumps(data))
 
     return data
 
