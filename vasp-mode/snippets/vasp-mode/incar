@@ -1,0 +1,9 @@
+#name : INCAR
+# --
+SYSTEM = $1
+PREC = $2
+ENCUT = $3
+SIGMA = $4
+ISMEAR = $5
+IBRION = $6
+ISIF = $7
