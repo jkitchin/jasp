@@ -140,7 +140,7 @@ def Jasp(debug=None,
                 calc.sort.append(int(data[0]))
                 calc.resort.append(int(data[1]))
         calc.read_incar()
-
+        calc.read_potcar() #sets xc
         if calc.int_params['images'] is not None:
             calc = read_neb_calculator()
 
