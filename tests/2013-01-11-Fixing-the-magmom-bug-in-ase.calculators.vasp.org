@@ -168,3 +168,10 @@ INCAR created by Atomic Simulation Environment
 
 * wrapping up
 As far as I can tell, there is not a bug at this point. Now, I am switching back to the master branch and I will merge these changes in.
+
+git checkout master
+git merge magmom-fix
+
+all the tests look good.
+
+git push
