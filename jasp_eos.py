@@ -10,7 +10,7 @@ def get_eos(self, static=False):
     '''
     calculate the equation of state for the attached atoms. Returns a
     dictionary of data for each step. You do not need to specify any
-    relaxation parameters.
+    relaxation parameters, only the base parameters for the calculations.
     '''
 
     # this returns if the data exists.
@@ -65,20 +65,43 @@ def get_eos(self, static=False):
                 calc.strip()
 
             except (VaspSubmitted, VaspQueued):
-                ready = False
+                ready = False                    
 
     if not ready:
         log.info('Step 1 is still running')
         raise VaspRunning
 
-    eos1 = EquationOfState(volumes1, energies1)
-    v1, e1, B1 = eos1.fit()
-
     data['step1'] = {}
     data['step1']['volumes'] = volumes1
     data['step1']['energies'] = energies1
-    data['step1']['eos'] = (v1, e1, B1)
+    with open('eos.json','w') as f:
+        f.write(json.dumps(data))
 
+    # create an org-table of the data.
+    org += ['',
+            '#+tblname: step1',
+            '| volume (A^3) | Energy (eV) |',
+            '|-']
+    for v,e in zip(volumes1, energies1):
+        org += ['|{0}|{1}|'.format(v,e)]
+    org += [''] 
+
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
+        
+    eos1 = EquationOfState(volumes1, energies1)
+
+    try:
+        v1, e1, B1 = eos1.fit()
+    except:
+        with open('error', 'w') as f:
+            f.write('Error fitting the equation of state')
+        
+    data['step1']['eos'] = (v1, e1, B1)
+    with open('eos.json','w') as f:
+        f.write(json.dumps(data))
+
+    # create a plot
     f = eos1.plot(show=False)
     f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
     plt.xlabel(u'volume ($\AA^3$)')
@@ -135,14 +158,36 @@ def get_eos(self, static=False):
         log.info('Step 2 is still running')
         raise VaspRunning
 
-    eos2 = EquationOfState(volumes2, energies2)
-    v2, e2, B2 = eos2.fit()
-
+    # update org and json files.
     data['step2'] = {}
     data['step2']['volumes'] = volumes2
     data['step2']['energies'] = energies2
-    data['step2']['eos'] = (v2, e2, B2)
+    with open('eos.json','w') as f:
+        f.write(json.dumps(data))
 
+     # create an org-table of the data.
+    org += ['',
+            '#+tblname: step2',
+            '| volume (A^3) | Energy (eV) |',
+            '|-']
+    for v,e in zip(volumes2, energies2):
+        org += ['|{0}|{1}|'.format(v,e)]
+    org += [''] 
+
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))   
+    
+    eos2 = EquationOfState(volumes2, energies2)
+    try:
+        v2, e2, B2 = eos2.fit()
+    except:
+        with open('error', 'w') as f:
+            f.write('Error fitting the equation of state')    
+
+    data['step2']['eos'] = (v2, e2, B2)
+    with open('eos.json','w') as f:
+        f.write(json.dumps(data))
+        
     f = eos2.plot(show=False)
     f.subplots_adjust(left=0.18, right=0.9, top=0.9, bottom=0.15)
     plt.xlabel(u'volume ($\AA^3$)')
@@ -156,7 +201,9 @@ def get_eos(self, static=False):
     org += [
             '[[./eos-step2.png]]',
             '']
-
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
+        
     # statistical analysis of the equation of state
     EOS = ['sjeos',
            'taylor',
@@ -170,11 +217,14 @@ def get_eos(self, static=False):
     Vs, Es, Bs = [], [], []
     for label in EOS:
         eos = EquationOfState(volumes2, energies2, eos=label)
-        v, e, B = eos.fit()
-
-        Vs += [v]
-        Es += [e]
-        Bs += [B / kJ * 1.0e24]
+        try:
+            v, e, B = eos.fit()
+            Vs += [v]
+            Es += [e]
+            Bs += [B / kJ * 1.0e24] # GPa
+        except:
+            with open('error', 'w') as f:
+                f.write('Error fitting the equation of state {0}'.format(label))
 
     avgV = np.mean(Vs)
     stdV = np.std(Vs)
@@ -206,7 +256,10 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
 
     with open('eos.org', 'w') as f:
         f.write('\n'.join(org))
-
+        
+    with open('eos.json','w') as f:
+        f.write(json.dumps(data))
+        
     # step 3 should be isif = 3 where we let the volume change too
     # start from the minimum in step2
 
@@ -236,7 +289,10 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
 
     with open('eos.org', 'w') as f:
         f.write('\n'.join(org))
-
+        
+    with open('eos.json','w') as f:
+        f.write(json.dumps(data))
+        
     # now the final step with ismear=-5 for the accurate energy. This
     # is recommended by the VASP manual. We only do this if you
     # specify static=True as an argument
@@ -258,8 +314,9 @@ B = {avgB:1.0f} \pm {Bconf:1.0f} GPa at the 95% confidence level
             org += ['* step-4 - static calculation',
                     str(calc)]
 
-        with open('eos.org', 'w') as f:
-            f.write('\n'.join(org))
+    # final write out
+    with open('eos.org', 'w') as f:
+        f.write('\n'.join(org))
 
     # dump data to a json file
     with open('eos.json','w') as f:
