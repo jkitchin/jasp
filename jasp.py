@@ -174,7 +174,7 @@ def Jasp(debug=None,
         self = Vasp(restart, output_template, track_output)
         self.read_incar()
 
-        if self.int_params['images'] is not None:
+        if self.int_params.get('images', None) is not None:
             calc = read_neb_calculator()
         else:
             import ase.io
@@ -219,7 +219,7 @@ def Jasp(debug=None,
         log.debug('job created, and in queue, and running')
         calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
-        if calc.int_params['images'] is not None:
+        if calc.int_params.get('images', None) is not None:
             log.debug('reading neb calculator')
             calc = read_neb_calculator()
 
@@ -252,7 +252,7 @@ def Jasp(debug=None,
         #log.debug(calc.old_dict_params)
         #log.debug(calc.dict_params)
 
-        if calc.int_params['images'] is not None:
+        if calc.int_params.get('images', None) is not None:
             log.debug('reading neb calculator')
             calc = read_neb_calculator()
         else:
@@ -312,7 +312,7 @@ def Jasp(debug=None,
 
     # create a METADATA file if it does not exist and we are not an NEB.
     if ((not os.path.exists('METADATA'))
-        and calc.int_params['images'] is None):
+        and calc.int_params.get('images', None) is None):
         calc.create_metadata()
 
     return calc
