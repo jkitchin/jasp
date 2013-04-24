@@ -141,7 +141,7 @@ def Jasp(debug=None,
                 calc.resort.append(int(data[1]))
         calc.read_incar()
         calc.read_potcar() #sets xc
-        if calc.int_params['images'] is not None:
+        if calc.int_params.get('images', None) is not None:
             calc = read_neb_calculator()
 
         try:
