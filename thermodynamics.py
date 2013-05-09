@@ -253,7 +253,7 @@ class SST:
         plt.close()
 
         self.org += ['** Electronic free energy',
-                     '[[./{}]]'.format(self.label + 'fel.png'),
+                     '[[./{0}]]'.format(self.label + 'fel.png'),
                      '']
         self.write_org()
 
