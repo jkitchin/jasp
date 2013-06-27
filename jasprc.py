@@ -32,6 +32,7 @@ JASPRC = {'vasp.executable.serial':'/opt/kitchingroup/vasp-5.2.12/build/bin/vasp
           'multiprocessing.cores_per_process':'None'}
 
 def read_configuration(fname):
+    '''reads jasprc configuration from fname'''
     f = open(fname)
     for line in f:
         line=line.strip()
