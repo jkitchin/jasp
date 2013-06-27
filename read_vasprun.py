@@ -19,6 +19,11 @@ def read_forces(self, atoms=None, all=False):
             f = np.empty((len(atoms),3))
             f[:] = np.nan
             return f
+        except xml.etree.ElementTree.ParseError:
+            # this may happen with an incomplete xml file
+            f = np.empty((len(atoms),3))
+            f[:] = np.nan
+            return f
 
     forces = []
     for e in tree.findall('.//varray'):
@@ -53,7 +58,12 @@ def read_stress(self):
             tree = ElementTree.parse(f)
         except xml.parsers.expat.ExpatError:
             # this will happen when a job is not finished
-            s = np.empty(6,1)
+            s = np.empty([6,1])
+            s[:] = np.nan
+            return s
+        except xml.etree.ElementTree.ParseError:
+            # this may happen with an incomplete xml file
+            s = np.empty([6,1])
             s[:] = np.nan
             return s
     stress = []
