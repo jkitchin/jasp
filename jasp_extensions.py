@@ -420,10 +420,6 @@ def run(self):
         for hook in self.pre_run_hooks:
             hook(self)
 
-            #cmd = os.environ.get('VASP_SCRIPT',None)
-            #if cmd is None:
-            #raise Exception, '$VASP_SCRIPT not found.'
-
     # if we are in the queue and jasp is called or if we want to use
     # mode='run' , we should just run the job. First, we consider how.
     if 'PBS_O_WORKDIR' in os.environ or JASPRC['mode']=='run':
@@ -478,8 +474,6 @@ def run(self):
         #end
 
     # if you get here, a job is getting submitted
-
-
     script = '''
 #!/bin/bash
 cd {self.cwd}  # this is the current working directory
@@ -520,7 +514,6 @@ def prepare_input_files(self):
     # Initialize calculations
     atoms = self.get_atoms()
     self.initialize(atoms)
-
     # Write input
     from ase.io.vasp import write_vasp
     write_vasp('POSCAR',
@@ -583,6 +576,8 @@ def pretty_print(self):
         if self.converged:
             if hasattr(self,'stress'):
                 stress = self.stress
+            else:
+                stress = None
         else:
             stress = None
 
