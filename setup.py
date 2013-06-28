@@ -18,7 +18,7 @@ setup(name = 'jasp',
           #"matplotlib",
           #"scipy",
           "webob",
-          #"Django",
-          #"pyxser",
-          #"apsw"
+          "Django",
+          "pyxser",
+          "apsw"
           ],)
