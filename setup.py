@@ -20,5 +20,5 @@ setup(name = 'jasp',
           "webob",
           "Django",
           #"pyxser", # https://github.com/dmw/pyxser
-          "apsw" #http://code.google.com/p/apsw/
+          #"apsw" #http://code.google.com/p/apsw/
           ],)
