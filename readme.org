@@ -13,12 +13,22 @@ see http://github.com/jkitchin/dft-book
 Everything that is in jasp may eventually be incorporated into ase.calculators.vasp. jasp will probably always be further on the development cycle than the ase.calculators.vasp. We try advanced concepts in workflow in jasp that may never be suitable for ase. We try using the latest features of python to see if it makes running calculations easier, faster or better in some way. ase strives to maintain a lot of compatibility with older python versions. jasp will not be constrained this way.
 * Files
 
+[[./__init__.py]] - just imports everything from jasp
+
 [[./jasp.py]]
 Contains the JASP class and jasp context manager. Code to see if calculation finished ok. Code to see if you are in a vasp directory. Is also an executable script that runs jasp
 
 [[./jasprc.py]] - configuration for jasp
 
 [[./jasp_extensions.py]] - monkey patches to ase.calculators.vasp, hook functions, run and calculate function, pretty print functions. some additional get functions.
+
+[[./jasp_kpts.py]] - fixes some issues with writing, reading kpts. new function to create grid from kpt density
+
+[[./read_vasprun.py]] - reads the vasprun.xml file
+
+[[./metadata.py]] - creates METADATA file
+
+[[./serialize.py]] - provides serialization (representing calculator as xml, json, or python code
 
 [[./jasp_atoms.py]] - monkey patches to ase.Atom and ase.Atoms. adds set_volume, a better __repr__, and a different atoms equality check.
 
@@ -28,6 +38,24 @@ Contains the JASP class and jasp context manager. Code to see if calculation fin
 
 [[./CHG.py]] - reads CHCAR, computes dipole moment
 
+[[./volumetric_data.py]] - reads volumetric data from vasp calculations
+
 [[./jasp_vib.py]] - get vibrational modes, frequencies, infrared intensities
 *************** TODO seems to be two infrared intensities in here.
 *************** END
+
+[[./thermodynamics.py]] - work in progress to describe free energy of solids
+
+[[./jasp_neb.py]] - provides nudged elastic band to jasp
+
+[[./jasp_eos.py]] - automates equation of state calculations in a multistep process
+
+[[./jasp_bandstructure.py]] - automates band structure calculations and plots
+
+[[./database.py]] - provides some capabilities to interface jasp with sqlite
+
+[[./vc]] - directory containing two attempts to integrate git version control with jasp
+
+[[./www]] - contains two efforts to create browser applications to serve vasp data
+
+[[./vasp-mode]] - emacs major mode for VASP input files
