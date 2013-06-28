@@ -7,13 +7,38 @@
 jasp requires python 2.6+ to work, and the latest svn version of ase.
 
 * Installing jasp
-1. Download jasp from : https://github.com/jkitchin/jasp
-
 2. Installation  requiremenent:
 You need to install vasp (commercial codes see http://cms.mpi.univie.ac.at) 
 and ASE  (see https://wiki.fysik.dtu.dk/ase/download.html )
 
+Make sure you can run VASP from the command line, make sure the ase tests pass. 
+
+Python modules that jasp depends on:
+ase
+numpy
+matplotlib
+
+
+
+Optional:
+scipy (for thermodynamics)
+Cheetah - for database, webapps
+apsw - sqlite3 interface for database
+pyxser (for serializing to xml)
+django (for web apps)
+webob (for web apps)
+
 3. Installation :
+
+If you have git installed:
+
+pip install git+git://github.com/jkitchin/jasp.git
+
+pip install -e git+git://github.com/jkitchin/jasp.git#egg=jasp
+
+#+BEGIN_SRC sh
+pip install https://github.com/jkitchin/jasp/zipball/master
+#+END_SRC
 
 3.1- After donwloading and decompress jasp in home/jasp directory,
 create an executable script named runvasp.py on your executable path.  This script is located in jasp/bin.
