@@ -6,8 +6,66 @@
 
 jasp requires python 2.6+ to work, and the latest svn version of ase.
 
+* Installing jasp
+1. Download jasp from : https://github.com/jkitchin/jasp
+
+2. Installation  requiremenent:
+You need to install vasp (commercial codes see http://cms.mpi.univie.ac.at) 
+and ASE  (see https://wiki.fysik.dtu.dk/ase/download.html )
+
+3. Installation :
+
+3.1- After donwloading and decompress jasp in home/jasp directory,
+create an executable script named runvasp.py on your executable path.  This script is located in jasp/bin.
+This file is looklike:
+#+BEGIN_SRC python
+#!/usr/bin/env python
+import os
+
+serial_vasp = '/home/jkitchin/src/vasp/bin/vasp_serial_intel_mkl'
+parallel_vasp = '/home/jkitchin/src/vasp/bin/vasp_openmpi_intel_mkl'
+
+if 'PBS_NODEFILE' in os.environ:
+    NPROCS = len(open(os.environ['PBS_NODEFILE']).readlines())
+
+    if NPROCS == 1:
+        print 'NPROCS = ',NPROCS
+        exitcode = os.system(serial_vasp)
+    else:
+        print 'NPROCS = ',NPROCS
+        parcmd = 'mpirun -np %i %s' % (NPROCS,parallel_vasp)
+        exitcode = os.system(parcmd)
+else:
+    exitcode = os.system(serial_vasp)
+#end
+#+END_SRC
+
+Add  to your .bashrc this lines commands:
+
+#+BEGIN_SRC sh
+export VASP_SCRIPT=/your path to runvasp.py/runvasp.py  # example :home/jasp/bin
+export PYTHONPATH=$HOME/jasp:$PYTHONPATH
+export PYTHONPATH=$HOME/jasp:$PYTHONPATH
+#+END_SRC
+
+3.3-  create $HOME/.jasprc file. This hidden file contains the following informtation:
+
+
+#+BEGIN_EXAMPLE
+# jasp configuration file
+serial_vasp=/your path to vasp/vasp_s  # vasp_s is your serial vasp executable
+parallel_vasp=/your path/vasp_p  # vasp_p is your parallel vasp executable
+export VASP_COMMAND='/your path /vasp_s'
+mode=run   # this defines whether jobs are immediately run or queued
+user.username= XXXXX # your name
+user.fullname =YYYYY XXXXXX  #your fullname
+user.email= xxxx-yyyyy@bbbb    #your email
+#+END_EXAMPLE
+
+
+
 * Examples of using jasp
-see http://github.com/jkitchin/dft-book
+see http://jkitchin.github.io/dft-book
 
 * Long-term plans for jasp
 Everything that is in jasp may eventually be incorporated into ase.calculators.vasp. jasp will probably always be further on the development cycle than the ase.calculators.vasp. We try advanced concepts in workflow in jasp that may never be suitable for ase. We try using the latest features of python to see if it makes running calculations easier, faster or better in some way. ase strives to maintain a lot of compatibility with older python versions. jasp will not be constrained this way.
