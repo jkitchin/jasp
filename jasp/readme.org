@@ -116,17 +116,11 @@ Contains the JASP class and jasp context manager. Code to see if calculation fin
 
 [[./POTCAR.py]] - some functions to parse POTCAR files for data
 
-[[./WAVECAR.py]] - incomplete effort to read wavecar for plotting
-
 [[./CHG.py]] - reads CHCAR, computes dipole moment
 
 [[./volumetric_data.py]] - reads volumetric data from vasp calculations
 
 [[./jasp_vib.py]] - get vibrational modes, frequencies, infrared intensities
-*************** TODO seems to be two infrared intensities in here.
-*************** END
-
-[[./thermodynamics.py]] - work in progress to describe free energy of solids
 
 [[./jasp_neb.py]] - provides nudged elastic band to jasp
 
