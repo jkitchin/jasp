@@ -125,8 +125,6 @@ Contains the JASP class and jasp context manager. Code to see if calculation fin
 [[./volumetric_data.py]] - reads volumetric data from vasp calculations
 
 [[./jasp_vib.py]] - get vibrational modes, frequencies, infrared intensities
-*************** TODO seems to be two infrared intensities in here.
-*************** END
 
 [[./thermodynamics.py]] - work in progress to describe free energy of solids
 
