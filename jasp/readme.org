@@ -19,8 +19,6 @@ ase
 numpy
 matplotlib
 
-
-
 Optional:
 scipy (for thermodynamics)
 Cheetah - for database, webapps
@@ -39,10 +37,15 @@ Otherwise, do this
 #+BEGIN_SRC sh
 pip install https://github.com/jkitchin/jasp/zipball/master
 #+END_SRC
+** dev
+pip install -e git+https://github.com/jkitchin/jasp.git@dev#egg=jasp
 
-3.1- After donwloading and decompress jasp in home/jasp directory,
-create an executable script named runvasp.py on your executable path.  This script is located in jasp/bin.
-This file is looklike:
+** Configuring jasp
+Create an executable script named runvasp.py on your executable path.  This script is typically located in $HOME/bin
+
+The script simply needs to run your vasp executable in the current directory.
+Here is an example file that chooses between serial and parallel executables depending on environment variables that are present in the TORQUE queue system:
+
 #+BEGIN_SRC python
 #!/usr/bin/env python
 import os
@@ -65,31 +68,42 @@ else:
 #end
 #+END_SRC
 
-Add  to your .bashrc this lines commands:
+Add  to your $HOME/.bashrc these commands:
 
 #+BEGIN_SRC sh
-export VASP_SCRIPT=/your path to runvasp.py/runvasp.py  # example :home/jasp/bin
-export PYTHONPATH=$HOME/jasp:$PYTHONPATH
-export PYTHONPATH=$HOME/jasp:$PYTHONPATH
+export VASP_SCRIPT=/your path to runvasp.py/runvasp.py  # example $HOME/bin/runvasp.py
+
 #+END_SRC
 
-3.3-  create $HOME/.jasprc file. This hidden file contains the following informtation:
-
+Create $HOME/.jasprc file. This hidden file contains the following informtation:
 
 #+BEGIN_EXAMPLE
 # jasp configuration file
-serial_vasp=/your path to vasp/vasp_s  # vasp_s is your serial vasp executable
-parallel_vasp=/your path/vasp_p  # vasp_p is your parallel vasp executable
-export VASP_COMMAND='/your path /vasp_s'
-mode=run   # this defines whether jobs are immediately run or queued
-user.username= XXXXX # your name
-user.fullname =YYYYY XXXXXX  #your fullname
-user.email= xxxx-yyyyy@bbbb    #your email
+# adjust these for the your system
+vasp.executable.serial = /opt/kitchingroup/vasp-5.2.12/build/bin/vasp-vtst
+vasp.executable.parallel = /home/jkitchin/src/vasp/bin/vasp_openmpi_intel_mkl
+
+user.name = jkitchin
+user.email = jkitchin@andrew.cmu.edu
+
+mode = queue   # run|queue|None
+
+multiprocessing.cores_per_process = None
+
+# these are only needed if you run in a queue
+queue.command = qsub
+queue.options = -joe
+queue.walltime = 168:00:00
+queue.nodes = 1
+queue.ppn = 1
+queue.mem = 2GB
+queue.jobname = None
 #+END_EXAMPLE
 
-
-** dev
-pip install -e git+https://github.com/jkitchin/jasp.git@dev#egg=jasp
+* Uninstalling jasp
+#+BEGIN_SRC sh
+pip uninstall jasp
+#+END_SRC
 * Examples of using jasp
 see http://jkitchin.github.io/dft-book
 
