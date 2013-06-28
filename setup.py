@@ -9,5 +9,5 @@ setup(name = 'jasp',
       license='GPL',
       platforms=['linux'],
       packages=['jasp'],
-      scripts=['bin/runjasp.py','bin/jaspsum'],
+      scripts=['jasp/bin/runjasp.py','jasp/bin/jaspsum'],
       long_description='''extensions to ase.calculators.vasp. jasp uses modern python patterns and tools.''')
