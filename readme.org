@@ -11,3 +11,23 @@ see http://github.com/jkitchin/dft-book
 
 * Long-term plans for jasp
 Everything that is in jasp may eventually be incorporated into ase.calculators.vasp. jasp will probably always be further on the development cycle than the ase.calculators.vasp. We try advanced concepts in workflow in jasp that may never be suitable for ase. We try using the latest features of python to see if it makes running calculations easier, faster or better in some way. ase strives to maintain a lot of compatibility with older python versions. jasp will not be constrained this way.
+* Files
+
+[[./jasp.py]]
+Contains the JASP class and jasp context manager. Code to see if calculation finished ok. Code to see if you are in a vasp directory. Is also an executable script that runs jasp
+
+[[./jasprc.py]] - configuration for jasp
+
+[[./jasp_extensions.py]] - monkey patches to ase.calculators.vasp, hook functions, run and calculate function, pretty print functions. some additional get functions.
+
+[[./jasp_atoms.py]] - monkey patches to ase.Atom and ase.Atoms. adds set_volume, a better __repr__, and a different atoms equality check.
+
+[[./POTCAR.py]] - some functions to parse POTCAR files for data
+
+[[./WAVECAR.py]] - incomplete effort to read wavecar for plotting
+
+[[./CHG.py]] - reads CHCAR, computes dipole moment
+
+[[./jasp_vib.py]] - get vibrational modes, frequencies, infrared intensities
+*************** TODO seems to be two infrared intensities in here.
+*************** END
