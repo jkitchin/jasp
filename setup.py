@@ -12,6 +12,7 @@ setup(name = 'jasp',
       scripts=['jasp/bin/runjasp.py','jasp/bin/jaspsum'],
       long_description='''extensions to ase.calculators.vasp. jasp uses modern python patterns and tools.''',
       install_requires=[
+          'https://wiki.fysik.dtu.dk/ase-files/python-ase-3.7.1.3184.tar.gz'
           #"svn+https://svn.fysik.dtu.dk/projects/ase/trunk", # ase
           #"numpy",
           #"matplotlib",
