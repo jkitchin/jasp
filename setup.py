@@ -10,4 +10,14 @@ setup(name = 'jasp',
       platforms=['linux'],
       packages=['jasp'],
       scripts=['jasp/bin/runjasp.py','jasp/bin/jaspsum'],
-      long_description='''extensions to ase.calculators.vasp. jasp uses modern python patterns and tools.''')
+      long_description='''extensions to ase.calculators.vasp. jasp uses modern python patterns and tools.''',
+      install_requires=[
+          "ase",
+          "numpy",
+          "matplotlib",
+          "scipy",
+          "webob",
+          "Django",
+          "pyxser",
+          "apsw"
+          ],)

@@ -32,10 +32,9 @@ webob (for web apps)
 
 If you have git installed:
 
-pip install git+git://github.com/jkitchin/jasp.git
-
 pip install -e git+git://github.com/jkitchin/jasp.git#egg=jasp
 
+Otherwise, do this
 #+BEGIN_SRC sh
 pip install https://github.com/jkitchin/jasp/zipball/master
 #+END_SRC
