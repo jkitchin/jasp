@@ -49,6 +49,8 @@ self.read_nbands
 self.read_magnetic_moment
 
 which ought to avoid reading outcar again
+
+Alternatively, I could monkey patch the restart_load function, and all the get functions. 
 '''
 
 def read_spinpol(self):
