@@ -1,0 +1,116 @@
+def get_infrared_intensities(self):
+    '''
+    python translation of
+    # A utility for calculating the vibrational intensities from VASP output (OUTCAR)
+    # (C) David Karhanek, 2011-03-25, ICIQ Tarragona, Spain (www.iciq.es)
+    http://homepage.univie.ac.at/david.karhanek/downloads.html#Entry02
+    '''
+    atoms = read('POSCAR', format='vasp')
+    NIONS = len(atoms)
+    BORN_NROWS = NIONS*4 + 1
+
+    with open('OUTCAR', 'r') as f:
+        alltext = f.read()
+        f.seek(0)
+        alllines = f.readlines()
+        f.close()
+
+    if 'BORN' not in alltext:
+        raise Exception, 'Born effective charges missing. did you use IBRION=7 or 8?'
+
+    if 'Eigenvectors after division by SQRT(mass)' not in alltext:
+        raise Exception, 'You must rerun with NWRITE=3 to get sqrt(mass) weighted eigenvectors'
+
+    # get the Born charges
+    for i,line in enumerate(alllines):
+        if 'BORN EFFECTIVE CHARGES' in line:
+            break
+
+    BORN_MATRICES = []
+    i += 2 # skip a line
+    for j in range(NIONS):
+        BM = []
+        i += 1 # skips the ion count line
+        for k in range(3):
+            line = alllines[i]
+            fields = line.split()
+            BM.append([float(x) for x in fields[1:4]])
+            i += 1 # advance a line
+        BORN_MATRICES.append(BM)
+
+    BORN_MATRICES = np.array(BORN_MATRICES)
+
+    # Get the eigenvectors and eigenvalues.  maybe I can replace this
+    # code with my other code. for now I just reproduce the count
+    # number of vibs. this gets the number from outcar. it seems like
+    # it should be known in advance unless constraints make it hard to
+    # tell.
+
+    # the next code in the shell script just copies code to eigenvectors.txt
+    for i, line in enumerate(alllines):
+        if 'Eigenvectors after division by SQRT(mass)' in line:
+            break
+
+    EIG_NVIBS = 0
+    for line  in alllines[i:]:
+        if ('f' in line
+            and 'THz' in line
+            and 'cm-1' in line):
+            EIG_NVIBS += 1
+
+    EIG_NIONS = BORN_NROWS
+    EIG_NROWS = (EIG_NIONS + 3)*EIG_NVIBS + 3 # I guess this counts
+                                              # blank rows and
+                                              # non-data rows
+
+    # i is where the data starts
+    i += 6
+
+    EIGENVALUES = []
+    EIGENVECTORS = []
+    for j in range(EIG_NVIBS):
+        mode = []
+        EIGENVALUES.append(alllines[i]) # frequencies are here
+
+        i += 1 # skip the frequency line
+        i += 1 # skip the xyz line
+        for k in range(3):
+            #print alllines[i]
+            fields = [float(x) for x in alllines[i].split()]
+            mode.append(fields[3:])
+            i += 1
+        EIGENVECTORS.append(mode)
+        i += 1 # skip blank line
+
+    EIGENVECTORS = np.array(EIGENVECTORS)
+
+    # now we are ready to compute intensities. see
+    # http://othes.univie.ac.at/10117/1/2010-05-05_0547640.pdf, page
+    # 21.
+
+    '''
+    I(\omega) = \sum_{\alpha=1}^3 | \sum_{l=1}^M \sum_{\beta=1}^3 Z_{\alpha\beta}(l)e_{\beta}(l)|^2
+
+    omega is the vibrational mode
+    alpha, beta are the cartesian polarizations
+    l is the atom number
+    e_beta is the eigenvector of the mode
+    '''
+
+    intensities = []
+
+    for mode in range(len(EIGENVECTORS)):
+        S = 0 # This is the triple sum
+        for alpha in [0,1,2]:
+            s = 0
+            for l in [0,1,2]: # this is the atom number
+                for beta in [0,1,2]:
+                    e = EIGENVECTORS[mode][l]
+                    Zab = BORN_MATRICES[l][alpha][beta]
+
+                    s += Zab*e[beta]
+            S += s**2
+        intensities.append(S)
+
+    intensities = np.array(intensities)/max(intensities)
+    return intensities

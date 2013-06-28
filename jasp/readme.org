@@ -7,7 +7,8 @@
 jasp requires python 2.6+ to work, and the latest svn version of ase.
 
 * Installing jasp
-2. Installation  requiremenent:
+** stable
+2. Installation  requirement:
 You need to install vasp (commercial codes see http://cms.mpi.univie.ac.at) 
 and ASE  (see https://wiki.fysik.dtu.dk/ase/download.html )
 
@@ -87,7 +88,8 @@ user.email= xxxx-yyyyy@bbbb    #your email
 #+END_EXAMPLE
 
 
-
+** dev
+pip install -e git+https://github.com/jkitchin/jasp.git@dev#egg=jasp
 * Examples of using jasp
 see http://jkitchin.github.io/dft-book
 
