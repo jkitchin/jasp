@@ -14,11 +14,11 @@ setup(name = 'jasp',
       #dependency_links = ['https://wiki.fysik.dtu.dk/ase-files/python-ase-3.7.1.3184.tar.gz#egg=ase'],      
       install_requires=[          
           #"svn+https://svn.fysik.dtu.dk/projects/ase/trunk", # ase
-          #"numpy",
-          #"matplotlib",
-          #"scipy",
+          "numpy",
+          "matplotlib",
+          "scipy",
           "webob",
           "Django",
-          "pyxser",
-          "apsw"
+          #"pyxser", # https://github.com/dmw/pyxser
+          "apsw" #http://code.google.com/p/apsw/
           ],)
