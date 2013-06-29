@@ -47,21 +47,15 @@ self.read_fermi
 self.read_stress
 self.read_nbands
 self.read_magnetic_moment
+self.read_magnetic_moments
+
+Figure out what to do with self.read_ldau() which seems to set state, not return value
 
 which ought to avoid reading outcar again
 
 Alternatively, I could monkey patch the restart_load function, and all the get functions. 
 '''
 
-def read_spinpol(self):
-    'read OUTCAR and return if calculation was spin-polarized'
-    with open('OUTCAR') as f:
-        for line in f:
-            if line.rfind('ISPIN') > -1:
-                if int(line.split()[2])==2:
-                    return  True
-                else:
-                    return None
 
 from functools import wraps
 import os, pickle
@@ -90,6 +84,57 @@ def persistent_memoize(func):
     return wrapper
 
 
-Vasp.get_potential_energy = persistent_memoize(Vasp.get_potential_energy)
-Vasp.get_forces = persistent_memoize(Vasp.get_forces)
-Vasp.get_stress = persistent_memoize(Vasp.get_stress)
+#Vasp.get_potential_energy = persistent_memoize(Vasp.get_potential_energy)
+#Vasp.get_forces = persistent_memoize(Vasp.get_forces)
+#Vasp.get_stress = persistent_memoize(Vasp.get_stress)
+
+
+def read_spinpol(self):
+    'read OUTCAR and return if calculation was spin-polarized'
+    with open('OUTCAR') as f:
+        for line in f:
+            if line.rfind('ISPIN') > -1:
+                if int(line.split()[2])==2:
+                    return  True
+                else:
+                    return None
+    # we must not have found ISPIN
+    return None
+
+Vasp.read_spinpol = persistent_memoize(read_spinpol)
+Vasp.read_energy = persistent_memoize(Vasp.read_energy)
+Vasp.read_forces = persistent_memoize(Vasp.read_forces)
+Vasp.read_dipole = persistent_memoize(Vasp.read_dipole)
+Vasp.read_fermi = persistent_memoize(Vasp.read_fermi)
+Vasp.read_stress = persistent_memoize(Vasp.read_stress)
+Vasp.read_nbands = persistent_memoize(Vasp.read_nbands)
+
+def read_outcar(self):
+    'monkey-patched version for jasp so that memoized functions can be used.'
+    # Spin polarized calculation?
+    self.spinpol = self.read_spinpol()
+    self.energy_free, self.energy_zero = self.read_energy()
+    self.forces = self.read_forces(self.atoms)
+    self.dipole = self.read_dipole()
+    self.fermi = self.read_fermi()
+    self.stress = self.read_stress()
+    self.nbands = self.read_nbands()
+    self.set(nbands=self.nbands)
+    
+    # this function returns things, and sets self.dict_params
+    # I am changing the way this is run so that if cached, we can still assign
+    # the relevant data.
+    ldau, ldauprint, ldautype, ldau_luj = self.read_ldau()
+    if ldau:
+        self.dict_params['ldau_luj'] = ldau_luj
+        
+    p = self.int_params
+    q = self.list_params
+    if self.spinpol:
+        self.magnetic_moment = self.read_magnetic_moment()
+        if p['lorbit'] >= 10 or (p['lorbit'] != None and q['rwigs']):
+            self.magnetic_moments = self.read_magnetic_moments(self.atoms)
+        else:
+            self.magnetic_moments = None
+    
+Vasp.read_outcar = read_outcar
