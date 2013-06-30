@@ -10,6 +10,7 @@ setup(name = 'jasp',
       platforms=['linux'],
       packages=['jasp'],
       scripts=['jasp/bin/runjasp.py','jasp/bin/jaspsum'],
+      test_suite = 'nose.collector',
       long_description='''extensions to ase.calculators.vasp. jasp uses modern python patterns and tools.''',
       #dependency_links = ['https://wiki.fysik.dtu.dk/ase-files/python-ase-3.7.1.3184.tar.gz#egg=ase'],      
       install_requires=[          
