@@ -11,39 +11,40 @@ jaspsum directoryname
 '''
 import os, sys
 from jasp import *
+import argparse
+
 
 # this should not start calculations
 JASPRC['mode'] = None
 
-from optparse import OptionParser
 
-parser = OptionParser(usage='ncsum',
-                      version='0.1')
-parser.add_option('-d',
+parser = ArgumentParser(description='summarize jasp calculations')
+
+parser.add_option('-d', '--debug',
                   nargs=0,
                   help = 'turn debug on')
 
-parser.add_option('-p',
+parser.add_option('-p', '--plot',
                   nargs=0,
                   help = 'plot in ag')
 
-parser.add_option('-t',
+parser.add_option('-t', '--trajectory',
                   nargs=0,
                   help = 'plot trajectory')
 
-parser.add_option('-r',
+parser.add_option('-r', '--python', '--repr'
                   nargs=0,
                   help = 'prints code to make a new calculation')
 
-parser.add_option('-j',
+parser.add_option('-j','--json',
                   nargs=0,
                   help = 'prints json representation')
 
-parser.add_option('-x',
+parser.add_option('-x', '--xml',
                   nargs=0,
                   help = 'prints xml representation')
 
-parser.add_option('-v',
+parser.add_option('-v', '--vib'
                   nargs=1,
                   help = 'animate a vibrational mode, args= comma-separated list')
 
@@ -55,15 +56,14 @@ parser.add_option('--eos',
                   nargs=0,
                   help = 'run/plot equation of state')
 
+parser.add_option(nargs='*',
+                  metavar='dirs', default = ['.'],
+                  help='directories to summarize')
 
-options,args = parser.parse_args()
+args = parser.parse_args()
 
-if len(args) == 0:
-    dirs = ['.']
-else:
-    dirs = args
 
-if options.d is not None:
+if args.d is not None:
     debug = logging.DEBUG
 else:
     debug = None
@@ -75,7 +75,7 @@ for d in dirs:
     with jasp(d, debug=debug) as calc:
 
         # plot trajectory
-        if options.t is not None:
+        if args.t is not None:
             xd = xdat2traj('out.traj',calc=calc)
             try:
                 xd.convert()
@@ -84,20 +84,20 @@ for d in dirs:
                 print('unable to show trajectory')
 
         # plot the atoms
-        if options.p is not None:
+        if args.p is not None:
             atoms = calc.get_atoms()
             from ase.visualize import view
             view(atoms)
 
         # vibrational movies
-        if options.v is not None:
-            for mode in [int(x) for x in options.v.split(',')]:
+        if args.v is not None:
+            for mode in [int(x) for x in args.v.split(',')]:
                 calc.get_vibrational_modes(mode, show=True)
 
-        if options.neb is not None:
+        if args.neb is not None:
             calc.plot_neb()
 
-        if options.eos is not None:
+        if args.eos is not None:
             from jasp.jasp_eos import *
             JASPRC['mode']='queue'
             try:
@@ -108,12 +108,12 @@ for d in dirs:
             import sys; sys.exit()
 
         # Finally print the calculator in some representation
-        if options.r is not None:
+        if args.r is not None:
             print repr(calc)
-        elif options.j is not None:
+        elif args.j is not None:
             from serialize import *
             print calc.json
-        elif options.x is not None:
+        elif args.x is not None:
             from serialize import *
             print calc.xml
         else:
