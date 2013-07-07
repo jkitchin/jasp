@@ -8,6 +8,8 @@ jaspsum
 
 jaspsum directoryname
    this will summarize the calculation in the directoryname
+
+see jaspsum -h for all the options.
 '''
 import os, sys
 from jasp import *
@@ -35,6 +37,9 @@ parser.add_argument('-r', '--python', action='store_true',
 parser.add_argument('-j','--json', action='store_true',
                     help = 'prints json representation')
 
+parser.add_argument('-pj','--pretty-json', action='store_true',
+                    help = 'prints pretty json representation')
+
 parser.add_argument('-x', '--xml', action='store_true',
                     help = 'prints xml representation')
 
@@ -54,20 +59,19 @@ parser.add_argument('dirs', nargs='*',
 
 args = parser.parse_args()
 
-
-if args.debug is not None:
+if args.debug:
     debug = logging.DEBUG
 else:
     debug = None
 
 for d in args.dirs:
     if not os.path.isdir(d):
-        raise Exception, '{0} does not exist!'.format(d)
+        raise Exception('{0} does not exist!'.format(d))
 
     with jasp(d, debug=debug) as calc:
 
         # plot trajectory
-        if args.trajectory is not None:
+        if args.plot_trajectory:
             xd = xdat2traj('out.traj',calc=calc)
             try:
                 xd.convert()
@@ -76,7 +80,7 @@ for d in args.dirs:
                 print('unable to show trajectory')
 
         # plot the atoms
-        if args.plot is not None:
+        if args.plot:
             atoms = calc.get_atoms()
             from ase.visualize import view
             view(atoms)
@@ -86,27 +90,34 @@ for d in args.dirs:
             for mode in [int(x) for x in args.vvib.split(',')]:
                 calc.get_vibrational_modes(mode, show=True)
 
-        if args.neb is not None:
+        if args.neb:
             calc.plot_neb()
 
-        if args.eos is not None:
+        if args.eos:
             from jasp.jasp_eos import *
             JASPRC['mode']='queue'
             try:
                 data = calc.get_eos()
-                print data
+                print(data)
             except (VaspSubmitted, VaspQueued, VaspRunning):
-                print 'job in the queue'
+                print('job in the queue')
             import sys; sys.exit()
 
         # Finally print the calculator in some representation
-        if args.python is not None:
-            print repr(calc)
-        elif args.json is not None:
-            from serialize import *
-            print calc.json
-        elif args.xml is not None:
-            from serialize import *
-            print calc.xml
+        if args.python:
+            print((repr(calc)))
+            
+        elif args.json:
+            import jasp.serialize 
+            print((calc.json))
+            
+        elif args.pretty_json:
+            import jasp.serialize
+            print((calc.pretty_json))
+            
+        elif args.xml:
+            import jasp.serialize 
+            print((calc.xml))
+
         else:
-            print calc
+            print(calc)
