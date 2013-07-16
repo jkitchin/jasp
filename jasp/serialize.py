@@ -7,8 +7,8 @@ import json
 try:
     import pyxser
 except:
-    import warn
-    warn.warn('pyxser not installed. Unable to serialize in xml')
+    import warnings
+    warnings.warn('pyxser not installed. Unable to serialize in xml')
     
 def atoms_to_dict(atoms):
     d = {}
