@@ -39,6 +39,8 @@ pip install https://github.com/jkitchin/jasp/zipball/master
 #+END_SRC
 ** dev
 pip install -e git+https://github.com/jkitchin/jasp.git@dev#egg=jasp
+pip install -e git+git://github.com/jkitchin/jasp.git@dev#egg=jasp
+
 
 ** Configuring jasp
 Create an executable script named runvasp.py on your executable path.  This script is typically located in $HOME/bin
