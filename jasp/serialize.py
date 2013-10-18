@@ -20,18 +20,68 @@ def atoms_to_dict(atoms):
 
     return d
 
-def calc_to_dict(calc):
+def calc_to_dict(calc, **kwargs):
     d = {}
-    d['INCAR'] = {}
-    d['INCAR'].update(calc.float_params)
-    d['INCAR'].update(calc.exp_params)
-    d['INCAR'].update(calc.string_params)
-    d['INCAR'].update(calc.int_params)
-    d['INCAR'].update(calc.bool_params)
-    d['INCAR'].update(calc.list_params)
-    d['INCAR'].update(calc.dict_params)
+    d['incar'] = {}
+    d['incar'].update(calc.float_params)
+    d['incar'].update(calc.exp_params)
+    d['incar'].update(calc.string_params)
+    d['incar'].update(calc.int_params)
+    d['incar'].update(calc.bool_params)
+    d['incar'].update(calc.list_params)
+    d['incar'].update(calc.dict_params)
     d['input'] = calc.input_params
+    d['potcar'] = calc.get_pseudopotentials()
     d['atoms'] = atoms_to_dict(calc.get_atoms())
+    d['data'] = {}
+    atoms = calc.get_atoms()
+    d['data']['total_energy'] = atoms.get_potential_energy()
+    d['data']['forces'] = atoms.get_forces().tolist()
+    d['data']['stress'] = atoms.get_stress().tolist()
+    d['data']['fermi_level'] = calc.get_fermi_level()
+    print calc.get_spin_polarized()
+    if calc.spinpol:
+        d['data']['magmom'] = atoms.get_magnetic_moment()
+        
+    if (calc.int_params.get('lorbit', 0) >=10 
+        or calc.list_params.get('rwigs', None)):
+        d['data']['magmoms'] = atoms.get_magnetic_moments().tolist()
+        
+    if kwargs.get('dos', None):
+        from ase.dft.dos import DOS
+        dos = DOS(calc,width=0.2)
+        e = dos.get_energies()
+        density_of_states = dos.get_dos()
+        d['data']['dos'] = {}
+        d['data']['dos']['e'] = e.tolist()
+        d['data']['dos']['dos'] = density_of_states.tolist()
+
+    if kwargs.get('ados', None):    
+        from ase.calculators.vasp import VaspDos
+        ados = VaspDos(efermi=calc.get_fermi_level())
+        d['data']['ados'] = {}
+        nonspin_orbitals_no_phase = ['s', 'p', 'd']
+        nonspin_orbitals_phase = ['s', 'py', 'pz', 'px', 
+                                  'dxy', 'dyz', 'dz2', 'dxz', 'dx2']
+        spin_orbitals_no_phase = []
+        for x in nonspin_orbitals_no_phase:
+            spin_orbitals_no_phase += ['{0}-up'.format(x)]
+            spin_orbitals_no_phase += ['{0}-down'.format(x)]
+
+        spin_orbitals_phase = []
+        for x in nonspin_orbitals_phase:
+            spin_orbitals_phase += ['{0}-up'.format(x)]
+            spin_orbitals_phase += ['{0}-down'.format(x)]
+
+        if calc.spinpol:
+            orbitals = spin_orbitals_no_phase
+        else:
+            orbitals = nonspin_orbitals_no_phase
+
+        for i, atom in enumerate(atoms):
+            d['data']['ados'][i] = {}
+            for orbital in orbitals:                
+                d['data']['ados'][i][orbital] = ados.site_dos(0, orbital).tolist() 
 
     # convert all numpy arrays to lists
     for key in d:
@@ -46,13 +96,13 @@ def calc_to_dict(calc):
             pass
     return d
 
-def calc_to_json(self):
-    d = calc_to_dict(self)
+def calc_to_json(self, **kwargs):
+    d = calc_to_dict(self, **kwargs)
     return json.dumps(d)
 Vasp.json = property(calc_to_json)
 
-def calc_to_pretty_json(self):
-    d = calc_to_dict(self)
+def calc_to_pretty_json(self, **kwargs):
+    d = calc_to_dict(self, **kwargs)
     return json.dumps(d, sort_keys=True, indent=4)
 Vasp.pretty_json = property(calc_to_pretty_json)
 
@@ -72,7 +122,7 @@ def json_to_calc(jsonstring):
 
     # now create a calc
     kwargs = {}
-    kwargs.update(d['INCAR'])
+    kwargs.update(d['incar'])
     kwargs.update(d['input'])
     calc = Vasp(**kwargs)
     atoms.set_calculator(calc)
