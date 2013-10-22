@@ -103,7 +103,10 @@ def get_pseudopotentials(self):
 
     self.all_symbols = atoms.get_chemical_symbols()
     self.natoms = len(atoms)
-    self.spinpol = atoms.get_initial_magnetic_moments().any()
+    # jrk 10/21/2013 I commented this line out as it was causing an
+    #error in serialize by incorrectly resetting spinpol. I do not see
+    #why this should be set here. It is not used in the function.
+    #self.spinpol = atoms.get_initial_magnetic_moments().any()
     atomtypes = atoms.get_chemical_symbols()
 
     # Determine the number of atoms of each atomic species
