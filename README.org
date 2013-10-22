@@ -2,6 +2,9 @@
 
 This is a python module for running VASP our way. See http://jkitchin.github.io/dft for comprehensive examples of using =jasp=.
 
+* Installation
+First clone the repository, and make sure the =jasp= directory in the repository is on your PYTHONPATH. [fn:1]
+
 You need to have the following environment variables set:
 
 #+BEGIN_EXAMPLE
@@ -18,20 +21,13 @@ Mine are set too:
 You may also want to add jasp/bin to your PATH.
 
 * Looking for the development branch?
-Git is a little funny about remote branches. They are not automatically pulled in when you clone the repository. You can list them like this:
+After you clone the repository, check it out!
 
 #+BEGIN_SRC sh
-git branch -r
-#+END_SRC
-
-#+RESULTS:
-:   origin/HEAD -> origin/master
-:   origin/dev
-:   origin/master
-
-You want to checkout the dev branch. This seems to work.
-
-#+BEGIN_SRC sh
-git fetch origin
 git checkout dev
 #+END_SRC
+
+* Footnotes
+
+[fn:1] you could run python setup.py install, but it is not necessary.
+
