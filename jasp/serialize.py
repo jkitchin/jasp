@@ -21,25 +21,37 @@ def atoms_to_dict(atoms):
     return d
 
 def calc_to_dict(calc, **kwargs):
-    d = {}
-    d['incar'] = {}
-    d['incar'].update(calc.float_params)
-    d['incar'].update(calc.exp_params)
-    d['incar'].update(calc.string_params)
-    d['incar'].update(calc.int_params)
-    d['incar'].update(calc.bool_params)
-    d['incar'].update(calc.list_params)
-    d['incar'].update(calc.dict_params)
+    d = {'doc':'''JSON representation of a VASP calculation.
+
+energy is in eV
+forces are in eV/\AA
+stress is in GPa (sxx, syy, szz,  syz, sxz, sxy)
+magnetic moments are in Bohr-magneton
+The density of states is reported with E_f at 0 eV.
+Volume is reported in \AA^3
+Coordinates and cell parameters are reported in \AA
+
+If atom-projected dos are included they are in the form:
+{ados:{energy:data, {atom index: {orbital : dos}}}
+'''}
+    d['incar'] = {'doc':'INCAR parameters'}
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.float_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.exp_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.string_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.int_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.bool_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.list_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.dict_params.items())))
     d['input'] = calc.input_params
     d['potcar'] = calc.get_pseudopotentials()
     d['atoms'] = atoms_to_dict(calc.get_atoms())
-    d['data'] = {}
+    d['data'] = {'doc':'Data from the output of the calculation'}
     atoms = calc.get_atoms()
     d['data']['total_energy'] = atoms.get_potential_energy()
     d['data']['forces'] = atoms.get_forces().tolist()
     d['data']['stress'] = atoms.get_stress().tolist()
     d['data']['fermi_level'] = calc.get_fermi_level()
-    print calc.get_spin_polarized()
+    d['data']['volume'] = atoms.get_volume()
     if calc.spinpol:
         d['data']['magmom'] = atoms.get_magnetic_moment()
         
@@ -49,17 +61,22 @@ def calc_to_dict(calc, **kwargs):
         
     if kwargs.get('dos', None):
         from ase.dft.dos import DOS
-        dos = DOS(calc,width=0.2)
+        dos = DOS(calc, width=kwargs.get('width', 0.2))
         e = dos.get_energies()
-        density_of_states = dos.get_dos()
-        d['data']['dos'] = {}
+        
+        d['data']['dos'] = {'doc':'Total density of states'}
         d['data']['dos']['e'] = e.tolist()
-        d['data']['dos']['dos'] = density_of_states.tolist()
+        
+        if calc.spinpol:
+            d['data']['dos']['dos-up'] = dos.get_dos(spin=0).tolist()
+            d['data']['dos']['dos-down'] = dos.get_dos(spin=1).tolist()
+        else:
+            d['data']['dos']['dos'] = dos.get_dos().tolist()
 
     if kwargs.get('ados', None):    
         from ase.calculators.vasp import VaspDos
         ados = VaspDos(efermi=calc.get_fermi_level())
-        d['data']['ados'] = {}
+        d['data']['ados'] = {'doc':'Atom projected DOS'}
         nonspin_orbitals_no_phase = ['s', 'p', 'd']
         nonspin_orbitals_phase = ['s', 'py', 'pz', 'px', 
                                   'dxy', 'dyz', 'dz2', 'dxz', 'dx2']
@@ -73,12 +90,18 @@ def calc_to_dict(calc, **kwargs):
             spin_orbitals_phase += ['{0}-up'.format(x)]
             spin_orbitals_phase += ['{0}-down'.format(x)]
 
-        if calc.spinpol:
+        
+        if calc.spinpol and calc.int_params['lorbit'] != 11:
             orbitals = spin_orbitals_no_phase
-        else:
+        elif calc.spinpol and calc.int_params['lorbit'] == 11:
+            orbitals = spin_orbitals_phase
+        elif calc.int_params['lorbit'] != 11:
             orbitals = nonspin_orbitals_no_phase
+        else:
+            orbitals = nonspin_orbitals_phase
 
         for i, atom in enumerate(atoms):
+            d['data']['ados']['energy'] = ados.energy.tolist()
             d['data']['ados'][i] = {}
             for orbital in orbitals:                
                 d['data']['ados'][i][orbital] = ados.site_dos(0, orbital).tolist() 
