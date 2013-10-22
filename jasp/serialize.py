@@ -118,6 +118,8 @@ If atom-projected dos are included they are in the form:
         except:
             pass
     return d
+Vasp.dict = property(calc_to_dict)
+
 
 def calc_to_json(self, **kwargs):
     d = calc_to_dict(self, **kwargs)
