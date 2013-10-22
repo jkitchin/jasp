@@ -131,13 +131,15 @@ def read_kpoints(self, filename='KPOINTS'):
                 self.set(gamma=line5)
         kpts = [int(lines[3].split()[i]) for i in range(3)]
     elif nkpts > 0:
-        # list of kpts provided
+        # list of kpts provided. Technically c,k are supported and
+        # anything else means reciprocal coordinates.
         if ktype in ['c', 'k', 'r']:
             kpts = []
             for i in range(3,3 + nkpts):
                 # the kpts also have a weight attached to them
                 kpts.append([float(lines[i].split()[j])
                              for j in range(4)])
+        # you may also be in line-mode
         elif ktype in ['l']:
             if lines[3][0].lower() == 'r':
                 self.set(reciprocal=True)
@@ -149,8 +151,6 @@ def read_kpoints(self, filename='KPOINTS'):
                 else:
                     kpts.append([float(lines[i].split()[j])
                                  for j in range(3)])
-
-
         else:
            raise NotImplementedError('ktype = %s' % lines[2])
 
