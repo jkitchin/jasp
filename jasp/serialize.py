@@ -58,7 +58,10 @@ If atom-projected dos are included they are in the form:
     if (calc.int_params.get('lorbit', 0) >=10 
         or calc.list_params.get('rwigs', None)):
         d['data']['magmoms'] = atoms.get_magnetic_moments().tolist()
-        
+
+    # store the metadata
+    d['metadata'] = calc.metadata
+
     if kwargs.get('dos', None):
         from ase.dft.dos import DOS
         dos = DOS(calc, width=kwargs.get('width', 0.2))
