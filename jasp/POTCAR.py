@@ -31,6 +31,34 @@ def get_ENMIN(potcar):
                 m = re.search('ENMIN\s*=\s*(?P<ENMIN>[0-9]+.[0-9]+)\s+eV', line)
                 return float(m.groupdict()['ENMIN'])
 
+
+def get_special_setups(potcar='POTCAR'):
+    '''parse POTCAR file and find out which ones were used.
+
+    the vasp.read_potcar is terribly named and only reads ex from potcar file. It is not even clear that is correct since you can do non-self-consistent calculations.
+'''
+    potcars = []
+    with open(potcar) as f:
+        lines = f.readlines()
+    
+    # first potcar
+    potcars += [lines[0].strip()]
+
+    for i,line in enumerate(lines):
+        if 'End of Dataset' in line and i != len(lines)-1:
+            potcars += [lines[i+1].strip()]
+
+    potcars = [(x[0],x[1],x[2]) for x in [potcar.split() for potcar in potcars]]
+
+    special_setups = {}
+    for xc, sym, date in potcars:
+        if '_' in sym:  # we have a special setup
+            symbol, setup = sym.split('_')
+            special_setups[symbol] = '_' + setup
+
+    return special_setups
+
+
 if __name__ == '__main__':
     print get_ZVAL('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR')
     print get_ENMAX('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR')
