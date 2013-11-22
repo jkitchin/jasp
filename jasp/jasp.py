@@ -315,8 +315,10 @@ def Jasp(debug=None,
         and calc.int_params.get('images', None) is None):
         calc.create_metadata()
         
-    special_setups = get_special_setups() # in jasp/POTCAR
-    calc.input_params['setups'] = special_setups
+    # if there is a POTCAR, check it for special setups
+    if os.path.exists('POTCAR'):
+        special_setups = get_special_setups() # in jasp/POTCAR
+        calc.input_params['setups'] = special_setups
 
     return calc
 
