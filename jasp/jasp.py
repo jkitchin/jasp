@@ -55,12 +55,13 @@ log.addHandler(handler)
 
 def calculation_is_ok(jobid=None):
     # find job output file
-    output = ['No job output found for jobid = {0}.\n\n'.format(jobid)]
+    output = ['\n']
     if jobid is not None:
         for f in os.listdir('.'):
             if 'o{0}'.format(jobid) in f:
                 with open(f) as outputfile:
-                    output = ['\n================================================================\n',
+                    output = ['joboutput file: {0}'.format(jobid),
+'\n================================================================\n',
                     '{0}:\n'.format(f)]
                     output += outputfile.readlines()
                     output += ['================================================================',
@@ -69,7 +70,7 @@ def calculation_is_ok(jobid=None):
     with open('OUTCAR') as f:
         lines = f.readlines()
         if not 'Voluntary context switches' in lines[-1]:
-            output += ['Last 20 lines of OUTCAR:']
+            output += ['Last 20 lines of OUTCAR:\n']
             output += lines[-20:]
             output += ['================================================================']
             raise VaspNotFinished(''.join(output))
@@ -284,6 +285,8 @@ def Jasp(debug=None,
         # job is done
         try:
             calc = Vasp(restart=True)
+        except:
+            print calculation_is_ok()
         finally:
             pass
 
