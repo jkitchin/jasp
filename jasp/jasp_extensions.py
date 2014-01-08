@@ -585,38 +585,43 @@ def pretty_print(self):
             stress = None
 
         # get a,b,c,alpha,beta, gamma
-        from Scientific.Geometry import Vector
-        A = Vector(uc[0,:])
-        B = Vector(uc[1,:])
-        C = Vector(uc[2,:])
-        a = A.length()
-        b = B.length()
-        c = C.length()
-        alpha = B.angle(C)*180/np.pi
-        beta = A.angle(C)*180/np.pi
-        gamma = B.angle(C)*180/np.pi
-        volume = atoms.get_volume()
+        A = uc[0, :]
+        B = uc[1, :]
+        C = uc[2, :]
+
+        a = np.linalg.norm(A)
+        b = np.linalg.norm(B)
+        c = np.linalg.norm(C)
+
+        alpha = np.arccos(np.dot(B/np.linalg.norm(B),
+                                 C/np.linalg.norm(C))) * 180/np.pi
+
+        beta = np.arccos(np.dot(A/np.linalg.norm(A),
+                                C/np.linalg.norm(C))) * 180/np.pi
+
+        gamma = np.arccos(np.dot(B/np.linalg.norm(B),
+                                 C/np.linalg.norm(C))) * 180/np.pi
 
         s.append('  Energy = %f eV' % energy)
         s.append('\n  Unit cell vectors (angstroms)')
         s.append('        x       y     z      length')
         s.append('  a0 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[0][0],
-                                                     uc[0][1],
-                                                     uc[0][2],
-                                                     A.length()))
+                                                        uc[0][1],
+                                                        uc[0][2],
+                                                        a))
         s.append('  a1 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[1][0],
-                                                     uc[1][1],
-                                                     uc[1][2],
-                                                     B.length()))
+                                                        uc[1][1],
+                                                        uc[1][2],
+                                                        b))
         s.append('  a2 [% 3.3f % 3.3f % 3.3f] %3.3f' % (uc[2][0],
-                                                     uc[2][1],
-                                                     uc[2][2],
-                                                     C.length()))
+                                                        uc[2][1],
+                                                        uc[2][2],
+                                                        c))
         s.append('  a,b,c,alpha,beta,gamma (deg): %1.3f %1.3f %1.3f %1.1f %1.1f %1.1f' % (a,
-                                                                                  b,
-                                                                                  c,
-                                                                                  alpha,
-                                                                                  beta,gamma))
+                                                                                          b,
+                                                                                          c,
+                                                                                          alpha,
+                                                                                          beta,gamma))
         s.append('  Unit cell volume = {0:1.3f} Ang^3'.format(volume))
 
         if stress is not None:
@@ -906,7 +911,7 @@ def get_nearest_neighbor_table(self):
             i += 1
 
         fields = line.split()
-        
+
         atom_index = int(fields[0])
         nearest_neigbors = fields[4:]
         nn_indices = [int(nearest_neigbors[x]) for x in range(0,len(nearest_neigbors),2)]
