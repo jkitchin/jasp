@@ -7,9 +7,10 @@ import json
 try:
     import pyxser
 except:
-    import warnings
-    warnings.warn('pyxser not installed. Unable to serialize in xml')
-    
+    #import warnings
+    #warnings.warn('pyxser not installed. Unable to serialize in xml')
+    pass
+
 def atoms_to_dict(atoms):
     d = {}
     d['cell'] = atoms.get_cell().tolist()
@@ -54,8 +55,8 @@ If atom-projected dos are included they are in the form:
     d['data']['volume'] = atoms.get_volume()
     if calc.spinpol:
         d['data']['magmom'] = atoms.get_magnetic_moment()
-        
-    if (calc.int_params.get('lorbit', 0) >=10 
+
+    if (calc.int_params.get('lorbit', 0) >=10
         or calc.list_params.get('rwigs', None)):
         d['data']['magmoms'] = atoms.get_magnetic_moments().tolist()
 
@@ -66,22 +67,22 @@ If atom-projected dos are included they are in the form:
         from ase.dft.dos import DOS
         dos = DOS(calc, width=kwargs.get('width', 0.2))
         e = dos.get_energies()
-        
+
         d['data']['dos'] = {'doc':'Total density of states'}
         d['data']['dos']['e'] = e.tolist()
-        
+
         if calc.spinpol:
             d['data']['dos']['dos-up'] = dos.get_dos(spin=0).tolist()
             d['data']['dos']['dos-down'] = dos.get_dos(spin=1).tolist()
         else:
             d['data']['dos']['dos'] = dos.get_dos().tolist()
 
-    if kwargs.get('ados', None):    
+    if kwargs.get('ados', None):
         from ase.calculators.vasp import VaspDos
         ados = VaspDos(efermi=calc.get_fermi_level())
         d['data']['ados'] = {'doc':'Atom projected DOS'}
         nonspin_orbitals_no_phase = ['s', 'p', 'd']
-        nonspin_orbitals_phase = ['s', 'py', 'pz', 'px', 
+        nonspin_orbitals_phase = ['s', 'py', 'pz', 'px',
                                   'dxy', 'dyz', 'dz2', 'dxz', 'dx2']
         spin_orbitals_no_phase = []
         for x in nonspin_orbitals_no_phase:
@@ -93,7 +94,7 @@ If atom-projected dos are included they are in the form:
             spin_orbitals_phase += ['{0}-up'.format(x)]
             spin_orbitals_phase += ['{0}-down'.format(x)]
 
-        
+
         if calc.spinpol and calc.int_params['lorbit'] != 11:
             orbitals = spin_orbitals_no_phase
         elif calc.spinpol and calc.int_params['lorbit'] == 11:
@@ -106,8 +107,8 @@ If atom-projected dos are included they are in the form:
         for i, atom in enumerate(atoms):
             d['data']['ados']['energy'] = ados.energy.tolist()
             d['data']['ados'][i] = {}
-            for orbital in orbitals:                
-                d['data']['ados'][i][orbital] = ados.site_dos(0, orbital).tolist() 
+            for orbital in orbitals:
+                d['data']['ados'][i][orbital] = ados.site_dos(0, orbital).tolist()
 
     # convert all numpy arrays to lists
     for key in d:
