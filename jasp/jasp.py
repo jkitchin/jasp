@@ -242,8 +242,8 @@ def Jasp(debug=None,
         with open('jobid') as f:
             jobid = f.readline().split('.')[0]
 
-            #if calculation_is_ok(jobid):
-            #pass
+            if calculation_is_ok(jobid):
+                pass
 
         # delete the jobid file, since it is done
         os.unlink('jobid')
@@ -281,14 +281,9 @@ def Jasp(debug=None,
           and os.path.exists('CONTCAR')
           and os.path.exists('OUTCAR')
           and os.path.exists('vasprun.xml')):
-        log.debug('job done long ago, jobid deleted, no running, and the output files all exist')
-        # job is done
-        try:
+        log.debug('job was at least started, jobid deleted, no running, and the output files all exist')
+        if calculation_is_ok():
             calc = Vasp(restart=True)
-        except:
-            print calculation_is_ok()
-        finally:
-            pass
 
         if atoms is not None:
             atoms.set_cell(calc.atoms.get_cell())
