@@ -7,6 +7,8 @@ import json
 try:
     import pyxser
 except:
+    #import warnings
+    #warnings.warn('pyxser not installed. Unable to serialize in xml')
     pass
 
 def atoms_to_dict(atoms):
@@ -19,18 +21,94 @@ def atoms_to_dict(atoms):
 
     return d
 
-def calc_to_dict(calc):
-    d = {}
-    d['INCAR'] = {}
-    d['INCAR'].update(calc.float_params)
-    d['INCAR'].update(calc.exp_params)
-    d['INCAR'].update(calc.string_params)
-    d['INCAR'].update(calc.int_params)
-    d['INCAR'].update(calc.bool_params)
-    d['INCAR'].update(calc.list_params)
-    d['INCAR'].update(calc.dict_params)
+def calc_to_dict(calc, **kwargs):
+    d = {'doc':'''JSON representation of a VASP calculation.
+
+energy is in eV
+forces are in eV/\AA
+stress is in GPa (sxx, syy, szz,  syz, sxz, sxy)
+magnetic moments are in Bohr-magneton
+The density of states is reported with E_f at 0 eV.
+Volume is reported in \AA^3
+Coordinates and cell parameters are reported in \AA
+
+If atom-projected dos are included they are in the form:
+{ados:{energy:data, {atom index: {orbital : dos}}}
+'''}
+    d['incar'] = {'doc':'INCAR parameters'}
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.float_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.exp_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.string_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.int_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.bool_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.list_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.dict_params.items())))
     d['input'] = calc.input_params
+    d['potcar'] = calc.get_pseudopotentials()
     d['atoms'] = atoms_to_dict(calc.get_atoms())
+    d['data'] = {'doc':'Data from the output of the calculation'}
+    atoms = calc.get_atoms()
+    d['data']['total_energy'] = atoms.get_potential_energy()
+    d['data']['forces'] = atoms.get_forces().tolist()
+    d['data']['stress'] = atoms.get_stress().tolist()
+    d['data']['fermi_level'] = calc.get_fermi_level()
+    d['data']['volume'] = atoms.get_volume()
+    if calc.spinpol:
+        d['data']['magmom'] = atoms.get_magnetic_moment()
+
+    if (calc.int_params.get('lorbit', 0) >=10
+        or calc.list_params.get('rwigs', None)):
+        d['data']['magmoms'] = atoms.get_magnetic_moments().tolist()
+
+    # store the metadata
+    d['metadata'] = calc.metadata
+
+    if kwargs.get('dos', None):
+        from ase.dft.dos import DOS
+        dos = DOS(calc, width=kwargs.get('width', 0.2))
+        e = dos.get_energies()
+
+        d['data']['dos'] = {'doc':'Total density of states'}
+        d['data']['dos']['e'] = e.tolist()
+
+        if calc.spinpol:
+            d['data']['dos']['dos-up'] = dos.get_dos(spin=0).tolist()
+            d['data']['dos']['dos-down'] = dos.get_dos(spin=1).tolist()
+        else:
+            d['data']['dos']['dos'] = dos.get_dos().tolist()
+
+    if kwargs.get('ados', None):
+        from ase.calculators.vasp import VaspDos
+        ados = VaspDos(efermi=calc.get_fermi_level())
+        d['data']['ados'] = {'doc':'Atom projected DOS'}
+        nonspin_orbitals_no_phase = ['s', 'p', 'd']
+        nonspin_orbitals_phase = ['s', 'py', 'pz', 'px',
+                                  'dxy', 'dyz', 'dz2', 'dxz', 'dx2']
+        spin_orbitals_no_phase = []
+        for x in nonspin_orbitals_no_phase:
+            spin_orbitals_no_phase += ['{0}-up'.format(x)]
+            spin_orbitals_no_phase += ['{0}-down'.format(x)]
+
+        spin_orbitals_phase = []
+        for x in nonspin_orbitals_phase:
+            spin_orbitals_phase += ['{0}-up'.format(x)]
+            spin_orbitals_phase += ['{0}-down'.format(x)]
+
+
+        if calc.spinpol and calc.int_params['lorbit'] != 11:
+            orbitals = spin_orbitals_no_phase
+        elif calc.spinpol and calc.int_params['lorbit'] == 11:
+            orbitals = spin_orbitals_phase
+        elif calc.int_params['lorbit'] != 11:
+            orbitals = nonspin_orbitals_no_phase
+        else:
+            orbitals = nonspin_orbitals_phase
+
+        for i, atom in enumerate(atoms):
+            d['data']['ados']['energy'] = ados.energy.tolist()
+            d['data']['ados'][i] = {}
+            for orbital in orbitals:
+                d['data']['ados'][i][orbital] = ados.site_dos(0, orbital).tolist()
 
     # convert all numpy arrays to lists
     for key in d:
@@ -44,14 +122,16 @@ def calc_to_dict(calc):
         except:
             pass
     return d
+Vasp.dict = property(calc_to_dict)
 
-def calc_to_json(self):
-    d = calc_to_dict(self)
+
+def calc_to_json(self, **kwargs):
+    d = calc_to_dict(self, **kwargs)
     return json.dumps(d)
 Vasp.json = property(calc_to_json)
 
-def calc_to_pretty_json(self):
-    d = calc_to_dict(self)
+def calc_to_pretty_json(self, **kwargs):
+    d = calc_to_dict(self, **kwargs)
     return json.dumps(d, sort_keys=True, indent=4)
 Vasp.pretty_json = property(calc_to_pretty_json)
 
@@ -71,7 +151,7 @@ def json_to_calc(jsonstring):
 
     # now create a calc
     kwargs = {}
-    kwargs.update(d['INCAR'])
+    kwargs.update(d['incar'])
     kwargs.update(d['input'])
     calc = Vasp(**kwargs)
     atoms.set_calculator(calc)

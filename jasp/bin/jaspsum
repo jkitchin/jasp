@@ -8,113 +8,116 @@ jaspsum
 
 jaspsum directoryname
    this will summarize the calculation in the directoryname
+
+see jaspsum -h for all the options.
 '''
 import os, sys
 from jasp import *
+import argparse
+
 
 # this should not start calculations
 JASPRC['mode'] = None
 
-from optparse import OptionParser
 
-parser = OptionParser(usage='ncsum',
-                      version='0.1')
-parser.add_option('-d',
-                  nargs=0,
-                  help = 'turn debug on')
+parser = argparse.ArgumentParser(description='summarize jasp calculations')
 
-parser.add_option('-p',
-                  nargs=0,
-                  help = 'plot in ag')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help = 'turn debug on')
 
-parser.add_option('-t',
-                  nargs=0,
-                  help = 'plot trajectory')
+parser.add_argument('-p', '--plot', action='store_true',
+                    help = 'plot in ag')
 
-parser.add_option('-r',
-                  nargs=0,
-                  help = 'prints code to make a new calculation')
+parser.add_argument('-t', '--plot-trajectory', action='store_true',
+                    help = 'plot trajectory')
 
-parser.add_option('-j',
-                  nargs=0,
-                  help = 'prints json representation')
+parser.add_argument('-r', '--python', action='store_true',
+                    help = 'prints code to make a new calculation')
 
-parser.add_option('-x',
-                  nargs=0,
-                  help = 'prints xml representation')
+parser.add_argument('-j','--json', action='store_true',
+                    help = 'prints json representation')
 
-parser.add_option('-v',
-                  nargs=1,
-                  help = 'animate a vibrational mode, args= comma-separated list')
+parser.add_argument('-pj','--pretty-json', action='store_true',
+                    help = 'prints pretty json representation')
 
-parser.add_option('--neb',
-                  nargs=0,
-                  help = 'plot the neb')
+parser.add_argument('-x', '--xml', action='store_true',
+                    help = 'prints xml representation')
 
-parser.add_option('--eos',
-                  nargs=0,
-                  help = 'run/plot equation of state')
+parser.add_argument('-v', '--vib',
+                    nargs=1, default=None,
+                    help = 'animate a vibrational mode, args= comma-separated list, e.g. 1,2,3')
 
+parser.add_argument('--neb', action='store_true',
+                    help = 'plot the neb')
 
-options,args = parser.parse_args()
+parser.add_argument('--eos', action='store_true',
+                    help = 'run/plot equation of state')
 
-if len(args) == 0:
-    dirs = ['.']
-else:
-    dirs = args
+parser.add_argument('dirs', nargs='*',
+                    default = ['.'],
+                    help='directories to summarize')
 
-if options.d is not None:
+args = parser.parse_args()
+
+if args.debug:
     debug = logging.DEBUG
 else:
     debug = None
 
-for d in dirs:
+for d in args.dirs:
     if not os.path.isdir(d):
-        raise Exception, '{0} does not exist!'.format(d)
+        raise Exception('{0} does not exist!'.format(d))
 
     with jasp(d, debug=debug) as calc:
 
         # plot trajectory
-        if options.t is not None:
+        if args.plot_trajectory:
             xd = xdat2traj('out.traj',calc=calc)
             try:
                 xd.convert()
-                os.system('ag out.traj; rm out.traj')
+                os.system('ase-gui out.traj; rm out.traj')
             except ValueError:
                 print('unable to show trajectory')
 
         # plot the atoms
-        if options.p is not None:
+        if args.plot:
             atoms = calc.get_atoms()
             from ase.visualize import view
             view(atoms)
 
         # vibrational movies
-        if options.v is not None:
-            for mode in [int(x) for x in options.v.split(',')]:
+        if args.vib is not None:
+            for mode in [int(x) for x in args.vvib.split(',')]:
                 calc.get_vibrational_modes(mode, show=True)
 
-        if options.neb is not None:
+        if args.neb:
             calc.plot_neb()
 
-        if options.eos is not None:
+        if args.eos:
             from jasp.jasp_eos import *
             JASPRC['mode']='queue'
             try:
                 data = calc.get_eos()
-                print data
+                print(data)
             except (VaspSubmitted, VaspQueued, VaspRunning):
-                print 'job in the queue'
+                print('job in the queue')
             import sys; sys.exit()
 
         # Finally print the calculator in some representation
-        if options.r is not None:
-            print repr(calc)
-        elif options.j is not None:
-            from serialize import *
-            print calc.json
-        elif options.x is not None:
-            from serialize import *
-            print calc.xml
+        if args.python:
+            print((repr(calc)))
+            
+        elif args.json:
+            import jasp.serialize 
+            print((calc.json))
+            
+        elif args.pretty_json:
+            import jasp.serialize
+            print((calc.pretty_json))
+            
+        elif args.xml:
+            import jasp.serialize 
+            print((calc.xml))
+
         else:
-            print calc
+            print(calc)

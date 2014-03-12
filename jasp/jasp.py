@@ -55,12 +55,13 @@ log.addHandler(handler)
 
 def calculation_is_ok(jobid=None):
     # find job output file
-    output = ['No job output found for jobid = {0}.\n\n'.format(jobid)]
+    output = ['\n']
     if jobid is not None:
         for f in os.listdir('.'):
             if 'o{0}'.format(jobid) in f:
                 with open(f) as outputfile:
-                    output = ['\n================================================================\n',
+                    output = ['joboutput file: {0}'.format(jobid),
+'\n================================================================\n',
                     '{0}:\n'.format(f)]
                     output += outputfile.readlines()
                     output += ['================================================================',
@@ -69,7 +70,7 @@ def calculation_is_ok(jobid=None):
     with open('OUTCAR') as f:
         lines = f.readlines()
         if not 'Voluntary context switches' in lines[-1]:
-            output += ['Last 20 lines of OUTCAR:']
+            output += ['Last 20 lines of OUTCAR:\n']
             output += lines[-20:]
             output += ['================================================================']
             raise VaspNotFinished(''.join(output))
@@ -241,8 +242,8 @@ def Jasp(debug=None,
         with open('jobid') as f:
             jobid = f.readline().split('.')[0]
 
-            #if calculation_is_ok(jobid):
-            #pass
+            if calculation_is_ok(jobid):
+                pass
 
         # delete the jobid file, since it is done
         os.unlink('jobid')
@@ -280,12 +281,9 @@ def Jasp(debug=None,
           and os.path.exists('CONTCAR')
           and os.path.exists('OUTCAR')
           and os.path.exists('vasprun.xml')):
-        log.debug('job done long ago, jobid deleted, no running, and the output files all exist')
-        # job is done
-        try:
+        log.debug('job was at least started, jobid deleted, no running, and the output files all exist')
+        if calculation_is_ok():
             calc = Vasp(restart=True)
-        finally:
-            pass
 
         if atoms is not None:
             atoms.set_cell(calc.atoms.get_cell())
@@ -314,6 +312,11 @@ def Jasp(debug=None,
     if ((not os.path.exists('METADATA'))
         and calc.int_params.get('images', None) is None):
         calc.create_metadata()
+        
+    # if there is a POTCAR, check it for special setups
+    if os.path.exists('POTCAR'):
+        special_setups = get_special_setups() # in jasp/POTCAR
+        calc.input_params['setups'] = special_setups
 
     return calc
 

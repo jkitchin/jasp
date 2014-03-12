@@ -3,8 +3,12 @@ from nose import *
 import os
 import numpy as np
 
+import jasp as jaspmod
+jaspdir = os.path.join(os.path.dirname(jaspmod.__file__))
+
 def test0():
-    "read automatic with Monkhorstpack grid"
+    "read automatic with Monkhorst-Pack grid"
+    os.chdir(os.path.join(jaspdir, 'tests'))
     calc = Vasp()
     calc.read_kpoints('kpoints-files/k0')
 
@@ -15,6 +19,7 @@ def test0():
 
 def test1():
     "read automatic with Monkhorstpack grid centered on Gamma"
+    os.chdir(os.path.join(jaspdir, 'tests'))
     calc = Vasp()
     calc.read_kpoints('kpoints-files/k1')
 
@@ -25,6 +30,7 @@ def test1():
 
 def test2():
     "read automatic with Monkhorstpack grid centered on Gamma with offset"
+    os.chdir(os.path.join(jaspdir, 'tests'))
     calc = Vasp()
     calc.read_kpoints('kpoints-files/k2')
 
@@ -35,6 +41,7 @@ def test2():
 
 def test4():
     "read explicit cartesian coords"
+    os.chdir(os.path.join(jaspdir, 'tests'))
     calc = Vasp()
     calc.read_kpoints('kpoints-files/k4')
 
@@ -53,6 +60,7 @@ def test4():
 
 def test5():
     "read explicit reciprocal coords"
+    os.chdir(os.path.join(jaspdir, 'tests'))
     calc = Vasp()
     calc.read_kpoints('kpoints-files/k5')
 
@@ -71,6 +79,7 @@ def test5():
 
 def test8():
     "read explicit reciprocal coords in line-mode"
+    os.chdir(os.path.join(jaspdir, 'tests'))
     calc = Vasp()
     calc.read_kpoints('kpoints-files/k8')
 
@@ -97,6 +106,7 @@ def test8():
 
 def test8():
     "read explicit reciprocal coords in line-mode"
+    os.chdir(os.path.join(jaspdir, 'tests'))
     calc = Vasp()
     calc.read_kpoints('kpoints-files/k9')
 
