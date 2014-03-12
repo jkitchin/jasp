@@ -1,6 +1,6 @@
 #+TITLE: =jasp=
 
-This is a python module for running VASP our way. See http://jkitchin.github.io/dft for comprehensive examples of using =jasp=.
+This is a python module for running VASP our (the Kitchin group) way. See http://kitchingroup.cheme.cmu.edu/dft-book for comprehensive examples of using =jasp=.
 
 Briefly, =jasp= simplifies creation of calculation scripts, automates job submission and management to a queue system, and provides more functionality than the ase.calculators.vasp module. Python 2.7 is probably required, and =jasp= uses as many new features of python as possible.
 
@@ -13,14 +13,14 @@ You need to have the following environment variables set:
 VASP_PP_PATH   - path to the directory containing your POTCAR files
 VASP_SCRIPT    - path to a script that is run for a calculation
 
-Mine are set too:
+Mine are set to:
 16:12:37 1114> echo $VASP_PP_PATH 
 /home-research/jkitchin/src/vasp/
 16:12:41 1115> echo $VASP_SCRIPT 
 /home-research/jkitchin/kitchin-python/jasp/bin/runjasp.py
 #+END_EXAMPLE 
 
-You may also want to add jasp/bin to your PATH.
+You may also want to add jasp/bin to your PATH. That directory contains an example runjasp.py script
 
 * Looking for the development branch?
 After you clone the repository, check it out!
@@ -39,37 +39,6 @@ export PATH=/home/jkitchin/kitchin-python/jasp-dev/jasp/bin:$PATH
 #+END_EXAMPLE
 
 Make sure to run ~source ~/.bashrc~ to load these changes. 
-
-This is not exactly how I do things. I use a module file with these contents:
-
-#+BEGIN_EXAMPLE
-#%Module1.0
-##
-## dot modulefile
-##
-##
-
-module-whatis "adds vasp to your path"
-
-# for Tcl script use only
-set	dotversion	3.2.6
-
-# These are the jasp directories
-prepend-path 	PATH ~/kitchin-python/jasp-dev/jasp/bin
-
-# This is where the VASP executables and POTCARS are
-prepend-path 	PATH ~/src/vasp/bin
-setenv VASP_PP_PATH  ~/src/vasp/
-
-# this is the script run by jasp/ase.calculators.vasp
-setenv VASP_SCRIPT   ~/kitchin-python/jasp-dev/jasp/bin/runjasp.py
-#+END_EXAMPLE
-
-this line loads that module in my .bashrc file
-#+BEGIN_SRC sh
-module load my-vasp-dev
-#+END_SRC
-
 
 * Footnotes
 
