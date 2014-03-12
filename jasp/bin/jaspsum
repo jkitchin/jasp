@@ -75,7 +75,7 @@ for d in args.dirs:
             xd = xdat2traj('out.traj',calc=calc)
             try:
                 xd.convert()
-                os.system('ag out.traj; rm out.traj')
+                os.system('ase-gui out.traj; rm out.traj')
             except ValueError:
                 print('unable to show trajectory')
 
