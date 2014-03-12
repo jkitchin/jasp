@@ -602,6 +602,8 @@ def pretty_print(self):
         gamma = np.arccos(np.dot(B/np.linalg.norm(B),
                                  C/np.linalg.norm(C))) * 180/np.pi
 
+        volume = np.abs(np.linalg.det(uc))
+
         s.append('  Energy = %f eV' % energy)
         s.append('\n  Unit cell vectors (angstroms)')
         s.append('        x       y     z      length')
@@ -765,6 +767,9 @@ def checkerr_vasp(self):
             # no errors found, lets delete any error file that had existed.
             if os.path.exists('error'):
                 os.unlink('error')
+        if os.path.exists('error'):
+            with open('error') as f:
+                print 'Errors found:\n', f.read()
     else:
         if not hasattr(self,'neb'):
             raise Exception, 'no OUTCAR` found'
@@ -916,7 +921,16 @@ def get_nearest_neighbor_table(self):
         nearest_neigbors = fields[4:]
         nn_indices = [int(nearest_neigbors[x]) for x in range(0,len(nearest_neigbors),2)]
         nn_distances = [float(nearest_neigbors[x]) for x in range(1,len(nearest_neigbors),2)]
-        NN.append((atom_index, nn_indices))
+s        NN.append((atom_index, nn_indices))
     return NN
 
 Vasp.get_nearest_neighbor_table = get_nearest_neighbor_table
+
+
+# this fixes a bug in ase.calculators.vasp, which does not return a
+# copy of the forces
+def get_forces(self, atoms):
+    self.update(atoms)
+    return np.copy(self.forces)
+
+Vasp.get_forces = get_forces
