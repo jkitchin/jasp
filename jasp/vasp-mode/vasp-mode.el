@@ -87,7 +87,17 @@ For detail, see `comment-dwim'."
 	 (comment-end ""))
      (comment-dwim arg)))
 
-;;
+;; http://davidavraamides.net/blog/2008/07/22/mode-aware-google-help-in-emacs/
+(defun search-site-url (keyword &optional site inurl lucky)
+  "Do a Google search for KEYWORD. Restrict to SITE and INURL, if specified.
+Jump to best match (I Feel Lucky) if LUCKY set.
+"
+  (concat "http://www.google.com/"
+          (format "search?q=%s" (url-hexify-string keyword))
+          (if site (format "+site:%s" (url-hexify-string site)))
+          (if inurl (format "+inurl:%s" (url-hexify-string inurl)))
+          (if lucky "&btnI")))
+
 (defun vasp-help ()
   "Open a browser window showing documentation for the word under the point.
 Defaults to a simple keyword search.
@@ -104,7 +114,7 @@ Uses `search-site-url' to do the actual search.
 (defun vasp-ag ()
   "runs ag on the POSCAR file in current directory"
   (interactive)
-  (shell-command "ag POSCAR"))
+  (shell-command "ase-gui POSCAR"))
 
 (defun vasp-run ()
   "runs vasp"
@@ -116,40 +126,50 @@ Uses `search-site-url' to do the actual search.
   (interactive)
   (shell-command "echo \"pwd; vasp\" | qsub -d `pwd` -l walltime=12:00"))
 
+(defun vasp-nval (functional chemical-symbol)
+  "return number of valence electrons for the POTCAR
+functional can be lower case. chemical-symbol must be correct"
+  (interactive "sFunctional: \nsChemical Symbol: ")
+  (shell-command (format "awk 'NR==2{print;exit}' %s" 
+			 (format "%s/potpaw_%s/%s/POTCAR"
+				 (getenv "VASP_PP_PATH")
+				 (upcase functional)
+				 chemical-symbol))))
+    
 ;; define a menu for vasp-mode
-(defvar vasp-mode-map nil "Keymap for vasp-mode")
+(defvar vasp-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-h") 'vasp-help)
+    (define-key map (kbd "C-c C-v") 'vasp-ag)
+    (define-key map (kbd "C-c C-r") 'vasp-run)
+    (define-key map (kbd "C-c C-q") 'vasp-queue)
+    map)
+  "Keymap for vasp-mode")
 
-(when (not vasp-mode-map) ;this is only run when this variable does not exist
-  (setq vasp-mode-map (make-sparse-keymap))
-  (define-key vasp-mode-map (kbd "C-c C-h") 'vasp-help)
-  (define-key vasp-mode-map (kbd "C-c C-v") 'vasp-ag)
-  (define-key vasp-mode-map (kbd "C-c C-r") 'vasp-run)
-  (define-key vasp-mode-map (kbd "C-c C-q") 'vasp-queue)
+(defvar vasp-mode-hook nil "*List of functions to call when entering vasp mode.")
 
-;; define the menu
-  (define-key vasp-mode-map [menu-bar] (make-sparse-keymap))
+(require 'easymenu)
 
-  (let ((menuMap (make-sparse-keymap "Vasp")))
-    (define-key vasp-mode-map [menu-bar vasp] (cons "Vasp" menuMap))
-    (define-key menuMap [Queue] '("Queue VASP" . vasp-queue))
-    (define-key menuMap [Run] '("Run VASP" . vasp-run))
-    (define-key menuMap [View] '("View POSCAR" . vasp-ag))
-    (define-key menuMap [Help] '("Help on VASP keyword" . vasp-help))
-    ))
+(easy-menu-define my-menu vasp-mode-map "Vasp menu"
+  '("Vasp-mode"
+    ["Queue VASP" vasp-queue]
+    ["run VASP" vasp-run]
+    ["View POSCAR" vasp-ag]
+    ["Help on VASP keyword" vasp-help]))
 
 ;; define the major mode
-(define-derived-mode vasp-mode fundamental-mode
-"vasp mode"
-"Major mode for editing vasp input files and reading output file"
+(define-derived-mode vasp-mode text-mode
+  "vasp mode"
+  "Major mode for editing vasp input files and reading output file"
 
-(setq font-lock-defaults '(vasp-font-lock-keywords))
+  (setq font-lock-defaults '(vasp-font-lock-keywords))
 
-; setup comment style
-(define-key vasp-mode-map [remap comment-dwim] 'vasp-comment-dwim)
-;; comment style: #...
+  ;; setup comment style
+  (define-key vasp-mode-map [remap comment-dwim] 'vasp-comment-dwim)
+  ;; comment style: #...
   (modify-syntax-entry ?# "< b" vasp-mode-syntax-table)
   (modify-syntax-entry ?\n "> b" vasp-mode-syntax-table)
-) ; end major-mode definition
+  ) ; end major-mode definition
 
 ; completion see: http://www.masteringemacs.org/articles/2012/01/16/pcomplete-context-sensitive-completion-emacs/
 
