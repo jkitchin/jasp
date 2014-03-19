@@ -48,8 +48,9 @@ Vasp.read_forces = read_forces
 old_read_stress = Vasp.read_stress
 
 def read_stress(self):
+    '''overloaded method because if the stress is large then there is a formatting overflow in the OUTCAR that leads to *** in the stress. This causes a ValueError in the vasp.py method. Here we catch that error and try to read the stresses from vasprun.xml.'''
     try:
-        old_read_stress(self)
+        return old_read_stress(self)
     except ValueError:
         log.debug('ValueError in read_stress. trying vasprun.xml')
 
