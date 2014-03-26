@@ -921,7 +921,7 @@ def get_nearest_neighbor_table(self):
         nearest_neigbors = fields[4:]
         nn_indices = [int(nearest_neigbors[x]) for x in range(0,len(nearest_neigbors),2)]
         nn_distances = [float(nearest_neigbors[x]) for x in range(1,len(nearest_neigbors),2)]
-s        NN.append((atom_index, nn_indices))
+        NN.append((atom_index, nn_indices))
     return NN
 
 Vasp.get_nearest_neighbor_table = get_nearest_neighbor_table
