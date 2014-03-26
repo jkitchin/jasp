@@ -11,6 +11,50 @@ except:
     #warnings.warn('pyxser not installed. Unable to serialize in xml')
     pass
 
+#### ase/calculators/calculator.py functions    
+def equal(a, b, tol=None):
+    """ndarray-enabled comparison function."""
+    if isinstance(a, np.ndarray):
+        b = np.array(b)
+        if a.shape != b.shape:
+            return False
+        if tol is None:
+            return (a == b).all()
+        else:
+            return np.allclose(a, b, rtol=tol, atol=tol)
+    if isinstance(b, np.ndarray):
+        return equal(b, a, tol)
+    if tol is None:
+        return a == b
+    return abs(a - b) < tol * abs(b) + tol
+    
+def check_state(self, atoms, tol=1e-15):
+    """Check for system changes since last calculation."""
+    if self.atoms is None:
+        system_changes = all_changes
+    else:
+        system_changes = []
+        if not equal(self.atoms.positions, atoms.positions, tol):
+            system_changes.append('positions')
+        if not equal(self.atoms.numbers, atoms.numbers):
+            system_changes.append('numbers')
+        if not equal(self.atoms.cell, atoms.cell, tol):
+            system_changes.append('cell')
+        if not equal(self.atoms.pbc, atoms.pbc):
+            system_changes.append('pbc')
+        if not equal(self.atoms.get_initial_magnetic_moments(),
+                     atoms.get_initial_magnetic_moments(), tol):
+            system_changes.append('magmoms')
+        if not equal(self.atoms.get_initial_charges(),
+                     atoms.get_initial_charges(), tol):
+            system_changes.append('charges')
+
+    return system_changes
+
+Vasp.check_state = check_state
+
+### end ase/calculators/calculator.py functions    
+
 def atoms_to_dict(atoms):
     d = {}
     d['cell'] = atoms.get_cell().tolist()
@@ -123,7 +167,7 @@ If atom-projected dos are included they are in the form:
             pass
     return d
 Vasp.dict = property(calc_to_dict)
-
+Vasp.todict = calc_to_dict
 
 def calc_to_json(self, **kwargs):
     d = calc_to_dict(self, **kwargs)
