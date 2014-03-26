@@ -79,6 +79,8 @@ def calculation_is_ok(jobid=None):
 # ###################################################################
 # Jasp function - returns a Vasp calculator
 # ###################################################################
+Vasp.results = {}  # for storing data used in ase.db
+Vasp.name = 'jasp'
 
 def Jasp(debug=None,
          restart=None,
