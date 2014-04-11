@@ -11,7 +11,7 @@ except:
     #warnings.warn('pyxser not installed. Unable to serialize in xml')
     pass
 
-#### ase/calculators/calculator.py functions    
+#### ase/calculators/calculator.py functions
 def equal(a, b, tol=None):
     """ndarray-enabled comparison function."""
     if isinstance(a, np.ndarray):
@@ -27,7 +27,7 @@ def equal(a, b, tol=None):
     if tol is None:
         return a == b
     return abs(a - b) < tol * abs(b) + tol
-    
+
 def check_state(self, atoms, tol=1e-15):
     """Check for system changes since last calculation."""
     if self.atoms is None:
@@ -53,7 +53,7 @@ def check_state(self, atoms, tol=1e-15):
 
 Vasp.check_state = check_state
 
-### end ase/calculators/calculator.py functions    
+### end ase/calculators/calculator.py functions
 
 def atoms_to_dict(atoms):
     d = {}
@@ -94,7 +94,17 @@ If atom-projected dos are included they are in the form:
     atoms = calc.get_atoms()
     d['data']['total_energy'] = atoms.get_potential_energy()
     d['data']['forces'] = atoms.get_forces().tolist()
-    d['data']['stress'] = atoms.get_stress().tolist()
+
+    # There are times when no stress is calculated
+    try:
+        stress = atoms.get_stress()
+    except AssertionError:
+        stress = None
+
+    if stress is not None:
+        d['data']['stress'] = atoms.get_stress().tolist()
+    else:
+        d['data']['stress'] = None
     d['data']['fermi_level'] = calc.get_fermi_level()
     d['data']['volume'] = atoms.get_volume()
     if calc.spinpol:
@@ -102,10 +112,13 @@ If atom-projected dos are included they are in the form:
 
     if (calc.int_params.get('lorbit', 0) >=10
         or calc.list_params.get('rwigs', None)):
-        d['data']['magmoms'] = atoms.get_magnetic_moments().tolist()
-
+        try:
+            d['data']['magmoms'] = atoms.get_magnetic_moments().tolist()
+        except AttributeError:
+            d['data']['magmoms'] = None
     # store the metadata
-    d['metadata'] = calc.metadata
+    if hasattr(calc, 'metadata'):
+        d['metadata'] = calc.metadata
 
     if kwargs.get('dos', None):
         from ase.dft.dos import DOS
