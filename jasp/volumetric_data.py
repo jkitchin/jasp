@@ -116,7 +116,12 @@ def get_dipole_moment(self):
     # make dictionary for ease of use
     zval = {}
     for sym, ppath, hash in LOP:
-        fullpath = os.path.join(ppp, ppath)
+#        fullpath = os.path.join(ppp, ppath) Jason Marshall pointed
+        # out a bug above. os.path.join discards the root if the
+        # second path starts with /, which makes it look like an
+        # absolute path. the get_pseudopotentials code returns a path
+        # with a / in the beginning.
+        fullpath = ppp + ppath
         z = get_ZVAL(fullpath)
         zval[sym] = z
 
