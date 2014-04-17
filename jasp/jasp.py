@@ -67,6 +67,13 @@ def calculation_is_ok(jobid=None):
                     output += ['================================================================',
                                '\n']
 
+    with open('CONTCAR') as f:
+        content = f.read()
+
+    if not len(content) > 0:
+        os.unlink('CONTCAR')
+        raise VaspNotFinished('CONTCAR appears empty. It has been deleted. Please run your script again')
+
     with open('OUTCAR') as f:
         lines = f.readlines()
         if not 'Voluntary context switches' in lines[-1]:
