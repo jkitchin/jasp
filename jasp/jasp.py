@@ -72,6 +72,7 @@ def calculation_is_ok(jobid=None):
 
     if not len(content) > 0:
         os.unlink('CONTCAR')
+        os.unlink('jobid')
         raise VaspNotFinished('CONTCAR appears empty. It has been deleted. Please run your script again')
 
     with open('OUTCAR') as f:
