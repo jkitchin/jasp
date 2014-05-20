@@ -489,13 +489,15 @@ runjasp.py     # this is the vasp command
     log.debug('-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
                                                      JASPRC['queue.ppn']))
 
-    p = Popen(['{0}'.format(JASPRC['queue.command']),
-               '{0}'.format(JASPRC['queue.options']),
-               '-N', '{0}'.format(jobname),
-               '-l walltime={0}'.format(JASPRC['queue.walltime']),
-               '-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
-                                                     JASPRC['queue.ppn']),
-               '-l mem={0}'.format(JASPRC['queue.mem'])],
+    cmdlist = ['{0}'.format(JASPRC['queue.command'])]
+    cmdlist += [option for option in JASPRC['queue.options']]
+    cmdlist += ['-N', '{0}'.format(jobname),
+                '-l walltime={0}'.format(JASPRC['queue.walltime']),
+                '-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
+                                              JASPRC['queue.ppn']),
+                '-l mem={0}'.format(JASPRC['queue.mem'])]
+
+    p = Popen(cmdlist,
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     log.debug(script)
