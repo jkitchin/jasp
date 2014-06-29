@@ -27,6 +27,7 @@ ase-sort data for vasp
 import json, os, pickle, pwd, time, uuid
 from jasp import *
 from jasprc import *
+from collections import OrderedDict
 
 def create_metadata(self, fname='METADATA'):
     '''
@@ -67,13 +68,15 @@ def create_metadata(self, fname='METADATA'):
 
     d['atoms.resort'] = self.resort
 
-    special_setups =  {}
+    special_setups = OrderedDict()
     if self.input_params['setups'] != []:
-        for setup in self.input_params['setups']:
+        for i,setup in enumerate(self.input_params['setups']):
             try:
                 m = self.resort[int(setup)]
-                special_setups[str(m)] = atoms[int(setup)].symbol
+                special_setups[str(m)] = self.atoms[int(setup)].symbol
             except ValueError:
+                m = self.input_params['setups'].values()[i]
+                special_setups[str(setup)] = m
                 continue
                 
         d['atoms.setups'] = pickle.dumps(special_setups)
