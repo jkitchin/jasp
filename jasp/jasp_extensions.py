@@ -936,3 +936,79 @@ def get_forces(self, atoms):
     return np.copy(self.forces)
 
 Vasp.get_forces = get_forces
+
+
+
+
+
+def get_energy_components(self, outputType = 0):
+    '''
+    returns all of the components of the energies
+    outputType = 0, returns each individual component
+    outputType = 1, returns a major portion of the electrostatic energy and the total
+    outputType = 2, returns a major portion of the electrostatic energy and the other components
+
+    vasp forum may provide help: http://cms.mpi.univie.ac.at/vasp-forum/forum_viewtopic.php?4.273
+
+    Contributed by Jason Marshall, 2014.
+    '''
+    #self.calculate()
+
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+
+    lineNumbers = []
+    for i, line in enumerate(lines):
+        # note: this is tricky, the exact string to search for is not the last energy line in OUTCAR,
+        # there are space differences ...
+        # USER BEWARE: Be careful with this function ... may be buggy depending on inputs
+        if line.startswith('  free energy    TOTEN  ='):
+            lineNumbers.append(i)
+
+    lastLine = lineNumbers[-1]
+    data = lines[lastLine - 10:lastLine]
+    energies = []
+
+    alphaZ = float(data[0].split()[-1])
+    ewald = float(data[1].split()[-1])
+    halfHartree = float(data[2].split()[-1])
+    exchange = float(data[3].split()[-1])
+    xExchange = float(data[4].split()[-1])
+    PAWDoubleCounting1 = float(data[5].split()[-2])
+    PAWDoubleCounting2 = float(data[5].split()[-1])
+    entropy = float(data[6].split()[-1])
+    eigenvalues = float(data[7].split()[-1])
+    atomicEnergy = float(data[8].split()[-1])
+
+    if outputType == 1:
+        energies = [['electro',alphaZ + ewald + halfHartree],
+                    ['else', exchange + xExchange + PAWDoubleCounting1
+                     + PAWDoubleCounting2 + entropy + eigenvalues + atomicEnergy],
+                    ['total',alphaZ + ewald + halfHartree + exchange + xExchange
+                     + PAWDoubleCounting1 + PAWDoubleCounting2 + entropy
+                     + eigenvalues + atomicEnergy]]
+    elif outputType == 2:
+        energies = [['electro',alphaZ + ewald + halfHartree],
+                    ['exchange',exchange],
+                    ['xExchange',xExchange],
+                    ['PAW',PAWDoubleCounting1 + PAWDoubleCounting2],
+                    ['entropy',entropy],
+                    ['eigenvalues',eigenvalues],
+                    ['atomicEnergy',atomicEnergy],
+                    ['total',alphaZ + ewald + halfHartree + exchange + xExchange
+                     + PAWDoubleCounting1 + PAWDoubleCounting2 + entropy
+                     + eigenvalues + atomicEnergy]]
+    else:
+        energies = [['alphaZ',alphaZ],
+                    ['ewald',ewald],
+                    ['halfHartree',halfHartree],
+                    ['exchange',exchange],
+                    ['xExchange',xExchange],
+                    ['PAW',PAWDoubleCounting1 + PAWDoubleCounting2],
+                    ['entropy',entropy],
+                    ['eigenvalues',eigenvalues],
+                    ['atomicEnergy',atomicEnergy]]
+
+    return energies
+
+Vasp.get_energy_components = get_energy_components
