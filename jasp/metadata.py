@@ -67,6 +67,17 @@ def create_metadata(self, fname='METADATA'):
 
     d['atoms.resort'] = self.resort
 
+    special_setups =  {}
+    if self.input_params['setups'] != []:
+        for setup in self.input_params['setups']:
+            try:
+                m = self.resort[int(setup)]
+                special_setups[str(m)] = atoms[int(setup)].symbol
+            except ValueError:
+                continue
+                
+        d['atoms.setups'] = pickle.dumps(special_setups)
+        
     # potentials
     for (sym, path, githash) in ppp:
         d['{0}.potential.path'.format(sym)] = path
@@ -104,6 +115,9 @@ def read_metadata(self, fname='METADATA'):
         self.metadata
 
     self.metadata = d
+
+    if 'atoms.setups' in d:
+        self.input_params['setups'] = pickle.loads(d['atoms.setups'].encode('utf-8'))
 
     if getattr(self, 'atoms') is not None:
         self.atoms.set_tags(d.get('atoms.tags',[0 for atom in self.atoms]))

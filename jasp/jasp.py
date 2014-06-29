@@ -302,10 +302,7 @@ def Jasp(debug=None,
             atoms.calc = calc
     else:
         raise VaspUnknownState, 'I do not recognize the state of this directory {0}'.format(os.getcwd())
-
-    if os.path.exists('METADATA'):
-        calc.read_metadata() #read in metadata
-
+        
     # save initial params to check for changes later
     log.debug('saving initial parameters')
     calc.old_float_params = calc.float_params.copy()
@@ -318,6 +315,9 @@ def Jasp(debug=None,
     calc.old_dict_params = calc.dict_params.copy()
 
     calc.set(**kwargs)
+
+    if os.path.exists('METADATA'):
+        calc.read_metadata() #read in metadata
 
     # create a METADATA file if it does not exist and we are not an NEB.
     if ((not os.path.exists('METADATA'))
