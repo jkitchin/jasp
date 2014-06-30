@@ -27,6 +27,7 @@ ase-sort data for vasp
 import json, os, pickle, pwd, time, uuid
 from jasp import *
 from jasprc import *
+from collections import OrderedDict
 
 def create_metadata(self, fname='METADATA'):
     '''
@@ -67,6 +68,20 @@ def create_metadata(self, fname='METADATA'):
 
     d['atoms.resort'] = self.resort
 
+    special_setups = OrderedDict()
+    if self.input_params['setups'] != []:
+        for i,setup in enumerate(self.input_params['setups']):
+            try:
+                v = self.resort[int(setup)]
+                m = self.input_params['setups'].values()[i]
+                special_setups[str(v)] = m
+            except ValueError:
+                m = self.input_params['setups'].values()[i]
+                special_setups[str(setup)] = m
+                continue
+                
+        d['atoms.setups'] = pickle.dumps(special_setups)
+        
     # potentials
     for (sym, path, githash) in ppp:
         d['{0}.potential.path'.format(sym)] = path
@@ -104,6 +119,9 @@ def read_metadata(self, fname='METADATA'):
         self.metadata
 
     self.metadata = d
+
+    if 'atoms.setups' in d:
+        self.input_params['setups'] = pickle.loads(d['atoms.setups'].encode('utf-8'))
 
     if getattr(self, 'atoms') is not None:
         self.atoms.set_tags(d.get('atoms.tags',[0 for atom in self.atoms]))
