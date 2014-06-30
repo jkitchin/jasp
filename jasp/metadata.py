@@ -72,8 +72,9 @@ def create_metadata(self, fname='METADATA'):
     if self.input_params['setups'] != []:
         for i,setup in enumerate(self.input_params['setups']):
             try:
-                m = self.resort[int(setup)]
-                special_setups[str(m)] = self.atoms[int(setup)].symbol
+                v = self.resort[int(setup)]
+                m = self.input_params['setups'].values()[i]
+                special_setups[str(v)] = m
             except ValueError:
                 m = self.input_params['setups'].values()[i]
                 special_setups[str(setup)] = m
