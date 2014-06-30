@@ -139,6 +139,7 @@ def Jasp(debug=None,
         # e.g. no CONTCAR exists, then we cannot restart the
         # calculation. we have to build it up.
         calc = Vasp(restart, output_template, track_output)
+        
         # Try to read sorting file
         if os.path.isfile('ase-sort.dat'):
             calc.sort = []
@@ -322,11 +323,6 @@ def Jasp(debug=None,
     if ((not os.path.exists('METADATA'))
         and calc.int_params.get('images', None) is None):
         calc.create_metadata()
-        
-    # if there is a POTCAR, check it for special setups
-    if os.path.exists('POTCAR'):
-        special_setups = get_special_setups() # in jasp/POTCAR
-        calc.input_params['setups'] = special_setups
 
     return calc
 
@@ -384,6 +380,7 @@ class jasp:
         calc.vaspdir = self.vaspdir   # vasp directory
         calc.cwd = self.cwd   # directory we came from
         return calc
+
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         '''
