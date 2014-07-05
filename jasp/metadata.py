@@ -69,7 +69,7 @@ def create_metadata(self, fname='METADATA'):
     d['atoms.resort'] = self.resort
 
     special_setups = OrderedDict()
-    if self.input_params['setups'] != []:
+    if self.input_params['setups'] != None:
         for i,setup in enumerate(self.input_params['setups']):
             try:
                 v = self.resort[int(setup)]
@@ -119,6 +119,10 @@ def read_metadata(self, fname='METADATA'):
         self.metadata
 
     self.metadata = d
+
+    if 'atoms.setups' in d:
+        special_setups = pickle.loads(d['atoms.setups'].encode('utf-8'))
+        self.input_params['setups'] = special_setups
 
     if getattr(self, 'atoms') is not None:
         self.atoms.set_tags(d.get('atoms.tags',[0 for atom in self.atoms]))
