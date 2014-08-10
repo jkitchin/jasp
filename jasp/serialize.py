@@ -319,52 +319,113 @@ Vasp.python = property(vasp_repr)
 
 
 def calc_to_org(self, level=1):
-    '''print an org-mode representation of a calculator'''
+    '''print an org-mode representation of a calculator at headline LEVEL. The calculation data is put into machine (org) readable tables and file tags. This probably only makes sense in Emacs, where org-mode can automaically align the tables, and there is a good framework for reading this data.'''
     from Cheetah.Template import Template
     
     calc = self
     atoms = calc.get_atoms()
     headline = '*' * level
-    label = calc.dir
+    label = calc.vaspdir
+    ppp_list = self.get_pseudopotentials()
     
+    if hasattr(atoms, 'constraints'):
+        from ase.constraints import FixAtoms, FixScaled
+        constraints = [['T', 'T', 'T'] for atom in atoms]
+        for constraint in atoms.constraints:
+            if isinstance(constraint, FixAtoms):
+                for i, constrained in  enumerate(constraint.index):
+                    if constrained:
+                        constraints[i] = ["F", "F", "F"]
+            if isinstance(constraint, FixScaled):
+                d = {True:"F", False:"T"}
+                constraints[constraint.a] = [d[x] for x in constraint.mask.tolist()]
+    else:
+        constraints = [['T', 'T', 'T'] for atom in atoms]
+
     template = '''\
 $headline $label
+#+TOTAL_ENERGY: $atoms.get_potential_energy()
 
-#tblname: cell-$label
-| x | y | z |
-|------------
-#for $vec in $atoms.get_cell()
-| $vec[0] | $vec[1] | $vec[2] |
+#tblname: unitcell-$label
+|   | x | y | z |
+|----------------
+#for $i, $vec in enumerate($atoms.get_cell())
+| A$i | $vec[0] | $vec[1] | $vec[2] |
 #end for
+
+#+STRESS: $atoms.get_stress()
 
 #+tblname: atoms-$label
-| species | x | y | z | fx | fy | fz |
-|-------------------------------------
-#for $atom,$f in zip($atoms, $atoms.get_forces())
-|$atom.symbol| $atom.x | $atom.y | $atom.z | $f[0] | $f[1] | $f[2] |
+| species | x | y | z | fx | fy | fz | free x | free y | free z|
+|---------------------------------------------------------------
+#for $atom,$f,$c in zip($atoms, $atoms.get_forces(), $constraints)
+|$atom.symbol| $atom.x | $atom.y | $atom.z | $f[0] | $f[1] | $f[2] | $c[0] | $c[1] | $c[2] |
 #end for
+
+#if $calc.get_spin_polarized() and $calc.converged
+#+MAGNETIC_MOMENT: $calc.get_magnetic_moment($atoms)
+#end if
 
 #+tblname: params-$label
 | Parameter | Value |
+|--------------------
 #for key in $calc.int_params
 #if $calc.int_params[key]
 | $key | $calc.int_params[key] |
 #end if
 #end for
+#for key in $calc.float_params
+#if $calc.float_params[key]
+| $key | $calc.float_params[key] |
+#end if
+#end for
+#for key in $calc.string_params
+#if $calc.string_params[key]
+| $key | $calc.string_params[key] |
+#end if
+#end for
+#for key in $calc.exp_params
+#if $calc.exp_params[key]
+| $key | $calc.exp_params[key] |
+#end if
+#end for
+#for key in $calc.bool_params
+#if $calc.bool_params[key]
+| $key | $calc.bool_params[key] |
+#end if
+#end for
+#for key in $calc.list_params
+#if $calc.list_params[key]
+| $key | $calc.list_params[key] |
+#end if
+#end for
+#for key in $calc.dict_params
+#if $calc.dict_params[key]
+| $key | $calc.dict_params[key] |
+#end if
+#end for
+#for key in $calc.special_params
+#if $calc.special_params[key]
+| $key | $calc.special_params[key] |
+#end if
+#end for
+#for key in $calc.input_params
+#if $calc.input_params[key]
+| $key | $calc.input_params[key] |
+#end if
+#end for
 
-TODO add all the other parameters
+#+tblname: psp-$label
+#for sym,ppp,hash in $ppp_list
+| $sym | $ppp | $hash |
+#end for
 '''
     return Template(template,searchList=[locals()]).respond()
 
-Vasp.org = property(calc_to_org)
+Vasp.org = calc_to_org
 
 if __name__ == '__main__':
     from jasp import *
 
-    from ase import Atoms, Atom
-    atoms = Atoms([Atom('O',[0,0,0]),
-                   Atom('O',[0,0,1.22])],
-                   cell=[8,8,8])
-
-    with jasp('tests/O2-relax') as calc:
-        print calc.python
+    with jasp('tests/molecules/simple-co') as calc:
+        print calc.org(3)
