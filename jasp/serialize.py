@@ -317,6 +317,47 @@ Vasp.__repr__ = vasp_repr
 
 Vasp.python = property(vasp_repr)
 
+
+def calc_to_org(self, level=1):
+    '''print an org-mode representation of a calculator'''
+    from Cheetah.Template import Template
+    
+    calc = self
+    atoms = calc.get_atoms()
+    headline = '*' * level
+    label = calc.dir
+    
+    template = '''\
+$headline $label
+
+#tblname: cell-$label
+| x | y | z |
+|------------
+#for $vec in $atoms.get_cell()
+| $vec[0] | $vec[1] | $vec[2] |
+#end for
+
+#+tblname: atoms-$label
+| species | x | y | z | fx | fy | fz |
+|-------------------------------------
+#for $atom,$f in zip($atoms, $atoms.get_forces())
+|$atom.symbol| $atom.x | $atom.y | $atom.z | $f[0] | $f[1] | $f[2] |
+#end for
+
+#+tblname: params-$label
+| Parameter | Value |
+#for key in $calc.int_params
+#if $calc.int_params[key]
+| $key | $calc.int_params[key] |
+#end if
+#end for
+
+TODO add all the other parameters
+'''
+    return Template(template,searchList=[locals()]).respond()
+
+Vasp.org = property(calc_to_org)
+
 if __name__ == '__main__':
     from jasp import *
 
