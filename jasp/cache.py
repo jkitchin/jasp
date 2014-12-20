@@ -84,9 +84,9 @@ def persistent_memoize(func):
     return wrapper
 
 
-#Vasp.get_potential_energy = persistent_memoize(Vasp.get_potential_energy)
-#Vasp.get_forces = persistent_memoize(Vasp.get_forces)
-#Vasp.get_stress = persistent_memoize(Vasp.get_stress)
+# Vasp.get_potential_energy = persistent_memoize(Vasp.get_potential_energy)
+# Vasp.get_forces = persistent_memoize(Vasp.get_forces)
+# Vasp.get_stress = persistent_memoize(Vasp.get_stress)
 
 
 def read_spinpol(self):
