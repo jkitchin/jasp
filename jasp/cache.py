@@ -2,7 +2,7 @@
 This module provides a class function decorator to cache the results for functions. I have found that parsing the files to get energy, forces, stresses, etc... is slow when you have to loop through hundreds or thousands of files. So, we are going to try caching the results.
 
 
-It is not clear this will work all the reading seems to be done in restart_load. I that is true, memoizing these functions will have no effect. there needs to be a redesign to only get data when you want it, e.g. lazy evaluation.
+It is not clear this will work as all the reading seems to be done in restart_load. If that is true, memoizing these functions will have no effect. There needs to be a redesign to only get data when you want it, e.g. lazy evaluation.
 
 the key might be caching the read functions
 
