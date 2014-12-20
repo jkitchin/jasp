@@ -1,3 +1,5 @@
+'''Monkey-patched function for ase.Atoms'''
+
 from ase import Atom, Atoms
 import numpy as np
 import pickle
@@ -54,7 +56,7 @@ def set_volume(self, volume, scale_atoms=True):
     v0 = self.get_volume()
     cell0 = self.get_cell()
 
-    f = (volume/v0)**(1./3.)
+    f = (volume / v0)**(1. / 3.)
     self.set_cell(f*cell0, scale_atoms=scale_atoms)
 
 Atoms.set_volume = set_volume
@@ -62,8 +64,8 @@ Atoms.set_volume = set_volume
 old_repr = Atoms.__repr__
 import textwrap
 def new_repr(self):
-    '''
-    wraps the old __repr__ to return a textwrapped string with fixed width.
+    '''wraps the old __repr__ to return a textwrapped string with fixed
+    width. This is most useful for output captured in org-mode.
     '''
     s = old_repr(self)
     return textwrap.fill(s, width=70, subsequent_indent=' '*6)
