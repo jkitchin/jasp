@@ -4,6 +4,13 @@ from ase.calculators.vasp import Vasp,VaspChargeDensity
 from POTCAR import get_ZVAL
 
 def get_charge_density(self, spin=0):
+    """Returns x, y, and z coordinate and charge density arrays.
+
+    :param int spin: 
+    :returns: x, y, z, charge density arrays
+    :rtype: 3-d numpy arrays
+    """
+    
     atoms = self.get_atoms()
     vcd = VaspChargeDensity()
 
@@ -36,29 +43,33 @@ def get_charge_density(self, spin=0):
 Vasp.get_charge_density = get_charge_density
 
 def get_dipole_moment(self):
-    '''
+    """Return dipole moment (vector) of unit cell in atomic units
 
-     dipole_moment = ((dipole_vector**2).sum())**0.5/Debye
-    '''
+    :returns: a vector of the dipole moment
+    :rtype:
+
+    dipole_moment = ((dipole_vector**2).sum())**0.5/Debye
+
+    """
+
     atoms = self.get_atoms()
 
     x,y,z,cd = self.get_charge_density()
     n0, n1, n2 = cd.shape
-    nelements = n0*n1*n2
-    voxel_volume = atoms.get_volume()/nelements
-    total_electron_charge = -cd.sum()*voxel_volume
+    nelements = n0 * n1 * n2
+    voxel_volume = atoms.get_volume() / nelements
+    total_electron_charge = -cd.sum() * voxel_volume
 
 
-    electron_density_center = np.array([(cd*x).sum(),
-                                        (cd*y).sum(),
-                                        (cd*z).sum()])
+    electron_density_center = np.array([(cd * x).sum(),
+                                        (cd * y).sum(),
+                                        (cd * z).sum()])
     electron_density_center *= voxel_volume
     electron_density_center /= total_electron_charge
 
-    electron_dipole_moment = electron_density_center*total_electron_charge
-    electron_dipole_moment *= -1.0 #we need the - here so the two
-                                    #negatives don't cancel
-    # now the ion charge center
+    electron_dipole_moment = electron_density_center * total_electron_charge
+    electron_dipole_moment *= -1.0 # we need the - here so the two negatives
+                                   # don't cancel now the ion charge center
 
     LOP = self.get_pseudopotentials()
     ppp = os.environ['VASP_PP_PATH']
@@ -79,7 +90,7 @@ def get_dipole_moment(self):
         ion_charge_center += Z*pos
 
     ion_charge_center /= total_ion_charge
-    ion_dipole_moment = ion_charge_center*total_ion_charge
+    ion_dipole_moment = ion_charge_center * total_ion_charge
 
     dipole_vector = (ion_dipole_moment + electron_dipole_moment)
 
