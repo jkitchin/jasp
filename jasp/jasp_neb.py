@@ -328,7 +328,9 @@ Vasp.plot_neb = plot_neb
 
 # this is a static method
 def read_neb_calculator():
-    ''' read calculator from working directory'''
+    '''Read calculator from the current working directory.
+
+    Static method that returns a :mod:`jasp.Jasp` calculator.'''
     log.debug('Entering read_neb_calculator in {0}'.format(os.getcwd()))
 
     calc = Vasp()
@@ -338,12 +340,12 @@ def read_neb_calculator():
 
     # set default functional
     if calc.string_params['gga'] is None:
-        calc.input_params['xc']='PBE'
+        calc.input_params['xc'] = 'PBE'
 
     images = []
-    log.debug('calc.int_params[images] = %i',calc.int_params['images'])
-    for i in range(calc.int_params['images']+2):
-        log.debug('reading neb calculator: 0%i',i)
+    log.debug('calc.int_params[images] = %i', calc.int_params['images'])
+    for i in range(calc.int_params['images'] + 2):
+        log.debug('reading neb calculator: 0%i', i)
         cwd = os.getcwd()
 
         os.chdir('0{0}'.format(i))
@@ -360,7 +362,7 @@ def read_neb_calculator():
         atoms = read(fname, format='vasp')
 
         f = open('ase-sort.dat')
-        sort, resort = [],[]
+        sort, resort = [], []
         for line in f:
             s,r = [int(x) for x in line.split()]
             sort.append(s)
@@ -374,11 +376,11 @@ def read_neb_calculator():
     f = open('00/energy')
     calc.neb_initial_energy = float(f.readline().strip())
     f.close()
-    f = open('0{0}/energy'.format(len(images)-1))
+    f = open('0{0}/energy'.format(len(images) - 1))
     calc.neb_final_energy = float(f.readline().strip())
     f.close()
 
     calc.neb_images = images
-    calc.neb_nimages = len(images)-2
+    calc.neb_nimages = len(images) - 2
     calc.neb=True
     return calc
