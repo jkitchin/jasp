@@ -18,6 +18,7 @@ def get_ZVAL(potcar):
     return float(m.group(1))
 
 def get_ENMAX(potcar):
+    ''' Return ENMAX from the potcar file.'''
     with open(potcar) as f:
         for line in f:
             if 'ENMAX' in line:
@@ -25,6 +26,7 @@ def get_ENMAX(potcar):
                 return float(m.groupdict()['ENMAX'])
 
 def get_ENMIN(potcar):
+    ''' Return ENMIN from the potcar file.'''
     with open(potcar) as f:
         for line in f:
             if 'ENMIN' in line:
