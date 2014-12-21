@@ -68,9 +68,9 @@ def get_dipole_moment(self):
     electron_density_center /= total_electron_charge
 
     electron_dipole_moment = electron_density_center * total_electron_charge
-    electron_dipole_moment *= -1.0 # we need the - here so the two negatives
-                                   # don't cancel now the ion charge center
+    electron_dipole_moment *= -1.0 
 
+    # now the ion charge center
     LOP = self.get_pseudopotentials()
     ppp = os.environ['VASP_PP_PATH']
 
