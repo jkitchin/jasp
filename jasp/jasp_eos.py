@@ -1,3 +1,5 @@
+"""Module for automatic calculation of an equation of state in jasp."""
+
 from jasp import *
 from ase.calculators.vasp import Vasp
 import json
@@ -7,10 +9,14 @@ import matplotlib.pyplot as plt
 from ase.units import GPa
 
 def get_eos(self, static=False):
-    '''
-    calculate the equation of state for the attached atoms. Returns a
-    dictionary of data for each step. You do not need to specify any
-    relaxation parameters, only the base parameters for the calculations.
+    '''calculate the equation of state for the attached atoms.
+
+    Returns a dictionary of data for each step. You do not need to
+    specify any relaxation parameters, only the base parameters for the
+    calculations. Writes to eos.org with a report of output.
+
+    if static is True, then run a final static calculation at high
+    precision, with ismear=-5.
     '''
 
     # this returns if the data exists.
