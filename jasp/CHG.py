@@ -38,7 +38,7 @@ def get_charge_density(self, spin=0):
     y = np.reshape(real[:, 1], (n0, n1, n2))
     z = np.reshape(real[:, 2], (n0, n1, n2))
 
-    return x,y,z,cd
+    return x, y, z, cd
 
 Vasp.get_charge_density = get_charge_density
 
@@ -54,7 +54,7 @@ def get_dipole_moment(self):
 
     atoms = self.get_atoms()
 
-    x,y,z,cd = self.get_charge_density()
+    x, y, z, cd = self.get_charge_density()
     n0, n1, n2 = cd.shape
     nelements = n0 * n1 * n2
     voxel_volume = atoms.get_volume() / nelements
