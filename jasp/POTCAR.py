@@ -37,8 +37,11 @@ def get_ENMIN(potcar):
 def get_special_setups(potcar='POTCAR'):
     '''parse POTCAR file and find out which ones were used.
 
-    the vasp.read_potcar is terribly named and only reads ex from potcar file. It is not even clear that is correct since you can do non-self-consistent calculations.
-'''
+    the vasp.read_potcar is terribly named and only reads ex (the
+    exchange-correlation functional) from potcar file. It is not even
+    clear that is correct since you can do non-self-consistent
+    calculations.
+    '''
     potcars = []
     with open(potcar) as f:
         lines = f.readlines()
