@@ -1,3 +1,5 @@
+'''jasp module to read CHG files and get dipole moment'''
+
 import os
 import numpy as np
 from ase.calculators.vasp import Vasp,VaspChargeDensity
