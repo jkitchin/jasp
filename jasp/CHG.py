@@ -19,9 +19,9 @@ def get_charge_density(self, spin=0):
     cd = np.array(vcd.chg[spin])
     n0, n1, n2 = cd.shape
 
-    s0 = 1.0/n0
-    s1 = 1.0/n1
-    s2 = 1.0/n2
+    s0 = 1.0 / n0
+    s1 = 1.0 / n1
+    s2 = 1.0 / n2
 
     X, Y, Z = np.mgrid[0.0:1.0:s0,
                        0.0:1.0:s1,
@@ -31,11 +31,10 @@ def get_charge_density(self, spin=0):
                          Y.ravel(),
                          Z.ravel()])
 
-
     uc = atoms.get_cell()
     real = np.dot(C, uc)
 
-    #now convert arrays back to unitcell shape
+    # now convert arrays back to unitcell shape
     x = np.reshape(real[:, 0], (n0, n1, n2))
     y = np.reshape(real[:, 1], (n0, n1, n2))
     z = np.reshape(real[:, 2], (n0, n1, n2))
