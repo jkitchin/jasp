@@ -68,6 +68,7 @@ def get_elf(self):
     return x, y, z, data[0] * atoms.get_volume()
 Vasp.get_elf = get_elf
 
+
 def get_electron_density_center(self,spin=0,scaled=True):
     '''Returns center of electron density.
 
@@ -79,7 +80,7 @@ def get_electron_density_center(self,spin=0,scaled=True):
 
     x, y, z, cd = self.get_charge_density(spin)
     n0, n1, n2 = cd.shape
-    nelements = n0 * n1 *n 2
+    nelements = n0 * n1 * n2
     voxel_volume = atoms.get_volume() / nelements
     total_electron_charge = cd.sum() * voxel_volume
 
