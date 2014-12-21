@@ -30,8 +30,7 @@ from jasprc import *
 from collections import OrderedDict
 
 def create_metadata(self, fname='METADATA'):
-    '''
-    create the METADATA file.
+    '''Create the METADATA file.
 
     we do not overwrite metadata files with this command. you should
     delete the file and recreate it.
@@ -94,13 +93,25 @@ def create_metadata(self, fname='METADATA'):
 Vasp.create_metadata = create_metadata
 
 def write_metadata(self, fname='METADATA'):
+    """Write metadata to fname.
+
+    :param str fname: filename to write metadata to. default=METADATA
+    :returns: None
+    :rtype: 
+
+    """
+    
     f = open(fname,'w')
     f.write(json.dumps(self.metadata))
     f.close()
 Vasp.write_metadata = write_metadata
 
 def read_metadata(self, fname='METADATA'):
-    '''read metadata file in'''
+    '''Read metadata file.
+
+    Sets metadata attribute on calculator, which is a dictionary of
+    information.
+    '''
     if not os.path.exists(fname):
         self.metadata = {}
         return
