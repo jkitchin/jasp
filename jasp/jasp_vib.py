@@ -1,7 +1,5 @@
-'''
-module for vibrational calculations
+'''module for vibrational calculations in jasp'''
 
-'''
 from jasp import *
 import numpy as np
 from ase.data import atomic_masses
@@ -181,10 +179,11 @@ def get_vibrational_frequencies(self):
 Vasp.get_vibrational_frequencies = get_vibrational_frequencies
 
 def get_infrared_intensities(self):
-    '''
-    python translation of
-    # A utility for calculating the vibrational intensities from VASP output (OUTCAR)
-    # (C) David Karhanek, 2011-03-25, ICIQ Tarragona, Spain (www.iciq.es)
+    '''Calculate infrared intensities of vibrational modes.
+
+    python translation of # A utility for calculating the vibrational
+    intensities from VASP output (OUTCAR) # (C) David Karhanek,
+    2011-03-25, ICIQ Tarragona, Spain (www.iciq.es)
     http://homepage.univie.ac.at/david.karhanek/downloads.html#Entry02
     '''
     atoms = read('POSCAR', format='vasp')
