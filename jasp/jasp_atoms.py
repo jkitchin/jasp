@@ -1,4 +1,4 @@
-'''Monkey-patched function for ase.Atoms'''
+'''Monkey-patched functions for ase.Atoms'''
 
 from ase import Atom, Atoms
 import numpy as np
@@ -48,11 +48,15 @@ def atoms_equal(self, other):
 Atoms.__eq__ = atoms_equal
 
 def set_volume(self, volume, scale_atoms=True):
-    '''
-    convenience function to set the volume of a unit cell.
+    """Set the volume of a unit cell.
 
-    by default the atoms are scaled to the new volume
-    '''
+    :param float volume: volume to set the cell to
+    :param bool scale_atoms: Keep same scaled positions or not. default
+    is True.
+    :returns: None
+    :rtype: None
+    """
+
     v0 = self.get_volume()
     cell0 = self.get_cell()
 
