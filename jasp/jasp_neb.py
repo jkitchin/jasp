@@ -30,28 +30,26 @@ with jasp('O-diffusion',
           images, energies = calc.get_neb()
 
 The spring tag triggers the setup of an NEB calculation for Jasp.
-
 '''
 
 import logging
 log = logging.getLogger('Jasp')
 
 def get_neb(self, npi=1):
-    '''
-    returns images, energies if available or runs the job
+    '''Returns images, energies if available or runs the job.
 
-    npi = nodes per image for running the calculations
+    npi = nodes per image for running the calculations. Default=1
     '''
 
-    # how do we know if we need to run jobs?
-    '''
-    if jobid exists that means it is or was queued
-
-    if no jobid, and no OUTCAR for each image, then calculation required.
-
-    It is also possible a keyword has changed, and that a calculation
-    is required.
-    '''
+    # how do we know if we need to run jobs?  if jobid exists that means
+    # it is or was queued
+    #
+    # if no jobid, and no OUTCAR for each image, then calculation
+    # required.
+    #
+    # It is also possible a keyword has changed, and that a calculation
+    # is required.
+    
     calc_required = False
 
     if self.job_in_queue():
