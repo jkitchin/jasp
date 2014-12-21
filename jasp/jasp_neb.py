@@ -262,8 +262,10 @@ def get_neb(self, npi=1):
 Vasp.get_neb = get_neb
 
 def plot_neb(self, show=True):
-    '''
-    retrieve the energies and atoms from the band
+    '''Return a list of the energies and atoms objects for each image in
+
+    the band.
+
     by default shows the plot figure
     '''
     import jasp
