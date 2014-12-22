@@ -11,20 +11,20 @@ def get_vibrational_modes(self,
                           show=False,
                           npoints=30,
                           amplitude=0.5):
-    '''
-    read the OUTCAR and get the eigenvectors
+
+    '''Read the OUTCAR and get the eigenvectors. Return value depends
+    on the arguments.
 
     mode= None returns all modes
     mode= 2 returns mode 2
     mode=[1,2] returns modes 1 and 2
 
     massweighted = True returns sqrt(mass) weighted
-    eigenvectors. E.g. M*ev*M
+    eigenvectors. E.g. M * evectors * M
 
     show=True makes a trajectory that can be visualized
     npoints = number of points in the trajectory
     amplitude = magnitude of the vibrations
-
 
     some special cases to handle:
     ibrion=5 + selective dynamics
@@ -39,7 +39,6 @@ def get_vibrational_modes(self,
 
     Note: it seems like it might be much easier to get this out of
     vasprun.xml
-
     '''
     atoms = self.get_atoms()
 
@@ -146,9 +145,12 @@ def get_vibrational_modes(self,
 Vasp.get_vibrational_modes = get_vibrational_modes
 
 def get_vibrational_frequencies(self):
+    '''Returns an array of frequencies in wavenumbers.
+
+    You should have run the calculation already. This function does not
+    run a calculation.
     '''
-    returns frequencies in wavenumbers
-    '''
+
     atoms = self.get_atoms()
     N = len(atoms)
 
@@ -168,11 +170,12 @@ def get_vibrational_frequencies(self):
         fields = line.split()
 
         if 'f/i=' in line: #imaginary frequency
-            frequencies.append(complex(float(fields[6]), 0j)) # frequency in wave-numbers
+            # frequency in wave-numbers
+            frequencies.append(complex(float(fields[6]), 0j)) 
         else:
             frequencies.append(float(fields[7]))
         #now skip 1 one line, a line for each atom, and a blank line
-        for j in range(1+N+1): f.readline() #skip the next few lines
+        for j in range(1 + N + 1): f.readline() #skip the next few lines
     f.close()
     return frequencies
 
@@ -181,6 +184,10 @@ Vasp.get_vibrational_frequencies = get_vibrational_frequencies
 def get_infrared_intensities(self):
     '''Calculate infrared intensities of vibrational modes.
 
+    Returns an array of normalized intensities for each vibrational
+    mode. You should have run the vibrational calculation already. This
+    function does not run it for you.
+    
     python translation of # A utility for calculating the vibrational
     intensities from VASP output (OUTCAR) # (C) David Karhanek,
     2011-03-25, ICIQ Tarragona, Spain (www.iciq.es)
