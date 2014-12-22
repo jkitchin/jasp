@@ -13,27 +13,27 @@ old_read_forces = Vasp.read_forces
 def read_forces(self, atoms=None, all=False):
     """Read forces from vasprun.xml.
 
-    by default reads the last entry of forces, unless :param:`all` is
+    By default reads the last entry of forces, unless :param:`all` is
     True. Then, returns an array of forces for each entry in the
     vasprun.xml, e.g. for each step in a relaxation.
     """
 
     try:
-        return old_read_forces(self,atoms,all)
+        return old_read_forces(self, atoms,all)
     except ValueError:
-        log.debug('ValueError in read_forces. trying vasprun.xml')
+        log.debug('ValueError in read_forces. Trying vasprun.xml.')
 
-    with open('vasprun.xml','rt') as f:
+    with open('vasprun.xml', 'rt') as f:
         try:
             tree = ElementTree.parse(f)
         except xml.parsers.expat.ExpatError:
             # this will happen when a job is not finished
-            f = np.empty((len(atoms),3))
+            f = np.empty((len(atoms), 3))
             f[:] = np.nan
             return f
         except xml.etree.ElementTree.ParseError:
             # this may happen with an incomplete xml file
-            f = np.empty((len(atoms),3))
+            f = np.empty((len(atoms), 3))
             f[:] = np.nan
             return f
 
@@ -72,7 +72,7 @@ def read_stress(self):
     except ValueError:
         log.debug('ValueError in read_stress. trying vasprun.xml')
 
-    with open('vasprun.xml','rt') as f:
+    with open('vasprun.xml', 'rt') as f:
         try:
             tree = ElementTree.parse(f)
         except xml.parsers.expat.ExpatError:
@@ -82,7 +82,7 @@ def read_stress(self):
             return s
         except xml.etree.ElementTree.ParseError:
             # this may happen with an incomplete xml file
-            s = np.empty([6,1])
+            s = np.empty([6, 1])
             s[:] = np.nan
             return s
     stress = []
