@@ -182,20 +182,48 @@ If atom-projected dos are included they are in the form:
 Vasp.dict = property(calc_to_dict)
 Vasp.todict = calc_to_dict
 
+def add_to_db(self, dbfile, tags=()):
+    '''add calculation to dbfile with extra tags.
+
+    No check for duplicate entries.
+    '''
+    atoms = self.get_atoms()
+    self.results['energy'] = atoms.get_potential_energy()
+    self.results['forces'] = atoms.get_forces(apply_constraint=False)
+    
+    from ase.db import connect
+    c = connect(dbfile)
+    return c.write(atoms, tags)
+
+Vasp.add_to_db = add_to_db
+
 def calc_to_json(self, **kwargs):
+    '''Return json string representing calculator.
+
+    Available as a calculator property.
+
+    >>> print calc.json
+    '''
     d = calc_to_dict(self, **kwargs)
     return json.dumps(d)
 Vasp.json = property(calc_to_json)
 
 def calc_to_pretty_json(self, **kwargs):
+    '''return pretty-printed json string representing calculator.
+
+    Available as a calculator property.
+    >>> print calc.pretty_json
+    '''
     d = calc_to_dict(self, **kwargs)
     return json.dumps(d, sort_keys=True, indent=4)
 Vasp.pretty_json = property(calc_to_pretty_json)
 
 
 def json_to_calc(jsonstring):
-    '''
-    convert a json string to a calculator
+    '''Convert a json string to a calculator.
+
+    The string must come from the calc_to_json or calc_to_pretty_json
+    function.
     '''
 
     d = json.loads(jsonstring)
@@ -215,6 +243,9 @@ def json_to_calc(jsonstring):
     return calc
 
 def calc_to_xml(self):
+    '''Convert a calc object to xml.
+
+    Requires pyxser.'''
 
     class vasp(object):
         def __init__(self,d):
@@ -225,7 +256,9 @@ def calc_to_xml(self):
 Vasp.xml = property(calc_to_xml)
 
 def vasp_repr(self):
-    '''this function generates python code to make the calculator.
+    '''Convert a calculator to python code.
+    
+    >>> print repr(calc)
 
     Missing functionality: constraints, magnetic moments
     '''
@@ -319,7 +352,13 @@ Vasp.python = property(vasp_repr)
 
 
 def calc_to_org(self, level=1):
-    '''print an org-mode representation of a calculator at headline LEVEL. The calculation data is put into machine (org) readable tables and file tags. This probably only makes sense in Emacs, where org-mode can automaically align the tables, and there is a good framework for reading this data.'''
+    '''Return an org representation of a calculator at headline LEVEL.
+
+    The calculation data is put into machine (org) readable tables and
+    file tags. This probably only makes sense in Emacs, where org-mode
+    can automaically align the tables, and there is a good framework for
+    reading this data.
+    '''
     from Cheetah.Template import Template
     
     calc = self
