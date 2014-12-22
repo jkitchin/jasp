@@ -1,18 +1,22 @@
+"""Module to get elastic moduli from Vasp calculations."""
+
 import numpy as np
 from jasp import *
 
 def get_elastic_moduli(self):
-    '''returns the total elastic moduli in GPa (i.e. the rigid ion and
-    contributions from relaxation) from the OUTCAR file.
+    '''Returns the total elastic moduli in GPa.
+
+    (i.e. the rigid ion and contributions from relaxation) from the
+    OUTCAR file.
 
     you must run with IBRION=6 and ISIF>= 3 for this output to exist.
 
     There are also contributions from ionic relaxation
-     ELASTIC MODULI CONTR FROM IONIC RELAXATION (kBar)
-     and the rigid moduli
-     SYMMETRIZED ELASTIC MODULI (kBar)
+    ELASTIC MODULI CONTR FROM IONIC RELAXATION (kBar)
+    and the rigid moduli
+    SYMMETRIZED ELASTIC MODULI (kBar)
 
-     For now these are not returned.
+    For now these are not returned.
     '''
     self.calculate()
     
