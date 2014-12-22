@@ -8,6 +8,27 @@ from ase.dft import DOS
 def get_bandstructure(self,
                       kpts_path=None,
                       kpts_nintersections=10):
+    """Calculate band structure along :param kpts_path:
+
+    :param list kpts_path: list of tuples of (label, k-point) to calculate path on.
+    :param int kpts_nintersections: is the number of points between points in band
+    structures. More makes the bands smoother.
+    
+    >>> from jasp import *
+    >>> from jasp.jasp_bandstructure import *
+
+    >>> with jasp('bulk/tio2/step3') as calc:
+    ...     n, bands, p = calc.get_bandstructure(kpts_path=[('$\Gamma$',[0.0, 0.0, 0.0]),
+                                                            ('X',[0.5, 0.5, 0.0]),
+                                                            ('X',[0.5, 0.5, 0.0]),
+                                                            ('M',[0.0, 0.5, 0.5]),
+                                                            ('M',[0.0, 0.5, 0.5]),
+                                                            ('$\Gamma$',[0.0, 0.0, 0.0])])
+
+    >>> p.savefig('images/tio2-bandstructure-dos.png')
+
+    returns (npoints, band_energies, fighandle)
+    """
 
     kpts = [k[1] for k in kpts_path]
     labels = [k[0] for k in kpts_path]
