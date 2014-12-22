@@ -1,18 +1,20 @@
-'''Monkey-patched functions for ase.Atoms'''
+'''Monkey-patched functions for :class:`ase.Atoms`'''
 
 from ase import Atom, Atoms
 import numpy as np
 import pickle
 
 def atoms_equal(self, other):
-    '''
-    check if two atoms objects are identical
+    '''check if two :class:`ase.Atoms` objects are identical
 
-    I monkeypatch the ase class because the ase.io read/write
-    functions often result in float errors that make atoms not be
-    equal. The problem is you may write out 2.0000000, but read in
-    1.9999999, which looks different by absolute comparison. I use
-    float tolerance for the comparison here.
+    I monkeypatch the ase class because the :func:`ase.io.read` and
+    :func:`ase.io.write` functions often result in float errors that
+    make atoms not be equal. The problem is you may write out 2.0000000,
+    but read in 1.9999999, which looks different by absolute
+    comparison. I use float tolerance for the comparison here.
+
+    This function is controversial. I think it solves more problems than
+    it creates.
     '''
     if other is None:
         return False
