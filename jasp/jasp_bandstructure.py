@@ -12,7 +12,7 @@ def get_bandstructure(self,
 
     :param list kpts_path: list of tuples of (label, k-point) to calculate path on.
     :param int kpts_nintersections: is the number of points between points in band
-    structures. More makes the bands smoother.
+    structures. More makes the bands smoother. See :func:`jasp_kpts.write_kpoints`.
     
     >>> from jasp import *
     >>> from jasp.jasp_bandstructure import *
