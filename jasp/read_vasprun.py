@@ -1,3 +1,9 @@
+"""Module to read data from vasprun.xml.
+
+Sometimes the OUTCAR file has formatting overflow errors. This module
+provides an alternative approach to get the data.
+"""
+
 from jasp import *
 import xml
 from xml.etree import ElementTree
