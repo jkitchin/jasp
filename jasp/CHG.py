@@ -11,6 +11,8 @@ def get_charge_density(self, spin=0):
     :param int spin: 
     :returns: x, y, z, charge density arrays
     :rtype: 3-d numpy arrays
+
+    Relies on :func:`ase.calculators.vasp.VaspChargeDensity`.
     """
     
     atoms = self.get_atoms()
@@ -44,10 +46,10 @@ def get_charge_density(self, spin=0):
 Vasp.get_charge_density = get_charge_density
 
 def get_dipole_moment(self):
-    """Return dipole moment (vector) of unit cell in atomic units
+    """Return dipole moment (vector) of unit cell in atomic units.
 
     :returns: a vector of the dipole moment
-    :rtype:
+    :rtype: :class:`numpy.array`
 
     dipole_moment = ((dipole_vector**2).sum())**0.5/Debye
 
