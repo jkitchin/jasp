@@ -5,6 +5,12 @@ from xml.etree import ElementTree
 old_read_forces = Vasp.read_forces
 
 def read_forces(self, atoms=None, all=False):
+    """Read forces from vasprun.xml.
+
+    by default reads the last entry of forces, unless :param:`all` is
+    True. Then, returns an array of forces for each entry in the
+    vasprun.xml, e.g. for each step in a relaxation.
+    """
 
     try:
         return old_read_forces(self,atoms,all)
@@ -48,7 +54,13 @@ Vasp.read_forces = read_forces
 old_read_stress = Vasp.read_stress
 
 def read_stress(self):
-    '''overloaded method because if the stress is large then there is a formatting overflow in the OUTCAR that leads to *** in the stress. This causes a ValueError in the vasp.py method. Here we catch that error and try to read the stresses from vasprun.xml.'''
+    '''Read the stress from vasprun.xml.
+
+    Overloaded method because if the stress is large then there is a
+    formatting overflow in the OUTCAR that leads to *** in the
+    stress. This causes a ValueError in the vasp.py method. Here we
+    catch that error and try to read the stresses from vasprun.xml.
+    '''
     try:
         return old_read_stress(self)
     except ValueError:
