@@ -1,7 +1,10 @@
+'''Calculate bandstructure diagrams in jasp'''
+
 from jasp import *
 import os
 import matplotlib.pyplot as plt
 from ase.dft import DOS
+
 def get_bandstructure(self,
                       kpts_path=None,
                       kpts_nintersections=10):
