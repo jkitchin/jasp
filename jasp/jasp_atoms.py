@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 
 def atoms_equal(self, other):
-    '''check if two :class:`ase.Atoms` objects are identical
+    '''Check if this :class:`ase.Atoms` object is identical :param ase.Atoms other:.
 
     I monkeypatch the ase class because the :func:`ase.io.read` and
     :func:`ase.io.write` functions often result in float errors that
@@ -50,10 +50,10 @@ def atoms_equal(self, other):
 Atoms.__eq__ = atoms_equal
 
 def set_volume(self, volume, scale_atoms=True):
-    """Set the volume of a unit cell.
+    """Set the volume of a unit cell to :param float volume:.
 
     :param float volume: volume to set the cell to
-    :param bool scale_atoms: Keep same scaled positions or not. default
+    :param  bool scale_atoms: Keep same scaled positions or not. default
     is True.
     :returns: None
     :rtype: None
@@ -70,11 +70,14 @@ Atoms.set_volume = set_volume
 old_repr = Atoms.__repr__
 import textwrap
 def new_repr(self):
-    '''wraps the old __repr__ to return a textwrapped string with fixed
-    width. This is most useful for output captured in org-mode.
+    '''Monkey-patch for :func:`ase.Atoms.__repr__`
+
+    Returns a textwrapped string with fixed width. This is most useful
+    for output captured in org-mode.
     '''
     s = old_repr(self)
     return textwrap.fill(s, width=70, subsequent_indent=' '*6)
+
 Atoms.__repr__ = new_repr
 
 if __name__ == '__main__':
