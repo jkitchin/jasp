@@ -53,7 +53,7 @@ def write_kpoints(self, fname='KPOINTS'):
     # line 1 - comment
     kpoints.write('KPOINTS created by Atomic Simulation Environment\n')
     # line 2 - number of kpts
-    if MODE in ['c','k','m','g','r']:
+    if MODE in ['c', 'k', 'm', 'g', 'r']:
         kpoints.write('%i\n' % NKPTS)
     elif MODE in ['l']: # line mode, default intersections is 10
         kpoints.write('%i\n' % p['kpts_nintersections'])
