@@ -92,12 +92,12 @@ def read_stress(self):
             stress.append(thisstress)
     stress = stress[-1]
     return np.array([stress[0][0], # sxx
-            stress[1][1], # syy
-            stress[2][2], # szz
-            stress[1][2], # syz
-            stress[0][2], # sxz
-            stress[0][1], # sxy
-            ])
+                     stress[1][1], # syy
+                     stress[2][2], # szz
+                     stress[1][2], # syz
+                     stress[0][2], # sxz
+                     stress[0][1], # sxy
+                     ])
 Vasp.read_stress = read_stress
 
 if __name__ == '__main__':
