@@ -5,6 +5,7 @@ import numpy as np
 from ase.data import atomic_masses
 from ase.io import read
 
+
 def get_vibrational_modes(self,
                           mode=None,
                           massweighted=False,
@@ -42,7 +43,7 @@ def get_vibrational_modes(self,
     '''
     atoms = self.get_atoms()
 
-    if hasattr(atoms,'constraints') and self.int_params['ibrion'] == 5:
+    if hasattr(atoms, 'constraints') and self.int_params['ibrion'] == 5:
         # count how many modes to get.
         NMODES = 0
         f = open('OUTCAR')
@@ -63,27 +64,29 @@ def get_vibrational_modes(self,
     f = open('OUTCAR', 'r')
     while True:
         line = f.readline()
-        if line.startswith(' Eigenvectors and eigenvalues of the dynamical matrix'):
+        if line.startswith(' Eigenvectors and eigenvalues'
+                           'of the dynamical matrix'):
             break
-    f.readline() #skip ------
-    f.readline() # skip two blank lines
+    f.readline()   # skip ------
+    f.readline()   # skip two blank lines
     f.readline()
 
     for i in range(NMODES):
         freqline = f.readline()
         fields = freqline.split()
 
-        if 'f/i=' in freqline: #imaginary frequency
-            frequencies.append(complex(float(fields[-2])*0.001,0j))
+        if 'f/i=' in freqline:  # imaginary frequency
+            frequencies.append(complex(float(fields[-2]) * 0.001, 0j))
         else:
-            frequencies.append(float(fields[-2])*0.001)
-        f.readline() #        X         Y         Z           dx          dy          dz
+            frequencies.append(float(fields[-2]) * 0.001)
+        #        X         Y         Z           dx          dy          dz
+        f.readline()
         thismode = []
         for i in range(len(atoms)):
             line = f.readline().strip()
-            X,Y,Z,dx,dy,dz = [float(x) for x in line.split()]
+            X, Y, Z, dx, dy, dz = [float(x) for x in line.split()]
             thismode.append(np.array([dx, dy, dz]))
-        f.readline() # blank line
+        f.readline()  # blank line
 
         thismode = np.array(thismode)
         # now we need to resort the vectors in this mode so they match
@@ -99,11 +102,11 @@ def get_vibrational_modes(self,
                     an = numbers[i]
                     M.append(1./np.sqrt(atomic_masses[an]))
             M = np.array(M)
-            M = np.diag(M) # diagonal array
+            M = np.diag(M)  # diagonal array
 
             thismode = np.dot(M, thismode.flat)
 
-            thismode = thismode.reshape((len(atoms),3))
+            thismode = thismode.reshape((len(atoms), 3))
         # renormalize the mode
         mag = np.linalg.norm(thismode)
         thismode /= mag
@@ -121,9 +124,9 @@ def get_vibrational_modes(self,
     if show:
         from ase.visualize import view
         if mode is None:
-            mode=[0]
+            mode = [0]
         elif not isinstance(mode, list):
-            mode = [mode] # make a list for next code
+            mode = [mode]  # make a list for next code
 
         # symmetric path from -1 to 1 to -1
         X = np.append(np.linspace(0,  1, npoints/3),
@@ -134,7 +137,7 @@ def get_vibrational_modes(self,
 
         for m in mode:
             traj = []
-            for i,x in enumerate(X):
+            for i, x in enumerate(X):
                 a = atoms.copy()
                 a.positions += x*eigenvectors[m]
                 traj += [a]
@@ -143,6 +146,7 @@ def get_vibrational_modes(self,
     return retval
 
 Vasp.get_vibrational_modes = get_vibrational_modes
+
 
 def get_vibrational_frequencies(self):
     '''Returns an array of frequencies in wavenumbers.
@@ -159,27 +163,30 @@ def get_vibrational_frequencies(self):
     f = open('OUTCAR', 'r')
     while True:
         line = f.readline()
-        if line.startswith(' Eigenvectors and eigenvalues of the dynamical matrix'):
+        if line.startswith(' Eigenvectors and eigenvalues'
+                           'of the dynamical matrix'):
             break
-    f.readline() #skip ------
-    f.readline() # skip two blank lines
+    f.readline()  # skip ------
+    f.readline()  # skip two blank lines
     f.readline()
     for i in range(3*N):
         # the next line contains the frequencies
         line = f.readline()
         fields = line.split()
 
-        if 'f/i=' in line: #imaginary frequency
+        if 'f/i=' in line:  # imaginary frequency
             # frequency in wave-numbers
-            frequencies.append(complex(float(fields[6]), 0j)) 
+            frequencies.append(complex(float(fields[6]), 0j))
         else:
             frequencies.append(float(fields[7]))
-        #now skip 1 one line, a line for each atom, and a blank line
-        for j in range(1 + N + 1): f.readline() #skip the next few lines
+        # now skip 1 one line, a line for each atom, and a blank line
+        for j in range(1 + N + 1):
+            f.readline()  # skip the next few lines
     f.close()
     return frequencies
 
 Vasp.get_vibrational_frequencies = get_vibrational_frequencies
+
 
 def get_infrared_intensities(self):
     '''Calculate infrared intensities of vibrational modes.
@@ -187,7 +194,7 @@ def get_infrared_intensities(self):
     Returns an array of normalized intensities for each vibrational
     mode. You should have run the vibrational calculation already. This
     function does not run it for you.
-    
+
     python translation of # A utility for calculating the vibrational
     intensities from VASP output (OUTCAR) # (C) David Karhanek,
     2011-03-25, ICIQ Tarragona, Spain (www.iciq.es)
@@ -204,26 +211,28 @@ def get_infrared_intensities(self):
         f.close()
 
     if 'BORN' not in alltext:
-        raise Exception, 'Born effective charges missing. did you use IBRION=7 or 8?'
+        raise Exception('Born effective charges missing. '
+                        'Did you use IBRION=7 or 8?')
 
     if 'Eigenvectors after division by SQRT(mass)' not in alltext:
-        raise Exception, 'You must rerun with NWRITE=3 to get sqrt(mass) weighted eigenvectors'
+        raise Exception('You must rerun with NWRITE=3 to get '
+                        'sqrt(mass) weighted eigenvectors')
 
     # get the Born charges
-    for i,line in enumerate(alllines):
+    for i, line in enumerate(alllines):
         if 'BORN EFFECTIVE CHARGES' in line:
             break
 
     BORN_MATRICES = []
-    i += 2 # skip a line
+    i += 2  # skip a line
     for j in range(NIONS):
         BM = []
-        i += 1 # skips the ion count line
+        i += 1  # skips the ion count line
         for k in range(3):
             line = alllines[i]
             fields = line.split()
             BM.append([float(x) for x in fields[1:4]])
-            i += 1 # advance a line
+            i += 1  # advance a line
         BORN_MATRICES.append(BM)
 
     BORN_MATRICES = np.array(BORN_MATRICES)
@@ -240,16 +249,16 @@ def get_infrared_intensities(self):
             break
 
     EIG_NVIBS = 0
-    for line  in alllines[i:]:
+    for line in alllines[i:]:
         if ('f' in line
             and 'THz' in line
             and 'cm-1' in line):
             EIG_NVIBS += 1
 
     EIG_NIONS = BORN_NROWS
-    EIG_NROWS = (EIG_NIONS + 3)*EIG_NVIBS + 3 # I guess this counts
-                                              # blank rows and
-                                              # non-data rows
+    EIG_NROWS = (EIG_NIONS + 3)*EIG_NVIBS + 3  # I guess this counts
+                                               # blank rows and
+                                               # non-data rows
 
     # i is where the data starts
     i += 6
@@ -258,17 +267,16 @@ def get_infrared_intensities(self):
     EIGENVECTORS = []
     for j in range(EIG_NVIBS):
         mode = []
-        EIGENVALUES.append(alllines[i]) # frequencies are here
+        EIGENVALUES.append(alllines[i])  # frequencies are here
 
-        i += 1 # skip the frequency line
-        i += 1 # skip the xyz line
+        i += 1  # skip the frequency line
+        i += 1  # skip the xyz line
         for k in range(3):
-            #print alllines[i]
             fields = [float(x) for x in alllines[i].split()]
             mode.append(fields[3:])
             i += 1
         EIGENVECTORS.append(mode)
-        i += 1 # skip blank line
+        i += 1  # skip blank line
 
     EIGENVECTORS = np.array(EIGENVECTORS)
 
@@ -288,15 +296,15 @@ def get_infrared_intensities(self):
     intensities = []
 
     for mode in range(len(EIGENVECTORS)):
-        S = 0 # This is the triple sum
-        for alpha in [0,1,2]:
+        S = 0  # This is the triple sum
+        for alpha in [0, 1, 2]:
             s = 0
-            for l in [0,1,2]: # this is the atom number
-                for beta in [0,1,2]:
+            for l in [0, 1, 2]:  # this is the atom number
+                for beta in [0, 1, 2]:
                     e = EIGENVECTORS[mode][l]
                     Zab = BORN_MATRICES[l][alpha][beta]
 
-                    s += Zab*e[beta]
+                    s += Zab * e[beta]
             S += s**2
         intensities.append(S)
 
