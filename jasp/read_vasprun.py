@@ -10,6 +10,7 @@ from xml.etree import ElementTree
 
 old_read_forces = Vasp.read_forces
 
+
 def read_forces(self, atoms=None, all=False):
     """Read forces from vasprun.xml.
 
@@ -19,7 +20,7 @@ def read_forces(self, atoms=None, all=False):
     """
 
     try:
-        return old_read_forces(self, atoms,all)
+        return old_read_forces(self, atoms, all)
     except ValueError:
         log.debug('ValueError in read_forces. Trying vasprun.xml.')
 
@@ -59,6 +60,7 @@ Vasp.read_forces = read_forces
 
 old_read_stress = Vasp.read_stress
 
+
 def read_stress(self):
     '''Read the stress from vasprun.xml.
 
@@ -77,7 +79,7 @@ def read_stress(self):
             tree = ElementTree.parse(f)
         except xml.parsers.expat.ExpatError:
             # this will happen when a job is not finished
-            s = np.empty([6,1])
+            s = np.empty([6, 1])
             s[:] = np.nan
             return s
         except xml.etree.ElementTree.ParseError:
@@ -97,12 +99,12 @@ def read_stress(self):
                 thisstress.append(si)
             stress.append(thisstress)
     stress = stress[-1]
-    return np.array([stress[0][0], # sxx
-                     stress[1][1], # syy
-                     stress[2][2], # szz
-                     stress[1][2], # syz
-                     stress[0][2], # sxz
-                     stress[0][1], # sxy
+    return np.array([stress[0][0],  # sxx
+                     stress[1][1],  # syy
+                     stress[2][2],  # szz
+                     stress[1][2],  # syz
+                     stress[0][2],  # sxz
+                     stress[0][1],  # sxy
                      ])
 Vasp.read_stress = read_stress
 
