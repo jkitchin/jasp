@@ -256,9 +256,8 @@ def get_infrared_intensities(self):
             EIG_NVIBS += 1
 
     EIG_NIONS = BORN_NROWS
-    EIG_NROWS = (EIG_NIONS + 3)*EIG_NVIBS + 3  # I guess this counts
-                                               # blank rows and
-                                               # non-data rows
+    # I guess this counts blank rows and non-data rows
+    EIG_NROWS = (EIG_NIONS + 3)*EIG_NVIBS + 3 
 
     # i is where the data starts
     i += 6
