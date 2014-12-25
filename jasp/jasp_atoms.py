@@ -3,9 +3,12 @@
 from ase import Atom, Atoms
 import numpy as np
 import pickle
+import textwrap
+
 
 def atoms_equal(self, other):
-    '''Check if this :class:`ase.Atoms` object is identical :param ase.Atoms other:.
+    '''Check if this :class:`ase.Atoms` object is identical to
+    :param ase.Atoms other:.
 
     I monkeypatch the ase class because the :func:`ase.io.read` and
     :func:`ase.io.write` functions often result in float errors that
@@ -49,6 +52,7 @@ def atoms_equal(self, other):
 
 Atoms.__eq__ = atoms_equal
 
+
 def set_volume(self, volume, scale_atoms=True):
     """Set the volume of a unit cell to :param float volume:.
 
@@ -68,7 +72,8 @@ def set_volume(self, volume, scale_atoms=True):
 Atoms.set_volume = set_volume
 
 old_repr = Atoms.__repr__
-import textwrap
+
+
 def new_repr(self):
     '''Monkey-patch for :func:`ase.Atoms.__repr__`
 
