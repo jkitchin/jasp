@@ -3,6 +3,7 @@
 import numpy as np
 from jasp import *
 
+
 def get_elastic_moduli(self):
     '''Returns the total elastic moduli in GPa.
 
@@ -19,7 +20,7 @@ def get_elastic_moduli(self):
     For now these are not returned.
     '''
     self.calculate()
-    
+
     with open('OUTCAR') as f:
         lines = f.readlines()
 
@@ -35,6 +36,6 @@ def get_elastic_moduli(self):
         # XX        2803.5081   1622.6085   1622.6085      0.0000      0.0000      0.0000
         TEM += [[float(x) for x in line.split()[1:]]]
 
-    return np.array(TEM) * 0.1 # (convert to GPa)
+    return np.array(TEM) * 0.1  # (convert kbar to GPa)
 
 Vasp.get_elastic_moduli = get_elastic_moduli
