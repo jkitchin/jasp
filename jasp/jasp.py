@@ -423,6 +423,7 @@ class jasp:
         os.chdir(self.cwd)
         return False  # allows exception to propogate out
 
+        
 def isavaspdir(path):
     '''Return bool if the current working directory is a VASP directory.
 
