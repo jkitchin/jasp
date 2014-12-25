@@ -3,15 +3,16 @@ import uuid
 import textwrap
 
 # http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
-vaspfiles = ['INCAR','STOPCAR','stout','POTCAR',
-             'OUTCAR','vasprun.xml',
-             'KPOINTS','IBZKPT','POSCAR','CONTCAR',
-             'EXHCAR','CHGCAR', 'CHG','WAVECAR',
-             'TMPCAR','EIGENVAL','DOSCAR','PROCAR',
-             'OSZICAR','PCDAT','XDATCAR','LOCPOT',
-             'ELFCAR','PROOUT','ase-sort.dat','METADATA']
+vaspfiles = ['INCAR', 'STOPCAR', 'stout', 'POTCAR',
+             'OUTCAR', 'vasprun.xml',
+             'KPOINTS', 'IBZKPT', 'POSCAR', 'CONTCAR',
+             'EXHCAR', 'CHGCAR', 'CHG', 'WAVECAR',
+             'TMPCAR', 'EIGENVAL', 'DOSCAR', 'PROCAR',
+             'OSZICAR', 'PCDAT', 'XDATCAR', 'LOCPOT',
+             'ELFCAR', 'PROOUT', 'ase-sort.dat', 'METADATA']
 
-def clone(self,newdir, extra_files=[]):
+
+def clone(self, newdir, extra_files=[]):
     '''copy a vasp directory to a new directory. Does not overwrite
     existing files. newdir is relative to the the directory the
     calculator was created from, not the current working directory,
@@ -30,18 +31,18 @@ def clone(self,newdir, extra_files=[]):
         os.makedirs(newdirpath)
     for vf in vaspfiles+extra_files:
 
-        if (not os.path.exists(os.path.join(newdirpath,vf))
+        if (not os.path.exists(os.path.join(newdirpath, vf))
             and os.path.exists(vf)):
-            shutil.copy(vf,newdirpath)
+            shutil.copy(vf, newdirpath)
 
     # if we are an neb calculation we need to copy the image
     # directories
-    if hasattr(self,'neb'):
+    if hasattr(self, 'neb'):
         import glob
         for imagedir in glob.glob('0[0-9]'):
-            dst = os.path.join(newdirpath,imagedir)
+            dst = os.path.join(newdirpath, imagedir)
             if not os.path.exists(dst):
-                shutil.copytree(imagedir,dst)
+                shutil.copytree(imagedir, dst)
 
     # update metadata. remember we are in the vaspdir
     d = {}
@@ -57,6 +58,7 @@ def clone(self,newdir, extra_files=[]):
     os.chdir(self.vaspdir)
 
 Vasp.clone = clone
+
 
 def archive(self, archive='vasp', extra_files=[], append=False):
     '''
@@ -84,13 +86,14 @@ def archive(self, archive='vasp', extra_files=[], append=False):
 
     # if we are an neb calculation we need to copy the image
     # directories
-    if hasattr(self,'neb'):
+    if hasattr(self, 'neb'):
         import glob
         for imagedir in glob.glob('0[0-9]'):
             f.add(imagedir)
     f.close()
 
 Vasp.archive = archive
+
 
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
@@ -104,9 +107,9 @@ def get_pseudopotentials(self):
     self.all_symbols = atoms.get_chemical_symbols()
     self.natoms = len(atoms)
     # jrk 10/21/2013 I commented this line out as it was causing an
-    #error in serialize by incorrectly resetting spinpol. I do not see
-    #why this should be set here. It is not used in the function.
-    #self.spinpol = atoms.get_initial_magnetic_moments().any()
+    # error in serialize by incorrectly resetting spinpol. I do not see
+    # why this should be set here. It is not used in the function.
+    # self.spinpol = atoms.get_initial_magnetic_moments().any()
     atomtypes = atoms.get_chemical_symbols()
 
     # Determine the number of atoms of each atomic species
@@ -115,20 +118,17 @@ def get_pseudopotentials(self):
     symbols = {}
     if self.input_params['setups']:
         for m in self.input_params['setups']:
-            try :
-                #special_setup[self.input_params['setups'][m]] = int(m)
+            try:
                 special_setups.append(int(m))
             except:
-                #print 'setup ' + m + ' is a groups setup'
                 continue
-        #print 'special_setups' , special_setups
 
-    for m,atom in enumerate(atoms):
+    for m, atom in enumerate(atoms):
         symbol = atom.symbol
         if m in special_setups:
             pass
         else:
-            if not symbols.has_key(symbol):
+            if symbol not in symbols:
                 symbols[symbol] = 1
             else:
                 symbols[symbol] += 1
@@ -138,7 +138,7 @@ def get_pseudopotentials(self):
     self.sort.extend(special_setups)
 
     for symbol in symbols:
-        for m,atom in enumerate(atoms):
+        for m, atom in enumerate(atoms):
             if m in special_setups:
                 pass
             else:
@@ -153,13 +153,13 @@ def get_pseudopotentials(self):
     # create a list of their paths.
     self.symbol_count = []
     for m in special_setups:
-        self.symbol_count.append([atomtypes[m],1])
+        self.symbol_count.append([atomtypes[m], 1])
     for m in symbols:
-        self.symbol_count.append([m,symbols[m]])
-    #print 'self.symbol_count',self.symbol_count
+        self.symbol_count.append([m, symbols[m]])
+
     sys.stdout.flush()
     xc = '/'
-    #print 'p[xc]',p['xc']
+
     if p['xc'] == 'PW91':
         xc = '_gga/'
     elif p['xc'] == 'PBE':
@@ -176,7 +176,6 @@ def get_pseudopotentials(self):
         found = False
         for path in pppaths:
             filename = join(path, name)
-            #print 'filename', filename
             if isfile(filename) or islink(filename):
                 found = True
                 self.ppp_list.append(filename)
@@ -186,20 +185,20 @@ def get_pseudopotentials(self):
                 self.ppp_list.append(filename+'.Z')
                 break
         if not found:
-            log.debug('Looked for %s'%name)
-            print 'Looked for %s'%name
-            raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,name))
-    #print 'symbols', symbols
+            log.debug('Looked for %s' % name)
+            print 'Looked for %s' % name
+            raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,
+                                                                  name))
     for symbol in symbols:
         try:
-            name = 'potpaw'+xc.upper()+symbol + p['setups'][symbol]
+            name = 'potpaw' + xc.upper() + symbol + p['setups'][symbol]
         except (TypeError, KeyError):
             name = 'potpaw' + xc.upper() + symbol
         name += '/POTCAR'
         found = False
         for path in pppaths:
             filename = join(path, name)
-            #print 'filename', filename
+
             if isfile(filename) or islink(filename):
                 found = True
                 self.ppp_list.append(filename)
@@ -213,10 +212,11 @@ def get_pseudopotentials(self):
                 The pseudopotentials are expected to be in:
                 LDA:  $VASP_PP_PATH/potpaw/
                 PBE:  $VASP_PP_PATH/potpaw_PBE/
-                PW91: $VASP_PP_PATH/potpaw_GGA/'''  % name
-            log.debug('Looked for %s'%name)
-            print 'Looked for %s'%name
-            raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,name))
+                PW91: $VASP_PP_PATH/potpaw_GGA/''' % name
+            log.debug('Looked for %s' % name)
+            print 'Looked for %s' % name
+            raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,
+                                                                  name))
             raise RuntimeError('No pseudopotential for %s!' % symbol)
 
         # get sha1 hashes similar to the way git does it
@@ -224,7 +224,7 @@ def get_pseudopotentials(self):
         # git hash-object foo.txt  will generate a command-line hash
         hashes = []
         for ppp in self.ppp_list:
-            f = open(ppp,'r')
+            f = open(ppp, 'r')
             data = f.read()
             f.close()
 
@@ -233,14 +233,17 @@ def get_pseudopotentials(self):
             s.update(data)
             hashes.append(s.hexdigest())
 
-    stripped_paths = [ppp.split(os.environ['VASP_PP_PATH'])[1] for ppp in self.ppp_list]
+    stripped_paths = [ppp.split(os.environ['VASP_PP_PATH'])[1]
+                      for ppp in self.ppp_list]
     return zip(symbols, stripped_paths, hashes)
 
 Vasp.get_pseudopotentials = get_pseudopotentials
 
-''' pre_run and post_run hooks
+'''pre_run and post_run hooks
 
-the idea here is that you can register some functions that will run before and after running a Vasp calculation. These functions will have the following signature: function(self). you might use them like this
+the idea here is that you can register some functions that will run
+before and after running a Vasp calculation. These functions will have
+the following signature: function(self). you might use them like this
 
 def set_nbands(self):
    do something if nbands is not set
@@ -252,22 +255,29 @@ def enter_calc_in_database(self):
 
 calc.register_post_run_hook(enter_calc_in_database)
 
-maybe plugins (http://www.luckydonkey.com/2008/01/02/python-style-plugins-made-easy/) are a better way?
+maybe plugins
+(http://www.luckydonkey.com/2008/01/02/python-style-plugins-made-easy/)
+are a better way?
 
 The calculator will store a list of hooks.
+
 '''
+
+
 def register_pre_run_hook(function):
-    if not hasattr(Vasp,'pre_run_hooks'):
+    if not hasattr(Vasp, 'pre_run_hooks'):
         Vasp.pre_run_hooks = []
     Vasp.pre_run_hooks.append(function)
 
+
 def register_post_run_hook(function):
-    if not hasattr(Vasp,'post_run_hooks'):
+    if not hasattr(Vasp, 'post_run_hooks'):
         Vasp.post_run_hooks = []
     Vasp.post_run_hooks.append(function)
 
 Vasp.register_pre_run_hook = staticmethod(register_pre_run_hook)
 Vasp.register_post_run_hook = staticmethod(register_post_run_hook)
+
 
 def job_in_queue(self):
     ''' return True or False if the directory has a job in the queue'''
@@ -293,6 +303,7 @@ def job_in_queue(self):
         else:
             return False
 Vasp.job_in_queue = job_in_queue
+
 
 def calculation_required(self, atoms, quantities):
     '''Monkey-patch original function because (4,4,4) != [4,4,4] which
@@ -346,19 +357,22 @@ def calculation_required(self, atoms, quantities):
 
     for key in self.input_params:
         if key == 'kpts':
-            if list(self.input_params[key]) != list(self.old_input_params[key]):
-                print '1. ',list(self.input_params[key])
-                print '2. ',list(self.old_input_params[key])
+            if (list(self.input_params[key])
+                != list(self.old_input_params[key])):
+                print '1. ', list(self.input_params[key])
+                print '2. ', list(self.old_input_params[key])
                 print 'KPTS FAILED'
 
                 return True
             else:
                 continue
         elif key == 'setups':
-            log.warn('We do not know how to compare setups yet! silently continuing.')
+            log.warn('We do not know how to compare setups yet! '
+                     'silently continuing.')
             continue
         elif key == 'txt':
-            log.warn('We do not know how to compare txt yet! silently continuing.')
+            log.warn('We do not know how to compare txt yet!'
+                     'silently continuing.')
             continue
         else:
             if self.input_params[key] != self.old_input_params[key]:
@@ -380,6 +394,8 @@ def calculation_required(self, atoms, quantities):
 Vasp.calculation_required = calculation_required
 
 original_calculate = Vasp.calculate
+
+
 def calculate(self, atoms=None):
     '''
     monkeypatched function to avoid calling calculate unless we really
@@ -389,11 +405,11 @@ def calculate(self, atoms=None):
     I also made it possible to not give an atoms here, since there
     should be one on the calculator.
     '''
-    if hasattr(self,'vasp_queued'):
-        raise VaspQueued('Queued',os.getcwd())
+    if hasattr(self, 'vasp_queued'):
+        raise VaspQueued('Queued', os.getcwd())
 
-    if hasattr(self,'vasp_running'):
-        raise VaspRunning('Running',os.getcwd())
+    if hasattr(self, 'vasp_running'):
+        raise VaspRunning('Running', os.getcwd())
 
     if atoms is None:
         atoms = self.get_atoms()
@@ -405,27 +421,31 @@ def calculate(self, atoms=None):
     if 'mode' in JASPRC:
         if JASPRC['mode'] is None:
             log.debug(self)
-            log.debug('self.converged" %s',self.converged)
-            raise Exception('''JASPRC['mode'] is None. we should not be running!''')
+            log.debug('self.converged" %s', self.converged)
+            raise Exception('''JASPRC['mode'] is None. '''
+                            '''we should not be running!''')
 
     # finally run the original function
     original_calculate(self, atoms)
 
 Vasp.calculate = calculate
 
+
 def run(self):
-    '''monkey patch to submit job through the queue
+    '''monkey patch to submit job through the queue.
 
     If this is called, then the calculator thinks a job should be run.
-    If we are in the queue, we should run it, otherwise, a job should be submitted.
+    If we are in the queue, we should run it, otherwise, a job should
+    be submitted.
+
     '''
-    if hasattr(self,'pre_run_hooks'):
+    if hasattr(self, 'pre_run_hooks'):
         for hook in self.pre_run_hooks:
             hook(self)
 
     # if we are in the queue and jasp is called or if we want to use
     # mode='run' , we should just run the job. First, we consider how.
-    if 'PBS_O_WORKDIR' in os.environ or JASPRC['mode']=='run':
+    if 'PBS_O_WORKDIR' in os.environ or JASPRC['mode'] == 'run':
         log.info('In the queue. determining how to run')
         if 'PBS_NODEFILE' in os.environ:
             # we are in the queue. determine if we should run serial
@@ -447,10 +467,11 @@ def run(self):
                         and JASPRC['multiprocessing.cores_per_process'] == 'None')):
                     log.debug('queue.nodes = {0}'.format(JASPRC['queue.nodes']))
                     log.debug('queue.ppn = {0}'.format(JASPRC['queue.ppn']))
-                    log.debug('multiprocessing.cores_per_process = {0}'.format(JASPRC['multiprocessing.cores_per_process'] ))
+                    log.debug('multiprocessing.cores_per_process'
+                              '= {0}'.format(JASPRC['multiprocessing.cores_per_process']))
                     log.debug('running vanilla MPI job')
 
-                    print 'MPI NPROCS = ',NPROCS
+                    print 'MPI NPROCS = ', NPROCS
                     vaspcmd = JASPRC['vasp.executable.parallel']
                     parcmd = 'mpirun -np %i %s' % (NPROCS, vaspcmd)
                     exitcode = os.system(parcmd)
@@ -474,7 +495,7 @@ def run(self):
             vaspcmd = JASPRC['vasp.executable.serial']
             exitcode = os.system(vaspcmd)
             return exitcode
-        #end
+        # end
 
     # if you get here, a job is getting submitted
     script = '''
@@ -487,7 +508,7 @@ runjasp.py     # this is the vasp command
     jobname = self.vaspdir
     log.debug('{0} will be the jobname.'.format(jobname))
     log.debug('-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
-                                                     JASPRC['queue.ppn']))
+                                            JASPRC['queue.ppn']))
 
     cmdlist = ['{0}'.format(JASPRC['queue.command'])]
     cmdlist += [option for option in JASPRC['queue.options'].split()]
@@ -507,13 +528,14 @@ runjasp.py     # this is the vasp command
     if out == '' or err != '':
         raise Exception('something went wrong in qsub:\n\n{0}'.format(err))
 
-    f = open('jobid','w')
+    f = open('jobid', 'w')
     f.write(out)
     f.close()
 
     raise VaspSubmitted(out)
 
 Vasp.run = run
+
 
 def prepare_input_files(self):
     # Initialize calculations
@@ -531,6 +553,7 @@ def prepare_input_files(self):
     self.create_metadata()
 Vasp.prepare_input_files = prepare_input_files
 
+
 def pretty_print(self):
     '''
     __str__ function to print the calculator with a nice summary, e.g. jaspsum
@@ -543,8 +566,8 @@ def pretty_print(self):
         s.append('  VASP NEB calculation from %s' % os.getcwd())
         try:
             images, energies = self.get_neb()
-            for i,e in enumerate(energies):
-                s += ['image {0}: {1: 1.3f}'.format(i,e)]
+            for i, e in enumerate(energies):
+                s += ['image {0}: {1: 1.3f}'.format(i, e)]
         except (VaspQueued):
             s += ['Job is in queue']
         return '\n'.join(s)
@@ -552,7 +575,7 @@ def pretty_print(self):
     s = []
     s.append(': -----------------------------')
     s.append('  VASP calculation from %s' % os.getcwd())
-    if hasattr(self,'converged'):
+    if hasattr(self, 'converged'):
         s.append('  converged: %s' % self.converged)
 
     try:
@@ -579,7 +602,7 @@ def pretty_print(self):
             forces = [np.array([np.nan, np.nan, np.nan]) for atom in atoms]
 
         if self.converged:
-            if hasattr(self,'stress'):
+            if hasattr(self, 'stress'):
                 stress = self.stress
             else:
                 stress = None
@@ -621,16 +644,19 @@ def pretty_print(self):
                                                         uc[2][1],
                                                         uc[2][2],
                                                         c))
-        s.append('  a,b,c,alpha,beta,gamma (deg): %1.3f %1.3f %1.3f %1.1f %1.1f %1.1f' % (a,
-                                                                                          b,
-                                                                                          c,
-                                                                                          alpha,
-                                                                                          beta,gamma))
+        s.append('  a,b,c,alpha,beta,gamma (deg):'
+                 '%1.3f %1.3f %1.3f %1.1f %1.1f %1.1f' % (a,
+                                                          b,
+                                                          c,
+                                                          alpha,
+                                                          beta,
+                                                          gamma))
         s.append('  Unit cell volume = {0:1.3f} Ang^3'.format(volume))
 
         if stress is not None:
             s.append('  Stress (GPa):xx,   yy,    zz,    yz,    xz,    xy')
-            s.append('            % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f % 1.3f' % tuple(stress))
+            s.append('            % 1.3f % 1.3f % 1.3f'
+                     '% 1.3f % 1.3f % 1.3f' % tuple(stress))
         else:
             s += ['  Stress was not computed']
 
@@ -640,38 +666,47 @@ def pretty_print(self):
             constraints = [[None, None, None] for atom in atoms]
             for constraint in atoms.constraints:
                 if isinstance(constraint, FixAtoms):
-                    for i, constrained in  enumerate(constraint.index):
+                    for i, constrained in enumerate(constraint.index):
                         if constrained:
                             constraints[i] = [True, True, True]
                 if isinstance(constraint, FixScaled):
                     constraints[constraint.a] = constraint.mask.tolist()
 
         if constraints is None:
-            s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce')
+            s.append(' Atom#  sym       position [x,y,z]'
+                     'tag  rmsForce')
         else:
-            s.append(' Atom#  sym       position [x,y,z]         tag  rmsForce constraints')
+            s.append(' Atom#  sym       position [x,y,z]'
+                     'tag  rmsForce constraints')
 
-        for i,atom in enumerate(atoms):
+        for i, atom in enumerate(atoms):
             rms_f = np.sum(forces[i]**2)**0.5
-            ts = '  {0:^4d} {1:^4s} [{2:<9.3f}{3:^9.3f}{4:9.3f}] {5:^6d}{6:1.2f}'.format(i,
-                                                           atom.symbol,
-                                                           atom.x,
-                                                           atom.y,
-                                                           atom.z,
-                                                           atom.tag,
-                                                           rms_f)
+            ts = ('  {0:^4d} {1:^4s} [{2:<9.3f}'
+                  '{3:^9.3f}{4:9.3f}]'
+                  '{5:^6d}{6:1.2f}'.format(i,
+                                           atom.symbol,
+                                           atom.x,
+                                           atom.y,
+                                           atom.z,
+                                           atom.tag,
+                                           rms_f))
             # VASP has the opposite convention of constrained
             # Think: F = frozen
             if constraints is not None:
-                ts += '      {0} {1} {2}'.format('F' if constraints[i][0] is True else 'T',
-                                                 'F' if constraints[i][1] is True else 'T',
-                                                 'F' if constraints[i][2] is True else 'T')
+                ts += '      {0} {1} {2}'.format('F' if constraints[i][0]
+                                                 is True else 'T',
+                                                 'F' if constraints[i][1]
+                                                 is True else 'T',
+                                                 'F' if constraints[i][2]
+                                                 is True else 'T')
 
             s.append(ts)
 
         s.append('--------------------------------------------------')
         if self.get_spin_polarized() and self.converged:
-            s.append('Spin polarized: Magnetic moment = %1.2f' % self.get_magnetic_moment(atoms))
+            s.append('Spin polarized: '
+                     'Magnetic moment = %1.2f'
+                     % self.get_magnetic_moment(atoms))
 
     except AttributeError:
         # no atoms
@@ -682,7 +717,7 @@ def pretty_print(self):
         self.read_incar()
         ppp_list = self.get_pseudopotentials()
     else:
-        ppp_list=[(None, None, None)]
+        ppp_list = [(None, None, None)]
     s += ['\nINCAR Parameters:']
     s += ['-----------------']
     for d in [self.int_params,
@@ -711,59 +746,62 @@ def pretty_print(self):
     s += ['\nPseudopotentials used:']
     s += ['----------------------']
 
-    for sym,ppp,hash in ppp_list:
-        s += ['{0}: {1} (git-hash: {2})'.format(sym,ppp,hash)]
+    for sym, ppp, hash in ppp_list:
+        s += ['{0}: {1} (git-hash: {2})'.format(sym, ppp, hash)]
 
     #  if ibrion in [5,6,7,8] print frequencies
-    if self.int_params['ibrion'] in [5,6,7,8]:
-        freq,modes = self.get_vibrational_modes()
+    if self.int_params['ibrion'] in [5, 6, 7, 8]:
+        freq, modes = self.get_vibrational_modes()
         s += ['\nVibrational frequencies']
         s += ['mode   frequency']
         s += ['------------------']
-        for i,f in enumerate(freq):
+        for i, f in enumerate(freq):
 
             if isinstance(f, float):
-                s +=  ['{0:4d}{1: 10.3f} eV'.format(i,f)]
+                s += ['{0:4d}{1: 10.3f} eV'.format(i, f)]
             elif isinstance(f, complex):
-                s +=  ['{0:4d}{1: 10.3f} eV'.format(i,-f.real)]
+                s += ['{0:4d}{1: 10.3f} eV'.format(i, -f.real)]
     return '\n'.join(s)
 
 Vasp.__str__ = pretty_print
 
 #########################################################################
+
+
 def checkerr_vasp(self):
     ''' Checks vasp output in OUTCAR for errors. adapted from atat code'''
-    error_strings = ['forrtl: severe',  #seg-fault
+    error_strings = ['forrtl: severe',  # seg-fault
                      'highest band is occupied at some k-points!',
-                     'rrrr', # I think this is from Warning spelled out in ascii art
+                     'rrrr',  # I think this is from Warning spelled
+                              # out in ascii art
                      'cnorm',
                      'failed',
-                     'non-integer',]
+                     'non-integer']
 
     errors = []
     if os.path.exists('OUTCAR'):
         f = open('OUTCAR')
-        for i,line in enumerate(f):
+        for i, line in enumerate(f):
             i += 1
             for es in error_strings:
                 if es in line:
-                    errors.append((i,line))
+                    errors.append((i, line))
         f.close()
 
         converged = self.read_convergence()
         if not converged:
-            errors.append(('Converged',converged))
+            errors.append(('Converged', converged))
 
         # Then if ibrion > 0, check whether ionic relaxation condition
         # been fulfilled
         if self.int_params['ibrion'] > 0:
             if not self.read_relaxed():
-                errors.append(('Ions/cell Converged',converged))
+                errors.append(('Ions/cell Converged', converged))
 
         if len(errors) != 0:
             f = open('error', 'w')
-            for i,line in errors:
-                f.write('{0}: {1}\n'.format(i,line))
+            for i, line in errors:
+                f.write('{0}: {1}\n'.format(i, line))
             f.close()
         else:
             # no errors found, lets delete any error file that had existed.
@@ -773,12 +811,13 @@ def checkerr_vasp(self):
             with open('error') as f:
                 print 'Errors found:\n', f.read()
     else:
-        if not hasattr(self,'neb'):
+        if not hasattr(self, 'neb'):
             raise Exception, 'no OUTCAR` found'
 
 Vasp.register_post_run_hook(checkerr_vasp)
 
-def strip(self, extrafiles = []):
+
+def strip(self, extrafiles=()):
     '''removes large uncritical output files from directory'''
     files_to_remove = ['CHG', 'CHGCAR', 'WAVECAR'] + extrafiles
 
@@ -787,6 +826,7 @@ def strip(self, extrafiles = []):
             os.unlink(f)
 
 Vasp.strip = strip
+
 
 def set_nbands(self, N=None, f=1.5):
     ''' convenience function to set NBANDS to N or automatically
@@ -810,15 +850,19 @@ def set_nbands(self, N=None, f=1.5):
 
 Vasp.set_nbands = set_nbands
 
+
 def get_valence_electrons(self):
-    'return all the valence electrons for the atoms'
+    '''Return all the valence electrons for the atoms.
+
+    Calculated from the POTCAR file.
+    '''
     if not os.path.exists('POTCAR'):
         self.initialize(self.get_atoms())
         self.write_potcar()
     default_electrons = self.get_default_number_of_electrons()
 
     d = {}
-    for s,n in default_electrons:
+    for s, n in default_electrons:
         d[s] = n
     atoms = self.get_atoms()
 
@@ -829,25 +873,26 @@ def get_valence_electrons(self):
 
 Vasp.get_valence_electrons = get_valence_electrons
 
+
 def get_elapsed_time(self):
-    'return elapsed time in seconds fromthe OUTCAR file'
+    '''Return elapsed calculation time in seconds from the OUTCAR file.'''
     import re
     regexp = re.compile('Elapsed time \(sec\):\s*(?P<time>[0-9]*\.[0-9]*)')
 
     with open('OUTCAR') as f:
         lines = f.readlines()
 
-
     m = re.search(regexp, lines[-8])
 
     time = m.groupdict().get('time', None)
     if time is not None:
-         return float(time)
+        return float(time)
     else:
-         return None
+        return None
 Vasp.get_elapsed_time = get_elapsed_time
 
 old_read_ldau = Vasp.read_ldau
+
 
 def read_ldau(self):
     '''Upon restarting the calculation, Vasp.read_incar() read
@@ -892,12 +937,12 @@ def get_nearest_neighbor_table(self):
     with open('OUTCAR') as f:
         lines = f.readlines()
 
-    for i,line in enumerate(lines):
+    for i, line in enumerate(lines):
         if 'nearest neighbor table' in line:
             break
 
     # i contains index of line
-    i += 1 # first line of the table
+    i += 1  # first line of the table
 
     # sometimes there is carriover to the next line.
     line_counter = 0
@@ -906,7 +951,7 @@ def get_nearest_neighbor_table(self):
 
     while True:
         line = lines[i]
-        if ('LATTYP' in line
+        if ('LATTYP' in line 
             or line.strip() == ''):
             break
         line = lines[i].strip()
@@ -921,8 +966,10 @@ def get_nearest_neighbor_table(self):
 
         atom_index = int(fields[0])
         nearest_neigbors = fields[4:]
-        nn_indices = [int(nearest_neigbors[x]) for x in range(0,len(nearest_neigbors),2)]
-        nn_distances = [float(nearest_neigbors[x]) for x in range(1,len(nearest_neigbors),2)]
+        nn_indices = [int(nearest_neigbors[x])
+                      for x in range(0, len(nearest_neigbors), 2)]
+        nn_distances = [float(nearest_neigbors[x])
+                        for x in range(1, len(nearest_neigbors), 2)]
         NN.append((atom_index, nn_indices))
     return NN
 
@@ -938,30 +985,33 @@ def get_forces(self, atoms):
 Vasp.get_forces = get_forces
 
 
+def get_energy_components(self, outputType=0):
+    '''Returns all of the components of the energies.
 
-
-
-def get_energy_components(self, outputType = 0):
-    '''
-    returns all of the components of the energies
     outputType = 0, returns each individual component
-    outputType = 1, returns a major portion of the electrostatic energy and the total
-    outputType = 2, returns a major portion of the electrostatic energy and the other components
 
-    vasp forum may provide help: http://cms.mpi.univie.ac.at/vasp-forum/forum_viewtopic.php?4.273
+    outputType = 1, returns a major portion of the electrostatic
+    energy and the total
+
+    outputType = 2, returns a major portion of the electrostatic
+    energy and the other components
+
+    vasp forum may provide help:
+    http://cms.mpi.univie.ac.at/vasp-forum/forum_viewtopic.php?4.273
 
     Contributed by Jason Marshall, 2014.
     '''
-    #self.calculate()
+    # self.calculate()
 
     with open('OUTCAR') as f:
         lines = f.readlines()
 
     lineNumbers = []
     for i, line in enumerate(lines):
-        # note: this is tricky, the exact string to search for is not the last energy line in OUTCAR,
-        # there are space differences ...
-        # USER BEWARE: Be careful with this function ... may be buggy depending on inputs
+        # note: this is tricky, the exact string to search for is not
+        # the last energy line in OUTCAR, there are space differences
+        # ...  USER BEWARE: Be careful with this function ... may be
+        # buggy depending on inputs
         if line.startswith('  free energy    TOTEN  ='):
             lineNumbers.append(i)
 
@@ -981,33 +1031,36 @@ def get_energy_components(self, outputType = 0):
     atomicEnergy = float(data[8].split()[-1])
 
     if outputType == 1:
-        energies = [['electro',alphaZ + ewald + halfHartree],
+        energies = [['electro', alphaZ + ewald + halfHartree],
                     ['else', exchange + xExchange + PAWDoubleCounting1
-                     + PAWDoubleCounting2 + entropy + eigenvalues + atomicEnergy],
-                    ['total',alphaZ + ewald + halfHartree + exchange + xExchange
+                     + PAWDoubleCounting2 + entropy + eigenvalues
+                     + atomicEnergy],
+                    ['total', alphaZ + ewald + halfHartree + exchange
+                     + xExchange
                      + PAWDoubleCounting1 + PAWDoubleCounting2 + entropy
                      + eigenvalues + atomicEnergy]]
     elif outputType == 2:
-        energies = [['electro',alphaZ + ewald + halfHartree],
-                    ['exchange',exchange],
-                    ['xExchange',xExchange],
-                    ['PAW',PAWDoubleCounting1 + PAWDoubleCounting2],
-                    ['entropy',entropy],
-                    ['eigenvalues',eigenvalues],
-                    ['atomicEnergy',atomicEnergy],
-                    ['total',alphaZ + ewald + halfHartree + exchange + xExchange
+        energies = [['electro', alphaZ + ewald + halfHartree],
+                    ['exchange', exchange],
+                    ['xExchange', xExchange],
+                    ['PAW', PAWDoubleCounting1 + PAWDoubleCounting2],
+                    ['entropy', entropy],
+                    ['eigenvalues', eigenvalues],
+                    ['atomicEnergy', atomicEnergy],
+                    ['total', alphaZ + ewald + halfHartree + exchange
+                     + xExchange
                      + PAWDoubleCounting1 + PAWDoubleCounting2 + entropy
                      + eigenvalues + atomicEnergy]]
     else:
-        energies = [['alphaZ',alphaZ],
-                    ['ewald',ewald],
-                    ['halfHartree',halfHartree],
-                    ['exchange',exchange],
-                    ['xExchange',xExchange],
-                    ['PAW',PAWDoubleCounting1 + PAWDoubleCounting2],
-                    ['entropy',entropy],
-                    ['eigenvalues',eigenvalues],
-                    ['atomicEnergy',atomicEnergy]]
+        energies = [['alphaZ', alphaZ],
+                    ['ewald', ewald],
+                    ['halfHartree', halfHartree],
+                    ['exchange', exchange],
+                    ['xExchange', xExchange],
+                    ['PAW', PAWDoubleCounting1 + PAWDoubleCounting2],
+                    ['entropy', entropy],
+                    ['eigenvalues', eigenvalues],
+                    ['atomicEnergy', atomicEnergy]]
 
     return energies
 
