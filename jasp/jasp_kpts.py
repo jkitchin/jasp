@@ -2,6 +2,7 @@ import os
 import numpy as np
 from ase.calculators.vasp import Vasp
 
+
 def write_kpoints(self, fname='KPOINTS'):
     """Writes the KPOINTS file.
 
@@ -26,20 +27,18 @@ def write_kpoints(self, fname='KPOINTS'):
     """
 
     p = self.input_params
-    #if os.path.exists('KPOINTS'):
-    #    return
 
-    shape=np.array(p['kpts']).shape
+    shape = np.array(p['kpts']).shape
     if len(shape) == 1:
-        NKPTS = 0 # automatic
+        NKPTS = 0  # automatic
     else:
         NKPTS = len(p['kpts'])
 
     # figure out the mode
     if NKPTS == 0 and p['gamma'] is False:
-        MODE = 'm' # automatic monkhorst-pack
+        MODE = 'm'  # automatic monkhorst-pack
     elif NKPTS == 0 and p['gamma'] is not False:
-        MODE = 'g' # automatic gamma monkhorst pack
+        MODE = 'g'  # automatic gamma monkhorst pack
 
     # we did not trigger automatic kpoints
     elif p['kpts_nintersections'] is not None:
@@ -55,16 +54,16 @@ def write_kpoints(self, fname='KPOINTS'):
     # line 2 - number of kpts
     if MODE in ['c', 'k', 'm', 'g', 'r']:
         kpoints.write('%i\n' % NKPTS)
-    elif MODE in ['l']: # line mode, default intersections is 10
+    elif MODE in ['l']:  # line mode, default intersections is 10
         kpoints.write('%i\n' % p['kpts_nintersections'])
 
     # line 3
-    if MODE in ['m','g']:
+    if MODE in ['m', 'g']:
         if MODE == 'm':
-            kpoints.write('Monkhorst-Pack\n') # line 3
+            kpoints.write('Monkhorst-Pack\n')  # line 3
         elif MODE == 'g':
             kpoints.write('Gamma\n')
-    elif MODE in ['c','k']:
+    elif MODE in ['c', 'k']:
         kpoints.write('Cartesian\n')
     elif MODE in ['l']:
         kpoints.write('Line-mode\n')
@@ -72,8 +71,9 @@ def write_kpoints(self, fname='KPOINTS'):
         kpoints.write('Reciprocal\n')
 
     # line 4
-    if MODE in ['m','g']:
-        kpoints.write('{0} {1} {2}\n'.format(*p.get('kpts',(1,1,1))))
+    if MODE in ['m', 'g']:
+        kpoints.write('{0} {1} {2}\n'.format(*p.get('kpts',
+                                                    (1, 1, 1))))
     elif MODE in ['c', 'k', 'r']:
         for n in range(NKPTS):
             # I assume you know to provide the weights
@@ -88,8 +88,8 @@ def write_kpoints(self, fname='KPOINTS'):
             kpoints.write('{0} {1} {2}\n'.format(*p['kpts'][n]))
 
     # line 5 - only if we are in automatic mode
-    if MODE in ['m','g']:
-        if p['gamma'] is None or p['gamma'] is True or  p['gamma'] is False:
+    if MODE in ['m', 'g']:
+        if p['gamma'] is None or p['gamma'] is True or p['gamma'] is False:
             kpoints.write('0.0 0.0 0.0\n')
         elif len(p['gamma']) == 3:
             kpoints.write('{0} {1} {2}\n'.format(*p['gamma']))
@@ -122,7 +122,9 @@ def read_kpoints(self, filename='KPOINTS'):
     if nkpts <= 0:
         # automatic mode
         if ktype not in ['g', 'm']:
-            raise NotImplementedError('Only Monkhorst-Pack and gamma centered grid supported for restart.')
+            raise NotImplementedError('Only Monkhorst-Pack and '
+                                      'gamma centered grid supported '
+                                      'for restart.')
         if ktype == 'g':
             line5 = np.array([float(lines[4].split()[i]) for i in range(3)])
             if (line5 == np.array([0.0, 0.0, 0.0])).all():
@@ -135,7 +137,7 @@ def read_kpoints(self, filename='KPOINTS'):
         # anything else means reciprocal coordinates.
         if ktype in ['c', 'k', 'r']:
             kpts = []
-            for i in range(3,3 + nkpts):
+            for i in range(3, 3 + nkpts):
                 # the kpts also have a weight attached to them
                 kpts.append([float(lines[i].split()[j])
                              for j in range(4)])
@@ -145,14 +147,14 @@ def read_kpoints(self, filename='KPOINTS'):
                 self.set(reciprocal=True)
             self.set(kpts_nintersections=nkpts)
             kpts = []
-            for i in range(4,len(lines)):
+            for i in range(4, len(lines)):
                 if lines[i] == '':
                     continue
                 else:
                     kpts.append([float(lines[i].split()[j])
                                  for j in range(3)])
         else:
-           raise NotImplementedError('ktype = %s' % lines[2])
+            raise NotImplementedError('ktype = %s' % lines[2])
 
     if ktype == 'r':
         self.set(reciprocal=True)
@@ -204,7 +206,7 @@ def get_kpts_from_kppra(atoms, kppra, even=False, slab=False, gamma=False):
     k1 * k2 * k3 >= NKPTS
     '''
 
-    constant =  0.9*(NKPTS*(u1*u2*u3))**(1./3.)
+    constant = 0.9 * (NKPTS * (u1 * u2 * u3))**(1./3.)
 
     while True:
 
@@ -222,11 +224,12 @@ def get_kpts_from_kppra(atoms, kppra, even=False, slab=False, gamma=False):
         if k1*k2*k3 >= NKPTS:
             break
         else:
-            constant *= 1.01 # gradually increase the constant until
-            #the numkpts/atm is satisfied
+            constant *= 1.01  # gradually increase the constant until
+            # the numkpts/atm is satisfied
 
     return (k1, k2, k3)
- 
+
+
 if __name__ == '__main__':
     from ase.visualize import view
     from jasp import *
@@ -237,13 +240,12 @@ if __name__ == '__main__':
         grid = set_kppra(calc, 1000)
 
         print grid
-        print 'nkpts: ',np.multiply.reduce(grid)
-        print 'you asked for: ',kppra/len(atoms)
-
+        print 'nkpts: ', np.multiply.reduce(grid)
+        print 'you asked for: ', kppra / len(atoms)
 
     with jasp('../../dft-org/surfaces/Pt-slab-1x1') as calc:
         grid = set_kppra(calc, 1000, slab=True, even=True)
         print view(calc.get_atoms())
         print grid
-        print 'nkpts: ',np.multiply.reduce(grid)
-        print 'you asked for: ',kppra/len(atoms)
+        print 'nkpts: ', np.multiply.reduce(grid)
+        print 'you asked for: ', kppra/len(atoms)
