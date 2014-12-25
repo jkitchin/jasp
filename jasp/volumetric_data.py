@@ -4,9 +4,10 @@ import numpy as np
 from ase.calculators.vasp import Vasp, VaspChargeDensity
 from POTCAR import get_ZVAL
 
+
 def get_volumetric_data(self, filename='CHG', **kwargs):
     '''Read filename to read the volumetric data in it.
-    
+
     Supported filenames are CHG, CHGCAR, and LOCPOT.
     '''
     atoms = self.get_atoms()
@@ -27,23 +28,24 @@ def get_volumetric_data(self, filename='CHG', **kwargs):
                          Y.ravel(),
                          Z.ravel()])
 
-
     uc = atoms.get_cell()
     real = np.dot(C, uc)
 
-    #now convert arrays back to unitcell shape
+    # now convert arrays back to unitcell shape
     x = np.reshape(real[:, 0], (n0, n1, n2))
     y = np.reshape(real[:, 1], (n0, n1, n2))
     z = np.reshape(real[:, 2], (n0, n1, n2))
 
     return x, y, z, data
 
+
 def get_charge_density(self, spin=0):
     """DEPRECATED see jasp.CHG.get_charge_density"""
-    x,y,z,data = get_volumetric_data(self, filename='CHG')
-    return x, y, z,data[spin]
+    x, y, z, data = get_volumetric_data(self, filename='CHG')
+    return x, y, z, data[spin]
 
 Vasp.get_charge_density = get_charge_density
+
 
 def get_local_potential(self):
     '''Returns x, y, z, and local potential arrays
@@ -69,7 +71,7 @@ def get_elf(self):
 Vasp.get_elf = get_elf
 
 
-def get_electron_density_center(self,spin=0,scaled=True):
+def get_electron_density_center(self, spin=0, scaled=True):
     '''Returns center of electron density.
 
     If scaled, use scaled coordinates, otherwise use cartesian
@@ -111,7 +113,6 @@ def get_dipole_moment(self):
     voxel_volume = atoms.get_volume() / nelements
     total_electron_charge = -cd.sum() * voxel_volume
 
-
     electron_density_center = np.array([(cd*x).sum(),
                                         (cd*y).sum(),
                                         (cd*z).sum()])
@@ -120,7 +121,7 @@ def get_dipole_moment(self):
 
     electron_dipole_moment = electron_density_center * total_electron_charge
     electron_dipole_moment *= -1.0
-    
+
     # now the ion charge center
     LOP = self.get_pseudopotentials()
     ppp = os.environ['VASP_PP_PATH']
