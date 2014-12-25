@@ -464,7 +464,8 @@ def run(self):
                 if (JASPRC['queue.nodes'] > 1
                     or (JASPRC['queue.nodes'] == 1
                         and JASPRC['queue.ppn'] > 1
-                        and JASPRC['multiprocessing.cores_per_process'] == 'None')):
+                        and (JASPRC['multiprocessing.cores_per_process']
+                             == 'None'))):
                     log.debug('queue.nodes = {0}'.format(JASPRC['queue.nodes']))
                     log.debug('queue.ppn = {0}'.format(JASPRC['queue.ppn']))
                     log.debug('multiprocessing.cores_per_process'
@@ -812,7 +813,7 @@ def checkerr_vasp(self):
                 print 'Errors found:\n', f.read()
     else:
         if not hasattr(self, 'neb'):
-            raise Exception, 'no OUTCAR` found'
+            raise Exception('no OUTCAR` found')
 
 Vasp.register_post_run_hook(checkerr_vasp)
 
@@ -951,7 +952,7 @@ def get_nearest_neighbor_table(self):
 
     while True:
         line = lines[i]
-        if ('LATTYP' in line 
+        if ('LATTYP' in line
             or line.strip() == ''):
             break
         line = lines[i].strip()
