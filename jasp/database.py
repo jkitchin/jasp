@@ -1,13 +1,13 @@
-'''
-Module to integrate jasp with sqlite
+'''Module to integrate jasp with sqlite
 
-TODO
-1. Figure out how to have initial and final (or subsequent positions). One way is to add a field for image number. However, then I need to keep track of the energy for each image if that is going to be in the database.
+TODO 1. Figure out how to have initial and final (or subsequent
+positions). One way is to add a field for image number. However, then I
+need to keep track of the energy for each image if that is going to be
+in the database.
 
 2. we need a way to update an entry
 3. There needs to be a search function e.g. search_database(calc)
 4. create a POSCAR table and CONTCAR table
-
 '''
 import apsw, os, pickle, time
 import numpy as np
@@ -17,7 +17,7 @@ import ase.io
 
 DB = 'db.sqlite'
 
-setup_sql='''
+setup_sql = '''
 CREATE TABLE VASP (
      id INTEGER PRIMARY KEY,
      path TEXT,
@@ -233,7 +233,8 @@ if not os.path.exists(DB):
 else:
     conn = apsw.Connection(DB)
 
-def insert_database_entry(calc):
+
+    def insert_database_entry(calc):
     '''
     adds an entry to the database.
     '''
@@ -242,19 +243,20 @@ def insert_database_entry(calc):
     data = {}
 
     data['path'] = calc.vaspdir
-    if hasattr(calc,'metadata'):
+    if hasattr(calc, 'metadata'):
         data['uuid'] = calc.metadata.get('uuid',None)
     else:
         data['uuid'] = None
 
     with conn:
         db = conn.cursor()
-        db.execute('select :uuid from VASP;',[calc.metadata.get('uuid',None)])
+        db.execute('select :uuid from VASP;', [calc.metadata.get('uuid', None)])
         results = db.fetchall()
         if len(results) > 0:
-
-            db.execute('select path from vasp where uuid=:uuid;',[calc.metadata.get('uuid',None)])
-            print 'That uuid is already in the database at "{0}"'.format(db.fetchall()[0][0])
+            db.execute('select path from vasp where uuid=:uuid;',
+                       [calc.metadata.get('uuid', None)])
+            print('That uuid is already in the database at'
+                  '"{0}"'.format(db.fetchall()[0][0]))
             raise Exception
 
     # these lines add all entries of each dictionary to data
@@ -281,7 +283,7 @@ def insert_database_entry(calc):
 
     # get a,b,c,alpha,beta,gamma
     from Scientific.Geometry import Vector
-    A,B,C = [Vector(x) for x in cell]
+    A, B, C = [Vector(x) for x in cell]
 
     radian = 1
     degree = 2*np.pi*radian/360
@@ -290,7 +292,7 @@ def insert_database_entry(calc):
     data['uc_b'] = B.length()
     data['uc_c'] = C.length()
     data['uc_alpha'] = B.angle(C)/degree
-    data['uc_beta'] =  A.angle(C)/degree
+    data['uc_beta'] = A.angle(C)/degree
     data['uc_gamma'] = A.angle(B)/degree
 
     constraints = atoms._get_constraints()
@@ -645,14 +647,14 @@ insert into VASP (id,
                   :kpts,
                   :txt,
                   :gamma
-                  );''',data)
+                  );''', data)
 
     db.execute('select last_insert_rowid()')
     vasp_id = db.fetchall()[0][0]
 
     # Now we need to populate the POSCAR table this is the initial position
     if os.path.isfile('ase-sort.dat'):
-        sort, resort = [],[]
+        sort, resort = [], []
         file = open('ase-sort.dat', 'r')
         lines = file.readlines()
         file.close()
@@ -666,20 +668,20 @@ insert into VASP (id,
 
     ppplist = calc.get_pseudopotentials()
     ppp = {}
-    for sym,pp,hash in ppplist:
+    for sym, pp, hash in ppplist:
         ppp[sym] = pp
 
-    for i,atom in enumerate(poscar_atoms):
+    for i, atom in enumerate(poscar_atoms):
         atom_data = {}
         atom_data['vasp_id'] = vasp_id
         atom_data['atom_index'] = i
         atom_data['chemical_symbol'] = atom.symbol.strip()
         if atom.tag is not None:
-           atom_data['tag'] = int(atom.tag)
+            atom_data['tag'] = int(atom.tag)
         else:
             atom_data['tag'] = None
 
-        x,y,z = float(atom.x),float(atom.y),float(atom.z)
+        x, y, z = float(atom.x), float(atom.y), float(atom.z)
         atom_data['x'] = x
         atom_data['y'] = y
         atom_data['z'] = z
@@ -704,11 +706,11 @@ values (:vasp_id,
         :chemical_symbol,
         :tag,
         :x,:y,:z,
-        :potential)''',atom_data)
+        :potential)''', atom_data)
 
     # Now we need to populate the CONTCAR table
     if os.path.isfile('ase-sort.dat'):
-        sort, resort = [],[]
+        sort, resort = [], []
         file = open('ase-sort.dat', 'r')
         lines = file.readlines()
         file.close()
@@ -722,20 +724,20 @@ values (:vasp_id,
 
     ppplist = calc.get_pseudopotentials()
     ppp = {}
-    for sym,pp,hash in ppplist:
+    for sym, pp, hash in ppplist:
         ppp[sym] = pp
 
-    for i,atom in enumerate(contcar_atoms):
+    for i, atom in enumerate(contcar_atoms):
         atom_data = {}
         atom_data['vasp_id'] = vasp_id
         atom_data['atom_index'] = i
         atom_data['chemical_symbol'] = atom.symbol.strip()
         if atom.tag is not None:
-           atom_data['tag'] = int(atom.tag)
+            atom_data['tag'] = int(atom.tag)
         else:
             atom_data['tag'] = None
 
-        x,y,z = float(atom.x),float(atom.y),float(atom.z)
+        x, y, z = float(atom.x), float(atom.y), float(atom.z)
         atom_data['x'] = x
         atom_data['y'] = y
         atom_data['z'] = z
@@ -750,7 +752,7 @@ values (:vasp_id,
 
         if converged:
             forces = atoms.get_forces()
-            force =  forces[i]
+            force = forces[i]
             atom_data['fx'] = force[0]
             atom_data['fy'] = force[1]
             atom_data['fz'] = force[2]
@@ -773,28 +775,13 @@ values (:vasp_id,
         :tag,
         :x,:y,:z,
         :fx,:fy,:fz,
-        :potential)''',atom_data)
-
-
-
-
+        :potential)''', atom_data)
 
 if __name__ == '__main__':
 
-
-    connection=apsw.Connection(DB)
-    cursor=connection.cursor()
-
-    #import StringIO as io # use io in Python 3
-    #output=io.StringIO()
-
-    #shell = apsw.Shell(stdout=output, db=connection)
-    #shell.process_command('.tables')
-    #print output.getvalue()
+    connection = apsw.Connection(DB)
+    cursor = connection.cursor()
 
     from jasp import *
     with jasp('tests/O2-relax') as calc:
-    #shell.process_command('.tables')
-    #print output.getvalue()
-
         insert_database_entry(calc)
