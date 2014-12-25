@@ -423,13 +423,13 @@ class jasp:
         os.chdir(self.cwd)
         return False  # allows exception to propogate out
 
-    def isavaspdir(path):
-        '''Return bool if the current working directory is a VASP directory.
+def isavaspdir(path):
+    '''Return bool if the current working directory is a VASP directory.
 
-        A VASP dir has the vasp files in it. This function is typically used
-        when walking a filesystem to identify directories that contain
-        calculation results.
-        '''
+    A VASP dir has the vasp files in it. This function is typically used
+    when walking a filesystem to identify directories that contain
+    calculation results.
+    '''
     # standard vaspdir
     if (os.path.exists(os.path.join(path, 'POSCAR')) and
         os.path.exists(os.path.join(path, 'INCAR')) and
