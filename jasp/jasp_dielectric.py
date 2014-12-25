@@ -3,17 +3,17 @@
 import numpy as np
 from jasp import *
 
+
 def get_born_charges(self, return_tensor=False):
     '''returns the born effective charges from the OUTCAR file.
     OUTCAR gives effective charge as tensor
     this function will give back a scalar value (tr(tensor)/3) or the tensor
 
-    you must run with IBRION=6, ISIF>= 3, and lcalceps=true for this output to exist.
-
+    you must run with IBRION=6, ISIF>= 3, and lcalceps=true for this
+    output to exist.
     '''
     self.calculate()
     numAtoms = len(self.get_atoms())
-
 
     with open('OUTCAR') as f:
         lines = f.readlines()
@@ -24,7 +24,7 @@ def get_born_charges(self, return_tensor=False):
     for i, line in enumerate(lines):
         if line.startswith(' BORN EFFECTIVE CHARGES (including'):
             j = i + 2
-            for ion in range(0,numAtoms):
+            for ion in range(0, numAtoms):
                 data.append(lines[j+1:j+4])
                 j += 4
             break
@@ -45,13 +45,15 @@ def get_born_charges(self, return_tensor=False):
 
 Vasp.get_born_charges = get_born_charges
 
+
 def get_dielectric_tensor(self):
     '''returns the static dielectric tensor from the OUTCAR file.
 
-    vasp calls the tensor static, but I believe it might correspond to the high frequency tensor
+    vasp calls the tensor static, but I believe it might correspond to
+    the high frequency tensor
 
-    you must run with IBRION=6, ISIF>= 3, and lcalceps=true for this output to exist.
-
+    you must run with IBRION=6, ISIF>= 3, and lcalceps=true for this
+    output to exist.
     '''
     self.calculate()
 
@@ -72,13 +74,12 @@ def get_dielectric_tensor(self):
 
 Vasp.get_dielectric_tensor = get_dielectric_tensor
 
+
 def get_piezoelectric_tensor(self, units='C/m2'):
     '''returns the piezoelectric tensor from the OUTCAR file.
 
-    you must run with IBRION=6, ISIF>= 3, and lcalceps=true for this output to exist.
-
-    units are
-
+    you must run with IBRION=6, ISIF>= 3, and lcalceps=true for this
+    output to exist.
     '''
     self.calculate()
 
@@ -107,5 +108,3 @@ def get_piezoelectric_tensor(self, units='C/m2'):
     return np.array(tensor)
 
 Vasp.get_piezoelectric_tensor = get_piezoelectric_tensor
-
-
