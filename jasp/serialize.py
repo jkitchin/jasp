@@ -7,11 +7,13 @@ import json
 try:
     import pyxser
 except:
-    #import warnings
-    #warnings.warn('pyxser not installed. Unable to serialize in xml')
+    # import warnings
+    # warnings.warn('pyxser not installed. Unable to serialize in xml')
     pass
 
-#### ase/calculators/calculator.py functions
+# ase/calculators/calculator.py functions
+
+
 def equal(a, b, tol=None):
     """ndarray-enabled comparison function."""
     if isinstance(a, np.ndarray):
@@ -27,6 +29,7 @@ def equal(a, b, tol=None):
     if tol is None:
         return a == b
     return abs(a - b) < tol * abs(b) + tol
+
 
 def check_state(self, atoms, tol=1e-15):
     """Check for system changes since last calculation."""
@@ -53,7 +56,8 @@ def check_state(self, atoms, tol=1e-15):
 
 Vasp.check_state = check_state
 
-### end ase/calculators/calculator.py functions
+# end ase/calculators/calculator.py functions
+
 
 def atoms_to_dict(atoms):
     d = {}
@@ -65,8 +69,9 @@ def atoms_to_dict(atoms):
 
     return d
 
+
 def calc_to_dict(calc, **kwargs):
-    d = {'doc':'''JSON representation of a VASP calculation.
+    d = {'doc': '''JSON representation of a VASP calculation.
 
 energy is in eV
 forces are in eV/\AA
@@ -79,18 +84,25 @@ Coordinates and cell parameters are reported in \AA
 If atom-projected dos are included they are in the form:
 {ados:{energy:data, {atom index: {orbital : dos}}}
 '''}
-    d['incar'] = {'doc':'INCAR parameters'}
-    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.float_params.items())))
-    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.exp_params.items())))
-    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.string_params.items())))
-    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.int_params.items())))
-    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.bool_params.items())))
-    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.list_params.items())))
-    d['incar'].update(dict(filter(lambda item: item[1] is not None, calc.dict_params.items())))
+    d['incar'] = {'doc': 'INCAR parameters'}
+    d['incar'].update(dict(filter(lambda item: item[1] is not None,
+                                  calc.float_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None,
+                                  calc.exp_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None,
+                                  calc.string_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None,
+                                  calc.int_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None,
+                                  calc.bool_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None,
+                                  calc.list_params.items())))
+    d['incar'].update(dict(filter(lambda item: item[1] is not None,
+                                  calc.dict_params.items())))
     d['input'] = calc.input_params
     d['potcar'] = calc.get_pseudopotentials()
     d['atoms'] = atoms_to_dict(calc.get_atoms())
-    d['data'] = {'doc':'Data from the output of the calculation'}
+    d['data'] = {'doc': 'Data from the output of the calculation'}
     atoms = calc.get_atoms()
     d['data']['total_energy'] = atoms.get_potential_energy()
     d['data']['forces'] = atoms.get_forces().tolist()
@@ -110,7 +122,7 @@ If atom-projected dos are included they are in the form:
     if calc.spinpol:
         d['data']['magmom'] = atoms.get_magnetic_moment()
 
-    if (calc.int_params.get('lorbit', 0) >=10
+    if (calc.int_params.get('lorbit', 0) >= 10
         or calc.list_params.get('rwigs', None)):
         try:
             d['data']['magmoms'] = atoms.get_magnetic_moments().tolist()
@@ -125,7 +137,7 @@ If atom-projected dos are included they are in the form:
         dos = DOS(calc, width=kwargs.get('width', 0.2))
         e = dos.get_energies()
 
-        d['data']['dos'] = {'doc':'Total density of states'}
+        d['data']['dos'] = {'doc': 'Total density of states'}
         d['data']['dos']['e'] = e.tolist()
 
         if calc.spinpol:
@@ -137,7 +149,7 @@ If atom-projected dos are included they are in the form:
     if kwargs.get('ados', None):
         from ase.calculators.vasp import VaspDos
         ados = VaspDos(efermi=calc.get_fermi_level())
-        d['data']['ados'] = {'doc':'Atom projected DOS'}
+        d['data']['ados'] = {'doc': 'Atom projected DOS'}
         nonspin_orbitals_no_phase = ['s', 'p', 'd']
         nonspin_orbitals_phase = ['s', 'py', 'pz', 'px',
                                   'dxy', 'dyz', 'dz2', 'dxz', 'dx2']
@@ -150,7 +162,6 @@ If atom-projected dos are included they are in the form:
         for x in nonspin_orbitals_phase:
             spin_orbitals_phase += ['{0}-up'.format(x)]
             spin_orbitals_phase += ['{0}-down'.format(x)]
-
 
         if calc.spinpol and calc.int_params['lorbit'] != 11:
             orbitals = spin_orbitals_no_phase
@@ -182,6 +193,7 @@ If atom-projected dos are included they are in the form:
 Vasp.dict = property(calc_to_dict)
 Vasp.todict = calc_to_dict
 
+
 def add_to_db(self, dbfile, tags=()):
     '''add calculation to dbfile with extra tags.
 
@@ -190,12 +202,13 @@ def add_to_db(self, dbfile, tags=()):
     atoms = self.get_atoms()
     self.results['energy'] = atoms.get_potential_energy()
     self.results['forces'] = atoms.get_forces(apply_constraint=False)
-    
+
     from ase.db import connect
     c = connect(dbfile)
     return c.write(atoms, tags)
 
 Vasp.add_to_db = add_to_db
+
 
 def calc_to_json(self, **kwargs):
     '''Return json string representing calculator.
@@ -207,6 +220,7 @@ def calc_to_json(self, **kwargs):
     d = calc_to_dict(self, **kwargs)
     return json.dumps(d)
 Vasp.json = property(calc_to_json)
+
 
 def calc_to_pretty_json(self, **kwargs):
     '''return pretty-printed json string representing calculator.
@@ -242,18 +256,20 @@ def json_to_calc(jsonstring):
     atoms.set_calculator(calc)
     return calc
 
+
 def calc_to_xml(self):
     '''Convert a calc object to xml.
 
     Requires pyxser.'''
 
     class vasp(object):
-        def __init__(self,d):
+        def __init__(self, d):
             self.d = d
 
     d = vasp(calc_to_dict(self))
     return pyxser.serialize(obj=d, enc='utf-8')
 Vasp.xml = property(calc_to_xml)
+
 
 def vasp_repr(self):
     '''Convert a calculator to python code.
@@ -344,7 +360,7 @@ with jasp('$calc.vaspdir',
           atoms=atoms) as calc:
     # your code here
 '''
-    return Template(template,searchList=[locals()]).respond()
+    return Template(template, searchList=[locals()]).respond()
 
 Vasp.__repr__ = vasp_repr
 
@@ -360,23 +376,23 @@ def calc_to_org(self, level=1):
     reading this data.
     '''
     from Cheetah.Template import Template
-    
+
     calc = self
     atoms = calc.get_atoms()
     headline = '*' * level
     label = calc.vaspdir
     ppp_list = self.get_pseudopotentials()
-    
+
     if hasattr(atoms, 'constraints'):
         from ase.constraints import FixAtoms, FixScaled
         constraints = [['T', 'T', 'T'] for atom in atoms]
         for constraint in atoms.constraints:
             if isinstance(constraint, FixAtoms):
-                for i, constrained in  enumerate(constraint.index):
+                for i, constrained in enumerate(constraint.index):
                     if constrained:
                         constraints[i] = ["F", "F", "F"]
             if isinstance(constraint, FixScaled):
-                d = {True:"F", False:"T"}
+                d = {True: "F", False: "T"}
                 constraints[constraint.a] = [d[x] for x in constraint.mask.tolist()]
     else:
         constraints = [['T', 'T', 'T'] for atom in atoms]
@@ -459,7 +475,7 @@ $headline $label
 | $sym | $ppp | $hash |
 #end for
 '''
-    return Template(template,searchList=[locals()]).respond()
+    return Template(template, searchList=[locals()]).respond()
 
 Vasp.org = calc_to_org
 
