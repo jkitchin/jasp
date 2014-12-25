@@ -29,6 +29,7 @@ from jasp import *
 from jasprc import *
 from collections import OrderedDict
 
+
 def create_metadata(self, fname='METADATA'):
     '''Create the METADATA file.
 
@@ -68,8 +69,8 @@ def create_metadata(self, fname='METADATA'):
     d['atoms.resort'] = self.resort
 
     special_setups = OrderedDict()
-    if self.input_params['setups'] != None:
-        for i,setup in enumerate(self.input_params['setups']):
+    if self.input_params['setups'] is not None:
+        for i, setup in enumerate(self.input_params['setups']):
             try:
                 v = self.resort[int(setup)]
                 m = self.input_params['setups'].values()[i]
@@ -78,7 +79,7 @@ def create_metadata(self, fname='METADATA'):
                 m = self.input_params['setups'].values()[i]
                 special_setups[str(setup)] = m
                 continue
-                
+
         d['atoms.setups'] = pickle.dumps(special_setups)
 
     # potentials
@@ -86,25 +87,25 @@ def create_metadata(self, fname='METADATA'):
         d['{0}.potential.path'.format(sym)] = path
         d['{0}.potential.git_hash'.format(sym)] = githash
 
-    f = open(fname,'w')
+    f = open(fname, 'w')
     f.write(json.dumps(d))
     f.close()
 
 Vasp.create_metadata = create_metadata
+
 
 def write_metadata(self, fname='METADATA'):
     """Write metadata to fname.
 
     :param str fname: filename to write metadata to. default=METADATA
     :returns: None
-    :rtype: 
-
     """
-    
-    f = open(fname,'w')
+
+    f = open(fname, 'w')
     f.write(json.dumps(self.metadata))
     f.close()
 Vasp.write_metadata = write_metadata
+
 
 def read_metadata(self, fname='METADATA'):
     '''Read metadata file.
@@ -136,7 +137,8 @@ def read_metadata(self, fname='METADATA'):
         self.input_params['setups'] = special_setups
 
     if getattr(self, 'atoms') is not None:
-        self.atoms.set_tags(d.get('atoms.tags',[0 for atom in self.atoms]))
+        self.atoms.set_tags(d.get('atoms.tags',
+                                  [0 for atom in self.atoms]))
 
         # to reload constraints
         if 'atoms.constraints' in d:
@@ -144,16 +146,3 @@ def read_metadata(self, fname='METADATA'):
             self.atoms.set_constraint(constraints)
 
 Vasp.read_metadata = read_metadata
-
-## def update_metadata(self, fname, dictionary):
-##     '''
-##     update values in METADATA
-##     '''
-##     d = parse_metadata(fname)
-##     d.update(dictionary)
-
-##     f = open(fname, 'w')
-##     for key in d:
-##         f.write('{0} = {1}\n'.format(key, d[key]))
-
-## Vasp.update_metadata = update_metadata
