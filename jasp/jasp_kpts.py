@@ -5,7 +5,7 @@ from ase.calculators.vasp import Vasp
 def write_kpoints(self, fname='KPOINTS'):
     """Writes the KPOINTS file.
 
-    KPOINTS
+    The KPOINTS file format is as follows:
 
     line 1: a comment
     line 2: number of kpoints
