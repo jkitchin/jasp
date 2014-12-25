@@ -234,7 +234,7 @@ else:
     conn = apsw.Connection(DB)
 
 
-    def insert_database_entry(calc):
+def insert_database_entry(calc):
     '''
     adds an entry to the database.
     '''
