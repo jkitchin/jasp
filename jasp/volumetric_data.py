@@ -1,4 +1,9 @@
-'''Module for reading volumetric data from VASP calculations.'''
+'''Module for reading volumetric data from VASP calculations.
+
+Charge density and dipole moment
+Local potential
+Electron localization function
+'''
 import os
 import numpy as np
 from ase.calculators.vasp import Vasp, VaspChargeDensity
@@ -40,7 +45,16 @@ def get_volumetric_data(self, filename='CHG', **kwargs):
 
 
 def get_charge_density(self, spin=0):
-    """DEPRECATED see jasp.CHG.get_charge_density"""
+    """Returns x, y, and z coordinate and charge density arrays.
+
+    :param int spin:
+    :returns: x, y, z, charge density arrays
+    :rtype: 3-d numpy arrays
+
+    Relies on :func:`ase.calculators.vasp.VaspChargeDensity`.
+    """
+
+    
     x, y, z, data = get_volumetric_data(self, filename='CHG')
     return x, y, z, data[spin]
 
@@ -52,8 +66,8 @@ def get_local_potential(self):
 
     is there a spin for this?
 
-    We multiply the data by the volume because we are reusing the charge
-    density code which divides by volume.
+    We multiply the data by the volume because we are reusing the
+    charge density code which divides by volume.
     '''
     x, y, z, data = get_volumetric_data(self, filename='LOCPOT')
     atoms = self.get_atoms()
