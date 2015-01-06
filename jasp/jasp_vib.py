@@ -164,7 +164,7 @@ def get_vibrational_frequencies(self):
     while True:
         line = f.readline()
         if line.startswith(' Eigenvectors and eigenvalues'
-                           'of the dynamical matrix'):
+                           ' of the dynamical matrix'):
             break
     f.readline()  # skip ------
     f.readline()  # skip two blank lines
