@@ -207,9 +207,7 @@ def Jasp(debug=None,
         log.debug('job created, and in queue, but not running. tricky case')
 
         self = Vasp(restart, output_template, track_output)
-        self.keep_chgcar = keep_chgcar
-        self.keep_wavecar = keep_wavecar
-    
+            
         self.read_incar()
 
         if self.int_params.get('images', None) is not None:
@@ -357,6 +355,9 @@ def Jasp(debug=None,
     if ((not os.path.exists('METADATA'))
         and calc.int_params.get('images', None) is None):
         calc.create_metadata()
+
+    calc.keep_chgcar = keep_chgcar
+    calc.keep_wavecar = keep_wavecar
 
     return calc
 
