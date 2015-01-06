@@ -307,14 +307,14 @@ def Jasp(debug=None,
             for hook in calc.post_run_hooks:
                 hook(calc)
 
-    if (not self.keep_chgcar
-        and os.path.exists('CHGCAR')):
-        os.unlink('CHGCAR')
+        if (not keep_chgcar
+            and os.path.exists('CHGCAR')):
+            os.unlink('CHGCAR')
 
-    if (not self.keep_wavecar
-        and os.path.exists('WAVECAR')):
-        os.unlink('WAVECAR')
-
+        if (not keep_wavecar
+            and os.path.exists('WAVECAR')):
+            os.unlink('WAVECAR')
+            
     # job done long ago, jobid deleted, no running, and the
     # output files all exist
     elif (not os.path.exists('jobid')
