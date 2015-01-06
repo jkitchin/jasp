@@ -95,7 +95,7 @@ def get_vibrational_modes(self,
 
         if massweighted:
             # construct M
-            numbers = [a.get_atomic_number() for a in atoms]
+            numbers = [a.get('number') for a in atoms]
             M = []
             for i in range(len(atoms)):
                 for j in range(3):
