@@ -64,7 +64,6 @@ def get_vibrational_modes(self,
     f = open('OUTCAR', 'r')
     while True:
         line = f.readline()
-        print line
         if line.startswith(' Eigenvectors and eigenvalues'
                            ' of the dynamical matrix'):
             break
