@@ -64,7 +64,7 @@ Vasp.clone = clone
 
 def archive(self, archive='vasp', extra_files=[], append=False):
     '''
-    create an archive file (.tar.gz) of the vasp files in the current
+    Create an archive file (.tar.gz) of the vasp files in the current
     directory.  This is a way to save intermediate results.
     '''
 
