@@ -53,8 +53,10 @@ def clone(self, newdir, extra_files=[]):
 
     from jasp import jasp
     with jasp(newdir) as calc:
-        calc.metadata.update(d)
-        calc.write_metadata()
+        if hasattr(calc, 'metadata'):
+            calc.metadata.update(d)
+            calc.write_metadata()
+
     os.chdir(self.vaspdir)
 
 Vasp.clone = clone
@@ -323,6 +325,8 @@ def calculation_required(self, atoms, quantities):
         return True
     elif self.string_params != self.old_string_params:
         log.debug('string_params have changed.')
+        log.debug('current: {0}'.format(self.string_params))
+        log.debug('old    : {0}'.format(self.old_string_params))   
         return True
     elif self.int_params != self.old_int_params:
         log.debug('int_params have changed')
