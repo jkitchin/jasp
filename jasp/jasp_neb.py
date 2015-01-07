@@ -51,7 +51,7 @@ def get_neb(self, npi=1):
     # is required.
     
     calc_required = False
-
+    
     if self.job_in_queue():
         from jasp import VaspQueued
         raise VaspQueued
@@ -93,25 +93,8 @@ def get_neb(self, npi=1):
             (self.input_params == self.old_input_params) and
             (self.dict_params == self.old_dict_params)):
         calc_required = True
-        print self.float_params == self.old_float_params
-        print self.exp_params == self.old_exp_params
-        print 'string: ',self.string_params == self.old_string_params
-        print 'int: ',self.int_params == self.old_int_params
-        for key in self.int_params:
-            if self.int_params[key] != self.old_int_params[key]:
-                print '    {0}: {1} {2}'.format(key,
-                                            self.int_params[key],
-                                            self.old_int_params[key])
-
-        print self.bool_params == self.old_bool_params
-        print self.list_params == self.old_list_params
-        print 'input: ', self.input_params == self.old_input_params
-        print self.dict_params == self.old_dict_params
-        print self.input_params
-        print self.old_input_params
         log.debug('Calculation is required')
         log.debug(self.vaspdir)
-        import sys; sys.exit()
 
     if calc_required:
         '''
@@ -147,12 +130,9 @@ def get_neb(self, npi=1):
                 if self.input_params['setups']:
                     for m in self.input_params['setups']:
                         try :
-                            #special_setup[self.input_params['setups'][m]] = int(m)
                             special_setups.append(int(m))
                         except:
-                            #print 'setup ' + m + ' is a groups setup'
                             continue
-                    #print 'special_setups' , special_setups
 
                 for m,atom in enumerate(atoms):
                     symbol = atom.symbol
@@ -214,17 +194,17 @@ def get_neb(self, npi=1):
         self.write_potcar()
         self.write_incar(self.neb_images[0])
 
-        JASPRC['queue.nodes'] = npi*(self.neb_nimages)
+        JASPRC['queue.nodes'] = npi * self.neb_nimages
         log.debug('Running on %i nodes',JASPRC['queue.nodes'])
         self.run() # this will raise VaspSubmitted
 
     #############################################
     # now we are just retrieving results
     images = [self.neb_images[0]]
-    energies = [self.neb_initial_energy] #this is a tricky point. unless
-                                     #the calc stores an absolute
-                                     #path, it may be tricky to call
-                                     #get_potential energy
+    energies = [self.neb_initial_energy] # this is a tricky point. unless
+                                         # the calc stores an absolute
+                                         # path, it may be tricky to call
+                                         # get_potential energy
 
     log.debug('self.neb_nimages = %i',self.neb_nimages)
     for i in range(1,self.neb_nimages+1):
@@ -383,4 +363,64 @@ def read_neb_calculator():
     calc.neb_images = images
     calc.neb_nimages = len(images) - 2
     calc.neb=True
+    return calc
+
+def neb_initialize(neb_images, kwargs):
+    '''Creates necessary files for an NEB calculation'''
+    for a in neb_images:
+        log.debug(a.numbers)
+
+    calc = Vasp()
+
+    # how to get the initial and final energies?
+    initial = neb_images[0]
+    log.debug(initial.numbers)
+    calc0 = initial.get_calculator()
+
+    log.debug('Calculator cwd = %s',calc0.cwd)
+    log.debug('Calculator vaspdir = %s',calc0.vaspdir)
+
+    # we have to store the initial and final energies because
+    # otherwise they will not be available when reread the
+    # directory in another script, e.g. jaspsum. The only other
+    # option is to make the initial and final directories full
+    # vasp calculations.
+    CWD = os.getcwd()
+    try:
+    
+        os.chdir(os.path.join(calc0.cwd, calc0.vaspdir))
+        e0 = calc0.read_energy()[1]
+        calc.neb_initial_energy = e0
+    finally:
+        os.chdir(CWD)
+
+    final = neb_images[-1]
+    log.debug(final.numbers)
+    calc_final = final.get_calculator()
+    log.debug(calc_final.cwd)
+    log.debug(calc_final.vaspdir)
+    try:
+        os.chdir(os.path.join(calc_final.cwd, calc_final.vaspdir))
+        efinal = calc_final.read_energy()[1]
+        calc.neb_final_energy = efinal
+    finally:
+        os.chdir(CWD)
+
+    # make a Vasp object and set inputs to initial image
+    calc.int_params.update(calc0.int_params)
+    calc.float_params.update(calc0.float_params)
+    calc.exp_params.update(calc0.exp_params)
+    calc.string_params.update(calc0.string_params)
+    calc.bool_params.update(calc0.bool_params)
+    calc.list_params.update(calc0.list_params)
+    calc.dict_params.update(calc0.dict_params)
+    calc.input_params.update(calc0.input_params)
+    
+    calc.neb_kwargs = kwargs
+    # this is the vasp images tag. it does not include the endpoints
+    IMAGES = len(neb_images) - 2
+    calc.set(images=IMAGES)
+    calc.neb_images = neb_images
+    calc.neb_nimages = IMAGES
+    calc.neb = True
     return calc
