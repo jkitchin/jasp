@@ -105,8 +105,6 @@ def Jasp(debug=None,
          output_template='vasp',
          track_output=False,
          atoms=None,
-         keep_chgcar=False,
-         keep_wavecar=False,
          **kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
     of this function is to enable atoms as a keyword argument, and to
@@ -116,12 +114,6 @@ def Jasp(debug=None,
     By default we delete these large files. We do not need them very
     often, so the default is to delete them, and only keep them when
     we know we want them.
-
-    :param bool keep_chgcar: If set to True, keep CHGCAR, else delete
-    it.
-
-    :param bool keep_wavecar: If set to True, keep WAVECAR, else
-    delete it.
 
     **kwargs is the same as ase.calculators.vasp.
 
@@ -309,14 +301,6 @@ def Jasp(debug=None,
         if hasattr(calc, 'post_run_hooks'):
             for hook in calc.post_run_hooks:
                 hook(calc)
-
-        if (not keep_chgcar
-            and os.path.exists('CHGCAR')):
-            os.unlink('CHGCAR')
-
-        if (not keep_wavecar
-            and os.path.exists('WAVECAR')):
-            os.unlink('WAVECAR')
             
     # job done long ago, jobid deleted, no running, and the
     # output files all exist
@@ -351,16 +335,13 @@ def Jasp(debug=None,
     calc.old_bool_params = calc.bool_params.copy()
     calc.old_list_params = calc.list_params.copy()
     calc.old_dict_params = calc.dict_params.copy()
-
+    log.debug(calc.string_params)
     calc.set(**kwargs)
 
     # create a METADATA file if it does not exist and we are not an NEB.
     if ((not os.path.exists('METADATA'))
         and calc.int_params.get('images', None) is None):
         calc.create_metadata()
-
-    calc.keep_chgcar = keep_chgcar
-    calc.keep_wavecar = keep_wavecar
 
     return calc
 
