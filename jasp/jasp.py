@@ -102,7 +102,7 @@ Vasp.name = 'jasp'
 # I thought of setting defaults like this. But, I realized it would
 # break reading old calculations, where some of these are not set. I
 # am leaving this in for now.
-default_parameters = {'xc': 'PBE'
+default_parameters = {'xc': 'PBE',
                       'lwave': False,
                       'lcharg': False,
                       'prec': 'Normal',
