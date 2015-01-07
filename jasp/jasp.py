@@ -99,6 +99,15 @@ def calculation_is_ok(jobid=None):
 Vasp.results = {}  # for storing data used in ase.db
 Vasp.name = 'jasp'
 
+# I thought of setting defaults like this. But, I realized it would
+# break reading old calculations, where some of these are not set. I
+# am leaving this in for now.
+default_parameters = {'xc': 'PBE'
+                      'lwave': False,
+                      'lcharg': False,
+                      'prec': 'Normal',
+                      'kpts': (1, 1, 1)}
+
 
 def Jasp(debug=None,
          restart=None,
