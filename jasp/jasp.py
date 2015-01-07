@@ -137,8 +137,11 @@ def Jasp(debug=None,
     # special initialization NEB case
     if 'spring' in kwargs:
         log.debug('Entering NEB setup')
-        calc = read_neb_calculator()
-        calc.set(**kwargs)
+        try:
+            calc = read_neb_calculator()
+            calc.set(**kwargs)
+        except:
+            calc = neb_initialize(atoms, kwargs)
 
     # empty vasp dir. start from scratch
     elif (not os.path.exists('INCAR')):
