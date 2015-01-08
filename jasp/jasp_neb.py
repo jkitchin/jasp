@@ -115,7 +115,9 @@ def get_neb(self, npi=1):
                 # create if needed.
                 os.makedirs(image_dir)
 
-                # this code is copied from initialize to get the sorting correct.
+                # this code is copied from
+                # ase.calculators.vasp.initialize to get the sorting
+                # correct.
                 p = self.input_params
 
                 self.all_symbols = atoms.get_chemical_symbols()
@@ -126,30 +128,32 @@ def get_neb(self, npi=1):
                 # Determine the number of atoms of each atomic species
                 # sorted after atomic species
                 special_setups = []
-                symbols = {}
+                symbols = []
+                symbolcount = {}
                 if self.input_params['setups']:
                     for m in self.input_params['setups']:
-                        try :
+                        try:
                             special_setups.append(int(m))
-                        except:
+                        except ValueError:
                             continue
 
-                for m,atom in enumerate(atoms):
+                for m, atom in enumerate(atoms):
                     symbol = atom.symbol
                     if m in special_setups:
                         pass
                     else:
-                        if not symbols.has_key(symbol):
-                            symbols[symbol] = 1
+                        if symbol not in symbols:
+                            symbols.append(symbol)
+                            symbolcount[symbol] = 1
                         else:
-                            symbols[symbol] += 1
+                            symbolcount[symbol] += 1
 
                 # Build the sorting list
                 self.sort = []
                 self.sort.extend(special_setups)
 
                 for symbol in symbols:
-                    for m,atom in enumerate(atoms):
+                    for m, atom in enumerate(atoms):
                         if m in special_setups:
                             pass
                         else:
@@ -164,10 +168,9 @@ def get_neb(self, npi=1):
                 # create a list of their paths.
                 self.symbol_count = []
                 for m in special_setups:
-                    self.symbol_count.append([atomtypes[m],1])
+                    self.symbol_count.append([atomtypes[m], 1])
                 for m in symbols:
-                    self.symbol_count.append([m,symbols[m]])
-                    # end copied initialization code
+                    self.symbol_count.append([m, symbolcount[m]])
 
                 write_vasp('{0}/POSCAR'.format(image_dir),
                            self.atoms_sorted,
