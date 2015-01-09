@@ -11,10 +11,10 @@ Looks at http://cms.mpi.univie.ac.at/wiki/index.php.
 With prefix arg, search in google."
   (interactive "sKeyword: \nP")
   (if arg
-      (browse-url (format
+      (eww (format
 		   "http://www.google.com/search?q=%s"		   
 		   (url-hexify-string (format "vasp %s" keyword))))
-    (browse-url (format "http://cms.mpi.univie.ac.at/wiki/index.php/%s"  (s-upcase keyword )))))
+    (eww (format "http://cms.mpi.univie.ac.at/wiki/index.php/%s"  (s-upcase keyword )))))
 
 ;; these are just links to python documentation
 (org-add-link-type
