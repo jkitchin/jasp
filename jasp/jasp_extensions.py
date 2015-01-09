@@ -316,6 +316,8 @@ def calculation_required(self, atoms, quantities):
         return True
     elif self.atoms != atoms:
         log.debug('atoms have changed')
+        log.debug('self.atoms = ', self.atoms)
+        log.debug('atoms = ', self.atoms)
         return True
     elif self.float_params != self.old_float_params:
         log.debug('float_params have changed')

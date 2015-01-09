@@ -75,6 +75,12 @@ def calculation_is_ok(jobid=None):
                     output += ['=' * 66,
                                '\n']
 
+    with open('INCAR') as f:
+        if 'SPRING' in f.read():
+            print 'Apparently an NEB calculation. Check it your self.'
+            return True
+                        
+
     with open('CONTCAR') as f:
         content = f.read()
 
@@ -91,8 +97,38 @@ def calculation_is_ok(jobid=None):
             output += lines[-20:]
             output += ['=' * 66]
             raise VaspNotFinished(''.join(output))
+        
     return True
 
+
+def vasp_changed_bands(calc):
+    '''Check here if VASP changed nbands.'''
+    log.debug('Checking if vasp changed nbands')
+
+    if not os.path.exists('OUTCAR'):
+        return
+    
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+        for i,line in enumerate(lines):
+            if 'The number of bands has been changed from the values supplied' in line:
+
+                s = lines[i + 5]  # this is where the new bands are found
+                nbands_cur = calc.nbands
+                nbands_ori, nbands_new = [int(x) for x in
+                                          re.search(r"I found NBANDS\s+ =\s+([0-9]*).*=\s+([0-9]*)", s).groups()]
+                log.debug('Calculator nbands = {0}.\n'
+                          'VASP found {1} nbands.\n'
+                          'Changed to {2} nbands.'.format(nbands_cur, nbands_ori, nbands_new))
+
+                calc.set(nbands=nbands_new)
+                calc.write_incar(calc.get_atoms())
+               
+                log.debug('calc.kwargs: {0}'.format(calc.kwargs))
+                if calc.kwargs.get('nbands', None) != nbands_new:
+                    raise VaspWarning('''The number of bands was changed by VASP. This happens sometimes when you run in parallel. It causes problems with jasp. I have already updated your INCAR. You need to change the number of bands in your script to match what VASP used to proceed.\n\n ''' + '\n'.join(lines[i - 9: i + 8]))
+
+                    
 # ###################################################################
 # Jasp function - returns a Vasp calculator
 # ###################################################################
@@ -134,7 +170,7 @@ def Jasp(debug=None,
         log.setLevel(debug)
 
     log.debug('Jasp called in %s', os.getcwd())
-
+    log.debug('kwargs = %s', kwargs)
     # special initialization NEB case
     if 'spring' in kwargs:
         log.debug('Entering NEB setup')
@@ -289,6 +325,7 @@ def Jasp(debug=None,
 
         calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
+         
 
         if calc.int_params.get('images', None) is not None:
             log.debug('reading neb calculator')
@@ -345,6 +382,7 @@ def Jasp(debug=None,
     calc.old_list_params = calc.list_params.copy()
     calc.old_dict_params = calc.dict_params.copy()
     log.debug(calc.string_params)
+    calc.kwargs = kwargs
     calc.set(**kwargs)
 
     # create a METADATA file if it does not exist and we are not an NEB.
@@ -352,6 +390,8 @@ def Jasp(debug=None,
         and calc.int_params.get('images', None) is None):
         calc.create_metadata()
 
+    # Finally, check if VASP changed the bands
+    vasp_changed_bands(calc)
     return calc
 
 
