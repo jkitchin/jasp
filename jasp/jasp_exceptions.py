@@ -39,3 +39,12 @@ class VaspNotConverged(Exception):
 
 class VaspUnknownState(Exception):
     pass
+
+
+class VaspWarning(Exception):
+    '''Exception class for Vasp warnings that cause problems in jasp.'''
+    def __init__(self, message=''):
+        self.message = message
+
+    def __str__(self):
+        return self.message
