@@ -3,8 +3,11 @@ import os
 from jasp import *  # need for JASPRC
 
 # this command works for both serial and MPI
-serial_vasp = JASPRC['vasp.executable.serial']
-parallel_vasp = JASPRC['vasp.executable.parallel']
+serial_vasp = (os.environ.get('VASP_SERIAL', None)
+               or JASPRC['vasp.executable.serial'])
+
+parallel_vasp = (os.environ.get('VASP_PARALLEL', None)
+                 or JASPRC['vasp.executable.parallel'])
 
 if 'PBS_NODEFILE' in os.environ:
     # we are in the queue. determine if we should run serial or parallel
