@@ -238,8 +238,7 @@ def Jasp(debug=None,
 
     # job created, and in queue, but not running
     elif (os.path.exists('jobid')
-          and job_in_queue(None)
-          and not os.path.exists('running')):
+          and job_in_queue(None)):
         '''this case is slightly tricky because you cannot restart if
         there is no contcar or outcar. here is a modified version of
         the restart_load function that avoids this problem.
@@ -290,8 +289,7 @@ def Jasp(debug=None,
 
     # job created, and in queue, and running
     elif (os.path.exists('jobid')
-          and job_in_queue(None)
-          and os.path.exists('running')):
+          and job_in_queue(None)):
         log.debug('job created, and in queue, and running')
         calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
@@ -309,8 +307,7 @@ def Jasp(debug=None,
     # job is created, not in queue, not running. finished and
     # first time we are looking at it
     elif (os.path.exists('jobid')
-          and not job_in_queue(None)
-          and not os.path.exists('running')):
+          and not job_in_queue(None)):
         log.debug('job is created, not in queue, not running.'
                   'finished and first time we are looking at it')
 
@@ -351,7 +348,6 @@ def Jasp(debug=None,
     # job done long ago, jobid deleted, no running, and the
     # output files all exist
     elif (not os.path.exists('jobid')
-          and not os.path.exists('running')
           and os.path.exists('CONTCAR')
           and os.path.exists('OUTCAR')
           and os.path.exists('vasprun.xml')):
