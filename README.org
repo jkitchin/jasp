@@ -6,15 +6,11 @@ Briefly, =jasp= simplifies creation of calculation scripts, automates job submis
 
 
 * Installation
-First clone the repository, and make sure the =jasp= directory in the repository is on your PYTHONPATH. [fn:1]
+First clone the repository, and make sure the =jasp= directory in the repository is on your PYTHONPATH. 
 
 You need to have the following environment variables set:
 
 #+BEGIN_EXAMPLE
-VASP_PP_PATH
-VASP_SCRIPT
-
-Mine are set too:
 VASP_PP_PATH   - path to the directory containing your POTCAR files
 VASP_SCRIPT    - path to a script that is run for a calculation
 
@@ -26,29 +22,9 @@ Mine are set to:
 /home-research/jkitchin/kitchin-python/jasp/bin/runjasp.py
 #+END_EXAMPLE 
 
-You may also want to add jasp/bin to your PATH. That directory contains an example runjasp.py script
+You may also want to add jasp/bin to your PATH. That directory contains an example runjasp.py and a jaspsum script
 
 
-* Looking for the development branch?
-After you clone the repository, check it out!
-
-#+BEGIN_SRC sh
-git checkout dev
-#+END_SRC
-
-I cloned the repository into ~/kitchin-python/jasp-dev.
-
-My .bashrc my setup looks like:
-
-#+BEGIN_EXAMPLE
-export PYTHONPATH=~/kitchin-python/jasp-dev:$PYTHONPATH
-export PATH=/home/jkitchin/kitchin-python/jasp-dev/jasp/bin:$PATH
-#+END_EXAMPLE
-
-Make sure to run ~source ~/.bashrc~ to load these changes. 
 
 
-* Footnotes
-
-[fn:1] you could run python setup.py install, but it is not necessary.
 
