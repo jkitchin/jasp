@@ -1,5 +1,4 @@
-'''
-Configuration dictionary for submitting jobs
+'''Configuration dictionary for submitting jobs
 
 mode = queue   # this defines whether jobs are immediately run or queued
 user.name = jkitchin
@@ -15,13 +14,17 @@ queue.jobname = None
 
 check for $HOME/.jasprc
 then check for ./.jasprc
+
+Note that the environment variables VASP_SERIAL and VASP_PARALLEL can
+also be used to identify the vasp executables used by runjasp.py.
+
 '''
 import os
 
 # default settings
-JASPRC = {'vasp.executable.serial':'/opt/kitchingroup/vasp-5.2.12/build/bin/vasp-vtst',
- 'vasp.executable.parallel':'/home-research/jkitchin/src/vasp/bin/vasp_openmpi_intel_mkl',
-          'mode':'queue', #other value is 'run'
+JASPRC = {'vasp.executable.serial':'/opt/kitchingroup/vasp-5.3.5/bin/vasp-vtst-serial-beef',
+          'vasp.executable.parallel':'/opt/kitchingroup/vasp-5.3.5/bin/vasp-vtst-parallel-beef',
+          'mode':'queue',  # other value is 'run'
           'queue.command':'qsub',
           'queue.options':'-joe',
           'queue.walltime':'168:00:00',
@@ -30,6 +33,7 @@ JASPRC = {'vasp.executable.serial':'/opt/kitchingroup/vasp-5.2.12/build/bin/vasp
           'queue.mem':'2GB',
           'queue.jobname':'None',
           'multiprocessing.cores_per_process':'None'}
+
 
 def read_configuration(fname):
     '''reads jasprc configuration from fname'''
