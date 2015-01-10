@@ -384,9 +384,21 @@ def Jasp(debug=None,
 
     # create a METADATA file if it does not exist and we are not an NEB.
     if ((not os.path.exists('METADATA'))
-        and calc.int_params.get('images', None) is None):
-        calc.create_metadata()
+         and calc.int_params.get('images', None) is None):
+         calc.create_metadata()
 
+    # Check if beef is used
+    if calc.string_params.get('gga', None) == 'BF':
+        calc.set(luse_vdw=True,
+                 zab_vdw=-1.8867,
+                 lbeefens=True)
+
+    # check for luse_vdw, and make link to the required kernel if
+    # using vdw.
+    if calc.bool_params.get('luse_vdw', False):
+        if not os.path.exists('vdw_kernel.bindat'):
+            os.symlink(JASPRC['vdw_kernel.bindat'], 'vdw_kernel.bindat')
+        
     # Finally, check if VASP changed the bands
     vasp_changed_bands(calc)
     return calc
