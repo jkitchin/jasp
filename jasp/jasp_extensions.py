@@ -328,7 +328,7 @@ def calculation_required(self, atoms, quantities):
     elif self.string_params != self.old_string_params:
         log.debug('string_params have changed.')
         log.debug('current: {0}'.format(self.string_params))
-        log.debug('old    : {0}'.format(self.old_string_params))   
+        log.debug('old    : {0}'.format(self.old_string_params))
         return True
     elif self.int_params != self.old_int_params:
         log.debug('int_params have changed')
@@ -1072,3 +1072,31 @@ def get_energy_components(self, outputType=0):
     return energies
 
 Vasp.get_energy_components = get_energy_components
+
+
+def get_beefens(self, n=-1):
+    '''Get the BEEFens 2000 ensemble energies from the OUTCAR.  
+
+    This only works with Vasp 5.3.5 compiled with libbeef.
+
+    I am pretty sure this array is the deviations from the total
+    energy. There are usually 2000 of these, but it is not clear this will
+    always be the case. I assume the 2000 entries are always in the same
+    order, so you can calculate ensemble energy differences for reactions,
+    as long as the number of samples in the ensemble is the same.
+
+    There is usually more than one BEEFens section. By default we return
+    the last one. Choose another one with the the :par: n.
+
+    see http://suncat.slac.stanford.edu/facility/software/functional/
+    '''
+    beefens = []
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if 'BEEFens' in line:                
+                nsamples = int(re.search('(\d+)', line).groups()[0])
+                beefens.append([float(x) for x in lines[i + 1: i + nsamples]])
+    return np.array(beefens[n])
+
+Vasp.get_beefens = get_beefens
