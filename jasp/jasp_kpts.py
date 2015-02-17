@@ -131,7 +131,7 @@ def read_kpoints(self, filename='KPOINTS'):
                 self.set(gamma=True)
             else:
                 self.set(gamma=line5)
-        kpts = [int(float(lines[3].split()[i])) for i in range(3)]
+        kpts = [int(lines[3].split()[i]) for i in range(3)]
     elif nkpts > 0:
         # list of kpts provided. Technically c,k are supported and
         # anything else means reciprocal coordinates.
