@@ -103,7 +103,7 @@ def get_neb(self, npi=1):
         write out the poscar for all the images. write out the kpoints and
         potcar.
         '''
-
+        
         if os.path.exists('jobid'):
             raise VaspQueued
 
@@ -196,9 +196,14 @@ def get_neb(self, npi=1):
         self.initialize(self.neb_images[0])
         self.write_potcar()
         self.write_incar(self.neb_images[0])
-
-        JASPRC['queue.nodes'] = npi * self.neb_nimages
-        log.debug('Running on %i nodes',JASPRC['queue.nodes'])
+        
+        if JASPRC['scheduler'].lower() == 'sge':
+            JASPRC['queue.nprocs'] = npi * self.neb_nimages
+            log.debug('Running on %i processors',JASPRC['queue.nprocs'])
+        elif JASPRC['scheduler'].lower() == 'pbs':
+            JASPRC['queue.nodes'] = npi * self.neb_nimages
+            log.debug('Running on %i nodes',JASPRC['queue.nodes'])
+            
         self.run() # this will raise VaspSubmitted
 
     #############################################
@@ -370,6 +375,7 @@ def read_neb_calculator():
 
 def neb_initialize(neb_images, kwargs):
     '''Creates necessary files for an NEB calculation'''
+
     for a in neb_images:
         log.debug(a.numbers)
 

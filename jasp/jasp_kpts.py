@@ -106,7 +106,6 @@ def read_kpoints(self, filename='KPOINTS'):
     # first line is a comment
     # second line is the number of kpoints or 0 for automatic kpoints
     nkpts = int(lines[1].strip())
-
     # third line you have to specify whether the coordinates are given
     # in cartesian or reciprocal coordinates if nkpts is greater than
     # zero. Only the first character of the third line is
@@ -132,6 +131,7 @@ def read_kpoints(self, filename='KPOINTS'):
             else:
                 self.set(gamma=line5)
         kpts = [int(lines[3].split()[i]) for i in range(3)]
+    
     elif nkpts > 0:
         # list of kpts provided. Technically c,k are supported and
         # anything else means reciprocal coordinates.
@@ -158,9 +158,9 @@ def read_kpoints(self, filename='KPOINTS'):
 
     if ktype == 'r':
         self.set(reciprocal=True)
-
+    
     self.set(kpts=kpts)
-
+    
 Vasp.read_kpoints = read_kpoints
 
 

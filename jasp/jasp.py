@@ -83,11 +83,11 @@ def calculation_is_ok(jobid=None):
     with open('CONTCAR') as f:
         content = f.read()
 
-    if not len(content) > 0:
-        os.unlink('CONTCAR')
-        os.unlink('jobid')
-        raise VaspNotFinished('CONTCAR appears empty. It has been '
-                              'deleted. Please run your script again')
+        if not len(content) > 0:
+            os.unlink('CONTCAR')
+            os.unlink('jobid')
+            raise VaspNotFinished('CONTCAR appears empty. It has been '
+                                  'deleted. Please run your script again')
 
     with open('OUTCAR') as f:
         lines = f.readlines()
@@ -151,6 +151,7 @@ def Jasp(debug=None,
          output_template='vasp',
          track_output=False,
          atoms=None,
+         supress_err=False,
          **kwargs):
     '''wrapper function to create a Vasp calculator. The only purpose
     of this function is to enable atoms as a keyword argument, and to
@@ -247,7 +248,6 @@ def Jasp(debug=None,
         log.debug('job created, and in queue, but not running. tricky case')
 
         self = Vasp(restart, output_template, track_output)
-            
         self.read_incar()
 
         if self.int_params.get('images', None) is not None:
@@ -315,8 +315,8 @@ def Jasp(debug=None,
         with open('jobid') as f:
             jobid = f.readline().split('.')[0]
 
-            if calculation_is_ok(jobid):
-                pass
+        if calculation_is_ok(jobid):
+            pass
 
         # delete the jobid file, since it is done
         os.unlink('jobid')
@@ -333,6 +333,7 @@ def Jasp(debug=None,
                 calc = Vasp(restart=True)  # automatically loads results
             finally:
                 pass
+                
 
         # now update the atoms object if it was a kwarg
         if atoms is not None and not hasattr(calc, 'neb'):
@@ -347,6 +348,7 @@ def Jasp(debug=None,
                 hook(calc)
             
     # job done long ago, jobid deleted, no running, and the
+
     # output files all exist
     elif (not os.path.exists('jobid')
           and os.path.exists('CONTCAR')
@@ -356,7 +358,7 @@ def Jasp(debug=None,
                   'no running, and the output files all exist')
         if calculation_is_ok():
             calc = Vasp(restart=True)
-
+            
         if atoms is not None:
             atoms.set_cell(calc.atoms.get_cell())
             atoms.set_positions(calc.atoms.get_positions())
@@ -401,6 +403,7 @@ def Jasp(debug=None,
         
     # Finally, check if VASP changed the bands
     vasp_changed_bands(calc)
+
     return calc
 
 
@@ -415,7 +418,7 @@ class jasp:
     exceptions in the with statement.
     '''
 
-    def __init__(self, vaspdir, **kwargs):
+    def __init__(self, vaspdir, supress_err=False, **kwargs):
         '''
         vaspdir: the directory to run vasp in
 
@@ -426,7 +429,8 @@ class jasp:
         self.vaspdir = os.path.expanduser(vaspdir)
 
         self.kwargs = kwargs  # this does not include the vaspdir variable
-
+        self.supress_err = supress_err
+        
     def __enter__(self):
         '''
         on enter, make sure directory exists, create it if necessary,
@@ -454,19 +458,32 @@ class jasp:
         os.chdir(self.vaspdir)
 
         # and get the new calculator
-        calc = Jasp(**self.kwargs)
-        calc.vaspdir = self.vaspdir   # vasp directory
-        calc.cwd = self.cwd   # directory we came from
-        return calc
+        try:
+            calc = Jasp(**self.kwargs)
+            calc.vaspdir = self.vaspdir   # vasp directory
+            calc.cwd = self.cwd   # directory we came from
+            self.supress_err = False
+            return calc
+
+        except VaspNotFinished:
+            if self.__exit__(*sys.exc_info()):
+                # Exit with return True skips the calc.attribute functions entirely
+                # Not ideal if looping and appending properties to lists
+                # Rather return None to catch AttributeError later and append np.nan
+                log.warning('Supressed VaspNotFinished in {0}'.format(self.cwd))
+                self.supress_err=False
+                return None
+            else:
+                raise
+            
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         '''
         on exit, change back to the original directory.
         '''
         os.chdir(self.cwd)
-        return False  # allows exception to propogate out
+        return self.supress_err
 
-        
 def isavaspdir(path):
     '''Return bool if the current working directory is a VASP directory.
 

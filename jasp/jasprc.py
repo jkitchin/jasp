@@ -22,7 +22,9 @@ also be used to identify the vasp executables used by runjasp.py.
 import os
 
 # default settings
-JASPRC = {'vasp.executable.serial':
+
+JASPRC = {'scheduler':'PBS', #other option is 'SGE'
+          'vasp.executable.serial':
           '/opt/kitchingroup/vasp-5.3.5/bin/vasp-vtst-serial-beef',
           'vasp.executable.parallel':
           '/opt/kitchingroup/vasp-5.3.5/bin/vasp-vtst-parallel-beef',
@@ -37,6 +39,7 @@ JASPRC = {'vasp.executable.serial':
           'multiprocessing.cores_per_process': 'None',
           'vdw_kernel.bindat': '/opt/kitchingroup/vasp-5.3.5/vdw_kernel.bindat'
           }
+
 
 
 def read_configuration(fname):

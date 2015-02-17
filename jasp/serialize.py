@@ -110,7 +110,7 @@ If atom-projected dos are included they are in the form:
     # There are times when no stress is calculated
     try:
         stress = atoms.get_stress()
-    except AssertionError:
+    except NotImplementedError:
         stress = None
 
     if stress is not None:

@@ -288,22 +288,36 @@ def job_in_queue(self):
     else:
         # get the jobid
         jobid = open('jobid').readline().strip()
+        if JASPRC['scheduler']=='PBS':
+            # see if jobid is in queue
+            jobids_in_queue = commands.getoutput('qselect').split('\n')
+            if jobid in jobids_in_queue:
+                # get details on specific jobid
+                status, output = commands.getstatusoutput('qstat %s' % jobid)
+                if status == 0:
+                    lines = output.split('\n')
+                    fields = lines[2].split()
+                    job_status = fields[4]
+                    if job_status == 'C':
+                        return False
+                    else:
+                        return True
+            else:
+                return False
 
-        # see if jobid is in queue
-        jobids_in_queue = commands.getoutput('qselect').split('\n')
-        if jobid in jobids_in_queue:
-            # get details on specific jobid
-            status, output = commands.getstatusoutput('qstat %s' % jobid)
-            if status == 0:
-                lines = output.split('\n')
-                fields = lines[2].split()
-                job_status = fields[4]
-                if job_status == 'C':
-                    return False
-                else:
+        if JASPRC['scheduler']=='SGE':
+            # SGE qselect does not print a list of jobids, so we have to improvise
+            jobids_in_queue = commands.getoutput("qstat | awk '{ print $1; }'").split('\n')[2:]
+            if jobid in jobids_in_queue:
+                # SGE apparently does not have jobstate == 'C', lets still get status and output for now
+                status, output = commands.getstatusoutput('qstat | grep {0}'.format(jobid))
+
+                if status == 0:
+                    fields = output.split()
+                    job_status = fields[4]                    
                     return True
-        else:
-            return False
+            else:
+                return False
 Vasp.job_in_queue = job_in_queue
 
 
@@ -368,7 +382,6 @@ def calculation_required(self, atoms, quantities):
                 print '1. ', list(self.input_params[key])
                 print '2. ', list(self.old_input_params[key])
                 print 'KPTS FAILED'
-
                 return True
             else:
                 continue
@@ -505,38 +518,62 @@ def run(self):
         # end
 
     # if you get here, a job is getting submitted
-    script = '''
-#!/bin/bash
-cd {self.cwd}  # this is the current working directory
+    script = '#!/bin/{0}\n'.format(JASPRC['queue.shell'])
+    script +='''cd {self.cwd}  # this is the current working directory
 cd {self.vaspdir}  # this is the vasp directory
-runjasp.py     # this is the vasp command
+runjasp.py   # this is the vasp command
 #end'''.format(**locals())
 
-    jobname = self.vaspdir
-    log.debug('{0} will be the jobname.'.format(jobname))
-    log.debug('-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
-                                            JASPRC['queue.ppn']))
 
-    cmdlist = ['{0}'.format(JASPRC['queue.command'])]
-    cmdlist += [option for option in JASPRC['queue.options'].split()]
-    cmdlist += ['-N', '{0}'.format(jobname),
-                '-l walltime={0}'.format(JASPRC['queue.walltime']),
-                '-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
-                                              JASPRC['queue.ppn']),
-                '-l mem={0}'.format(JASPRC['queue.mem'])]
+    if JASPRC['scheduler'] == 'PBS':
+        jobname = self.vaspdir
+        log.debug('{0} will be the jobname.'.format(jobname))
+        log.debug('-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
+                                                JASPRC['queue.ppn']))
+
+        cmdlist = ['{0}'.format(JASPRC['queue.command'])]
+        cmdlist += [option for option in JASPRC['queue.options'].split()]
+        cmdlist += ['-N', '{0}'.format(jobname),
+                    '-l walltime={0}'.format(JASPRC['queue.walltime']),
+                    '-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
+                                                  JASPRC['queue.ppn']),
+                    '-l mem={0}'.format(JASPRC['queue.mem'])]
+
+    elif JASPRC['scheduler'] == 'SGE':
+        jobname = (self.vaspdir).replace('/','|') # SGE does not allow '/' in job names. Maybe use the uuid?
+        log.debug('{0} will be the jobname.'.format(jobname))        
+        f = open('qscript','w')
+        f.write(script)
+        f.close()
+        log.debug('-l nodes={0}:ppn={1}'.format(JASPRC['queue.nodes'],
+                                                     JASPRC['queue.ppn']))
+
+        cmdlist = ['{0}'.format(JASPRC['queue.command'])]
+        cmdlist += [option for option in JASPRC['queue.options'].split()]
+        cmdlist += ['-N', '{0}'.format(jobname),
+                    '-q {0}'.format(JASPRC['queue.q']),
+                    '-pe {0} {1}'.format(JASPRC['queue.pe'], JASPRC['queue.nprocs']),
+                    #'-l mem_free={0}'.format(JASPRC['queue.mem'])
+                                         ]
+        cmdlist += ['qscript']
+       
     log.debug('{0}'.format(' '.join(cmdlist)))
     p = Popen(cmdlist,
               stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     log.debug(script)
-
+        
     out, err = p.communicate(script)
 
     if out == '' or err != '':
         raise Exception('something went wrong in qsub:\n\n{0}'.format(err))
 
+    if JASPRC['scheduler'] == 'SGE':    
+        jobid = out.split()[2]
+    else:
+        jobid =  out
     f = open('jobid', 'w')
-    f.write(out)
+    f.write(jobid)
     f.close()
 
     raise VaspSubmitted(out)
