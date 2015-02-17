@@ -79,7 +79,7 @@ def calculation_is_ok(jobid=None):
         if 'SPRING' in f.read():
             print 'Apparently an NEB calculation. Check it your self.'
             return True
-                        
+
     with open('CONTCAR') as f:
         content = f.read()
 
@@ -96,7 +96,7 @@ def calculation_is_ok(jobid=None):
             output += lines[-20:]
             output += ['=' * 66]
             raise VaspNotFinished(''.join(output))
-        
+
     return True
 
 
@@ -106,7 +106,7 @@ def vasp_changed_bands(calc):
 
     if not os.path.exists('OUTCAR'):
         return
-    
+
     with open('OUTCAR') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
@@ -129,7 +129,7 @@ def vasp_changed_bands(calc):
                 if calc.kwargs.get('nbands', None) != nbands_new:
                     raise VaspWarning('''The number of bands was changed by VASP. This happens sometimes when you run in parallel. It causes problems with jasp. I have already updated your INCAR. You need to change the number of bands in your script to match what VASP used to proceed.\n\n ''' + '\n'.join(lines[i - 9: i + 8]))
 
-                    
+
 # ###################################################################
 # Jasp function - returns a Vasp calculator
 # ###################################################################
@@ -247,7 +247,7 @@ def Jasp(debug=None,
         log.debug('job created, and in queue, but not running. tricky case')
 
         self = Vasp(restart, output_template, track_output)
-            
+
         self.read_incar()
 
         if self.int_params.get('images', None) is not None:
@@ -323,7 +323,6 @@ def Jasp(debug=None,
 
         calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
-         
 
         if calc.int_params.get('images', None) is not None:
             log.debug('reading neb calculator')
@@ -345,7 +344,7 @@ def Jasp(debug=None,
         if hasattr(calc, 'post_run_hooks'):
             for hook in calc.post_run_hooks:
                 hook(calc)
-            
+
     # job done long ago, jobid deleted, no running, and the
     # output files all exist
     elif (not os.path.exists('jobid')
@@ -384,8 +383,8 @@ def Jasp(debug=None,
 
     # create a METADATA file if it does not exist and we are not an NEB.
     if ((not os.path.exists('METADATA'))
-         and calc.int_params.get('images', None) is None):
-         calc.create_metadata()
+            and calc.int_params.get('images', None) is None):
+        calc.create_metadata()
 
     # Check if beef is used
     if calc.string_params.get('gga', None) == 'BF':
@@ -398,7 +397,7 @@ def Jasp(debug=None,
     if calc.bool_params.get('luse_vdw', False):
         if not os.path.exists('vdw_kernel.bindat'):
             os.symlink(JASPRC['vdw_kernel.bindat'], 'vdw_kernel.bindat')
-        
+
     # Finally, check if VASP changed the bands
     vasp_changed_bands(calc)
     return calc
@@ -426,6 +425,7 @@ class jasp:
         self.vaspdir = os.path.expanduser(vaspdir)
 
         self.kwargs = kwargs  # this does not include the vaspdir variable
+        self.error = False
 
     def __enter__(self):
         '''
@@ -444,20 +444,24 @@ class jasp:
             try:
                 calc.do something
             except (VaspException):
-                do somthing.
+                do something.
         '''
-        # make directory if it doesn't already exist
-        if not os.path.isdir(self.vaspdir):
-            os.makedirs(self.vaspdir)
+        try:
+            # make directory if it doesn't already exist
+            if not os.path.isdir(self.vaspdir):
+                os.makedirs(self.vaspdir)
 
-        # now change to new working dir
-        os.chdir(self.vaspdir)
+            # now change to new working dir
+            os.chdir(self.vaspdir)
 
-        # and get the new calculator
-        calc = Jasp(**self.kwargs)
-        calc.vaspdir = self.vaspdir   # vasp directory
-        calc.cwd = self.cwd   # directory we came from
-        return calc
+            # and get the new calculator
+            calc = Jasp(**self.kwargs)
+            calc.vaspdir = self.vaspdir   # vasp directory
+            calc.cwd = self.cwd   # directory we came from
+            return calc
+        except(VaspNotFinished, VaspWarning, VaspUnknownState) as Error:
+            self.error = Error
+            return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         '''
@@ -466,7 +470,7 @@ class jasp:
         os.chdir(self.cwd)
         return False  # allows exception to propogate out
 
-        
+
 def isavaspdir(path):
     '''Return bool if the current working directory is a VASP directory.
 
@@ -476,14 +480,14 @@ def isavaspdir(path):
     '''
     # standard vaspdir
     if (os.path.exists(os.path.join(path, 'POSCAR')) and
-        os.path.exists(os.path.join(path, 'INCAR')) and
-        os.path.exists(os.path.join(path, 'KPOINTS')) and
-        os.path.exists(os.path.join(path, 'POTCAR'))):
+            os.path.exists(os.path.join(path, 'INCAR')) and
+            os.path.exists(os.path.join(path, 'KPOINTS')) and
+            os.path.exists(os.path.join(path, 'POTCAR'))):
         return True
     # NEB vaspdir
     elif (os.path.exists(os.path.join(path, 'INCAR')) and
-          os.path.exists(os.path.join(path, 'KPOINTS')) and
-          os.path.exists(os.path.join(path, 'POTCAR'))):
+            os.path.exists(os.path.join(path, 'KPOINTS')) and
+            os.path.exists(os.path.join(path, 'POTCAR'))):
 
         incar = open(os.path.join(path, 'INCAR')).read()
         if 'IMAGES' in incar:
