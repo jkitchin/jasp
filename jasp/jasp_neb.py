@@ -77,11 +77,10 @@ def get_neb(self, npi=1):
                 f.close()
                 return False
 
-            converged = [subdir_converged('0{0}/OUTCAR'.format(i))
-                         for i in range(1,len(self.neb_images)-1)]
+            converged = subdir_converged('0{0}/OUTCAR'.format(i))
 
-            if False in converged:
-                print '0{0} does not appear converged'.format(converged.index(False))
+            if not converged:
+                print '0{0} does not appear converged'.format(i)
 
     # make sure no keywords have changed
     if not ((self.float_params == self.old_float_params) and
