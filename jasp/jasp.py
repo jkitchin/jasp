@@ -85,7 +85,8 @@ def calculation_is_ok(jobid=None):
 
     if not len(content) > 0:
         os.unlink('CONTCAR')
-        os.unlink('jobid')
+        if os.path.exists('jobid'):
+            os.unlink('jobid')
         raise VaspNotFinished('CONTCAR appears empty. It has been '
                               'deleted. Please run your script again')
 
@@ -355,7 +356,10 @@ def Jasp(debug=None,
         log.debug('job was at least started, jobid deleted,'
                   'no running, and the output files all exist')
         if calculation_is_ok():
+            log.debug('calculation seems ok.')
             calc = Vasp(restart=True)
+            calc.read_incar()
+            log.debug('list params = {}', calc.list_params)
 
         if atoms is not None:
             atoms.set_cell(calc.atoms.get_cell())
@@ -370,6 +374,7 @@ def Jasp(debug=None,
 
     # save initial params to check for changes later
     log.debug('saving initial parameters')
+    log.debug('list_params = {}', calc.list_params)
     calc.old_float_params = calc.float_params.copy()
     calc.old_exp_params = calc.exp_params.copy()
     calc.old_string_params = calc.string_params.copy()
@@ -378,7 +383,7 @@ def Jasp(debug=None,
     calc.old_bool_params = calc.bool_params.copy()
     calc.old_list_params = calc.list_params.copy()
     calc.old_dict_params = calc.dict_params.copy()
-    log.debug(calc.string_params)
+    log.debug('String_params = {}', calc.string_params)
     calc.kwargs = kwargs
     calc.set(**kwargs)
 
