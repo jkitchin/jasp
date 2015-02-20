@@ -1,0 +1,5 @@
+INCAR created by Atomic Simulation Environment
+ ENCUT = 350.000000
+ SIGMA = 0.010000
+ NBANDS = 8
+ ISMEAR = 1

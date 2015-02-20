@@ -1,0 +1,6 @@
+INCAR created by Atomic Simulation Environment
+ ENCUT = 300.000000
+ SIGMA = 0.001000
+ ISPIN = 2
+ ISMEAR = 0
+ MAGMOM = 1*1.0000 

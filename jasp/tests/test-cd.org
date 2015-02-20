@@ -1,0 +1,40 @@
+#+BEGIN_SRC python
+from jasp import *
+import os
+
+with cd('ref/c0'):
+    print os.getcwd()
+    calc = Jasp()
+    print calc
+print os.getcwd()
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+/home-research/jkitchin/kitchin-python/jasp2/jasp/tests/ref/c0
+: -----------------------------
+  VASP calculation from /home-research/jkitchin/kitchin-python/jasp2/jasp/tests/ref/c0
+  converged: None
+
+INCAR Parameters:
+-----------------
+        nbands: 6
+        ismear: 1
+           nsw: 5
+        ibrion: 2
+         encut: 350.0
+         sigma: 0.01
+        magmom: None
+          prec: Normal
+          kpts: [1, 1, 1]
+    reciprocal: False
+            xc: PBE
+           txt: -
+         gamma: False
+
+Pseudopotentials used:
+----------------------
+C: /potpaw_PBE/C/POTCAR (git-hash: ee4d8576584f8e9f32e90853a0cbf9d4a9297330)
+O: /potpaw_PBE/O/POTCAR (git-hash: 592f34096943a6f30db8749d13efca516d75ec55)
+/home-research/jkitchin/kitchin-python/jasp2/jasp/tests
+#+end_example

@@ -1,0 +1,28 @@
+ vasp.5.3.5+vtst+beef+vaspsol-serial 31Mar14 (build Jan 17 2015 14:42:51) comple
+ x
+ POSCAR found :  2 types and       8 ions
+ Error reading item 'LDAUL' from file INCAR.
+ Error code was IERR=           5  Found N=           0  data items
+ Error reading item 'LDAUU' from file INCAR.
+ Error code was IERR=           5  Found N=           0  data items
+ Error reading item 'LDAUJ' from file INCAR.
+ Error code was IERR=           5  Found N=           0  data items
+ LDA part: xc-table for Pade appr. of Perdew
+ POSCAR found :  2 types and       8 ions
+ found WAVECAR, reading the header
+ POSCAR, INCAR and KPOINTS ok, starting setup
+ WARNING: small aliasing (wrap around) errors must be expected
+ FFT: planning ...
+ reading WAVECAR
+ the WAVECAR file was read successfully
+ initial charge from wavefunction
+ entering main loop
+       N       E                     dE             d eps       ncg     rms          rms(c)
+DAV:   1    -0.610211695968E+02   -0.61021E+02   -0.23123E-04   288   0.187E-01    0.271E-01
+DAV:   2    -0.610848697404E+02   -0.63700E-01   -0.98292E-02   944   0.358E+00    0.520E+00
+DAV:   3    -0.610193350130E+02    0.65535E-01   -0.90318E-02   988   0.351E+00    0.251E-01
+DAV:   4    -0.610211882679E+02   -0.18533E-02   -0.19142E-03   788   0.534E-01    0.248E-01
+DAV:   5    -0.610210049529E+02    0.18331E-03   -0.29282E-04   496   0.331E-01    0.179E-02
+DAV:   6    -0.610210143401E+02   -0.93872E-05   -0.51827E-05   292   0.440E-02
+   1 F= -.61021014E+02 E0= -.61023865E+02  d E =0.855270E-02
+ writing wavefunctions

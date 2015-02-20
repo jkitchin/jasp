@@ -1,0 +1,13 @@
+INCAR created by Atomic Simulation Environment
+ SIGMA = 0.100000
+ EDIFFG = -5.00e-02
+ ISPIN = 2
+ LORBIT = 11
+ NSW = 50
+ IBRION = 1
+ LDAUTYPE = 3
+ MAGMOM = 2*2.0000 
+ LDAUL = 2 -1 
+ LDAUJ = 0.0000 0.0000 
+ LDAUU = 0.0000 0.0000 
+ LDAU = .TRUE.

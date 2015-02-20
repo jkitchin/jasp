@@ -1,0 +1,39 @@
+* A regular setup
+
+#+BEGIN_SRC sh
+rm -fr molecules/O2-0_s
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+from jasp import *
+
+from ase import Atom, Atoms
+atoms = Atoms([Atom('C',[5, 5, 5], magmom=1),
+               Atom('O',[6, 5, 5], magmom=1)],
+             cell=(6, 6, 6))
+
+with jasp('molecules/O2-0_s',
+          encut=300,
+          xc='PBE',
+          ispin=2,
+          ismear=0,
+          sigma=0.001,
+          setups={'0':'O_s'},  # specifies O_s potential on atom 0
+          atoms=atoms) as calc:
+
+    calc.prepare_input_files()
+#+END_SRC  
+
+#+RESULTS:
+
+
+#+BEGIN_SRC sh
+grep TITEL molecules/O2-0_s/POTCAR
+#+END_SRC
+
+#+RESULTS:
+:    TITEL  = PAW_PBE O_s 07Sep2000
+:    TITEL  = PAW_PBE O 08Apr2002
+

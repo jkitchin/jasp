@@ -1,0 +1,78 @@
+prateek mentioned this https://mail.google.com/mail/u/0/#inbox/1483d794245ea48a
+
+Hi John,
+
+I found that sometimes when running in parallel, and using the default value of NPAR, vasp automatically changes the value of nbands. Due to this jasp thinks that the int_params have changed (https://github.com/jkitchin/jasp/blob/master/jasp/jasp_extensions.py#L316) and resubmits the calculation, even though we might already have the correct output (though computationally inefficient). It might be a good idea to check in the OUTCAR if this is the case, and give an informative warning, rather than restarting the calculation.
+
+| The number of bands has been changed from the values supplied        |
+| in the INCAR file. This is a result of running the parallel version. |
+| The orbitals not found in the WAVECAR file will be initialized with  |
+| random numbers, which is usually adequate. For correlated            |
+| calculations, however, you should redo the groundstate calculation.  |
+| I found NBANDS = 6 now NBANDS = 8                                    |
+|                                                                      |
+|                                                                      |
+
+
+#+BEGIN_SRC sh
+rm -fr molecules/simple-co
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python
+from ase import Atoms, Atom
+from jasp import *
+import numpy as np
+np.set_printoptions(precision=3, suppress=True)
+
+JASPRC['queue.nodes'] = 8  # No. of cores to use
+
+co = Atoms([Atom('C', [0, 0, 0]),
+            Atom('O', [1.2, 0, 0])],
+           cell=(6., 6., 6.))
+
+with jasp('molecules/simple-co',  # output dir
+          xc='PBE',  # the exchange-correlation functional
+          nbands=8,  # number of bands
+          encut=350,  # planewave cutoff
+          ismear=1,  # Methfessel-Paxton smearing
+          sigma=0.01,  # very small smearing factor for a molecule
+          debug=logging.DEBUG,
+          atoms=co) as calc:
+    print 'energy = {0} eV'.format(co.get_potential_energy())
+    print co.get_forces()
+#+END_SRC
+
+#+RESULTS:
+: energy = -14.69072754 eV
+: [[ 5.091  0.     0.   ]
+:  [-5.091  0.     0.   ]]
+
+
+#+BEGIN_SRC sh
+grep 'The number of bands has been changed from the values supplied' molecules/simple-co/OUTCAR
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC sh
+grep 'NBANDS' molecules/simple-co/OUTCAR
+#+END_SRC
+
+#+RESULTS:
+:    k-points           NKPTS =      1   k-points in BZ     NKDIM =      1   number of bands    NBANDS=      8
+
+#+BEGIN_SRC python
+import re
+
+s = '|      I found NBANDS    =        6  now  NBANDS  =       8                   |'
+
+print re.search(r"I found NBANDS\s+ =\s+([0-9]*).*=\s+([0-9]*)", s).groups()
+
+#+END_SRC
+
+#+RESULTS:
+: ('6', '8')
+
