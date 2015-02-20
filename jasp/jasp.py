@@ -434,7 +434,7 @@ class cd:
         os.chdir(self.wd)
 
 
-    def __exit(self, *args):
+    def __exit__(self, *args):
         os.chdir(self.origin)
         return False # allows body exceptions to propagate out.
 
