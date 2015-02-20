@@ -479,7 +479,7 @@ class jasp:
             try:
                 calc.do something
             except (VaspException):
-                do somthing.
+                do something.
         '''
         # make directory if it doesn't already exist
         if not os.path.isdir(self.vaspdir):
@@ -499,7 +499,7 @@ class jasp:
         on exit, change back to the original directory.
         '''
         os.chdir(self.cwd)
-        return False  # allows exception to propogate out
+        return False  # allows exception to propagate out
 
 
 def isavaspdir(path):
