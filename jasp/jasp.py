@@ -79,7 +79,7 @@ def calculation_is_ok(jobid=None):
         if 'SPRING' in f.read():
             print 'Apparently an NEB calculation. Check it your self.'
             return True
-                        
+
     with open('CONTCAR') as f:
         content = f.read()
 
@@ -97,7 +97,7 @@ def calculation_is_ok(jobid=None):
             output += lines[-20:]
             output += ['=' * 66]
             raise VaspNotFinished(''.join(output))
-        
+
     return True
 
 
@@ -107,7 +107,7 @@ def vasp_changed_bands(calc):
 
     if not os.path.exists('OUTCAR'):
         return
-    
+
     with open('OUTCAR') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
@@ -130,7 +130,7 @@ def vasp_changed_bands(calc):
                 if calc.kwargs.get('nbands', None) != nbands_new:
                     raise VaspWarning('''The number of bands was changed by VASP. This happens sometimes when you run in parallel. It causes problems with jasp. I have already updated your INCAR. You need to change the number of bands in your script to match what VASP used to proceed.\n\n ''' + '\n'.join(lines[i - 9: i + 8]))
 
-                    
+
 # ###################################################################
 # Jasp function - returns a Vasp calculator
 # ###################################################################
@@ -248,7 +248,7 @@ def Jasp(debug=None,
         log.debug('job created, and in queue, but not running. tricky case')
 
         self = Vasp(restart, output_template, track_output)
-            
+
         self.read_incar()
 
         if self.int_params.get('images', None) is not None:
@@ -324,7 +324,7 @@ def Jasp(debug=None,
 
         calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
-         
+
 
         if calc.int_params.get('images', None) is not None:
             log.debug('reading neb calculator')
@@ -346,7 +346,7 @@ def Jasp(debug=None,
         if hasattr(calc, 'post_run_hooks'):
             for hook in calc.post_run_hooks:
                 hook(calc)
-            
+
     # job done long ago, jobid deleted, no running, and the
     # output files all exist
     elif (not os.path.exists('jobid')
@@ -403,10 +403,40 @@ def Jasp(debug=None,
     if calc.bool_params.get('luse_vdw', False):
         if not os.path.exists('vdw_kernel.bindat'):
             os.symlink(JASPRC['vdw_kernel.bindat'], 'vdw_kernel.bindat')
-        
+
     # Finally, check if VASP changed the bands
     vasp_changed_bands(calc)
     return calc
+
+class cd:
+    '''Context manager for changing directories.
+
+    On entering, store initial location, change to the desired directory,
+    creating it if needed.  On exit, change back to the original directory.
+
+    Example:
+    with cd('path/to/a/calculation'):
+        calc = Jasp(args)
+        calc.get_potential energy()
+    '''
+
+    def __init__(self, working_directory):
+        self.origin = os.getcwd()
+        self.wd = working_directory
+
+
+    def __enter__(self):
+        # make directory if it doesn't already exist
+        if not os.path.isdir(self.wd):
+            os.makedirs(self.wd)
+
+        # now change to new working dir
+        os.chdir(self.wd)
+
+
+    def __exit(self, *args):
+        os.chdir(self.origin)
+        return False # allows body exceptions to propagate out.
 
 
 class jasp:
@@ -471,7 +501,7 @@ class jasp:
         os.chdir(self.cwd)
         return False  # allows exception to propogate out
 
-        
+
 def isavaspdir(path):
     '''Return bool if the current working directory is a VASP directory.
 
