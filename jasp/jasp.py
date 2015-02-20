@@ -489,12 +489,16 @@ class jasp:
         os.chdir(self.vaspdir)
 
         # and get the new calculator
-        calc = Jasp(**self.kwargs)
-        calc.vaspdir = self.vaspdir   # vasp directory
-        calc.cwd = self.cwd   # directory we came from
-        return calc
+        try:
+            calc = Jasp(**self.kwargs)
+            calc.vaspdir = self.vaspdir   # vasp directory
+            calc.cwd = self.cwd   # directory we came from
+            return calc
+        except:
+            self.__exit__()
+            raise
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, *args):
         '''
         on exit, change back to the original directory.
         '''
