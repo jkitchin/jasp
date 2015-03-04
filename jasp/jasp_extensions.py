@@ -399,7 +399,9 @@ def calculation_required(self, atoms, quantities):
 
     if not self.converged:
         if not JASPRC['restart_unconverged']:
-            raise VaspNotConverged("This calculation did not converge. Set JASPRC['restart_unconverged'] = True to restart")
+            raise VaspNotConverged("This calculation did not converge."
+                                   " Set JASPRC['restart_unconverged'] ="
+                                   " True to restart")
         return True
 
     return False
