@@ -325,7 +325,6 @@ def Jasp(debug=None,
         calc = Vasp(restart, output_template, track_output)
         calc.read_incar()
 
-
         if calc.int_params.get('images', None) is not None:
             log.debug('reading neb calculator')
             calc = read_neb_calculator()
@@ -404,8 +403,6 @@ def Jasp(debug=None,
         if not os.path.exists('vdw_kernel.bindat'):
             os.symlink(JASPRC['vdw_kernel.bindat'], 'vdw_kernel.bindat')
 
-    # Finally, check if VASP changed the bands
-    vasp_changed_bands(calc)
     return calc
 
 class cd:
