@@ -810,9 +810,10 @@ def checkerr_vasp(self):
         if not converged:
             errors.append(('Converged', converged))
 
-        # Then if ibrion > 0, check whether ionic relaxation condition
-        # been fulfilled
-        if self.int_params['ibrion'] > 0:
+        # Then if ibrion > 0, check whether ionic relaxation condition been
+        # fulfilled, but we do not check ibrion >3 because those are vibrational
+        # type calculations.
+        if self.int_params['ibrion'] in [1, 2, 3]:
             if not self.read_relaxed():
                 errors.append(('Ions/cell Converged', converged))
 
