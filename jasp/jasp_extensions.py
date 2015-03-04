@@ -1154,4 +1154,4 @@ def get_number_of_ionic_steps(self):
             nsteps = int(line.split('(')[0].split()[-1].strip())
     return nsteps
 
-Vasp.get_number_of_steps = get_number_of_ionic_steps
+Vasp.get_number_of_ionic_steps = get_number_of_ionic_steps
