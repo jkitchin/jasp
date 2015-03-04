@@ -35,7 +35,8 @@ JASPRC = {'vasp.executable.serial':
           'queue.mem': '2GB',
           'queue.jobname': 'None',
           'multiprocessing.cores_per_process': 'None',
-          'vdw_kernel.bindat': '/opt/kitchingroup/vasp-5.3.5/vdw_kernel.bindat'
+          'vdw_kernel.bindat': '/opt/kitchingroup/vasp-5.3.5/vdw_kernel.bindat',
+          'restart_unconverged': True
           }
 
 
