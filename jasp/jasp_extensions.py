@@ -793,6 +793,9 @@ def checkerr_vasp(self):
                      'failed',
                      'non-integer']
 
+    # Check if VASP changed the bands
+    vasp_changed_bands(calc)
+
     errors = []
     if os.path.exists('OUTCAR'):
         f = open('OUTCAR')
