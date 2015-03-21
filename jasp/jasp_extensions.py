@@ -12,7 +12,7 @@ vaspfiles = ['INCAR', 'STOPCAR', 'stout', 'POTCAR',
              'ELFCAR', 'PROOUT', 'ase-sort.dat', 'METADATA']
 
 
-def clone(self, newdir, extra_files=()):
+def clone(self, newdir, extra_files=None):
     '''copy a vasp directory to a new directory. Does not overwrite
     existing files. newdir is relative to the the directory the
     calculator was created from, not the current working directory,
@@ -20,6 +20,8 @@ def clone(self, newdir, extra_files=()):
 
     what to do about METADATA, the uuid will be wrong!
     '''
+    if extra_files is None:
+        extra_files = []
 
     if os.path.isabs(newdir):
         newdirpath = newdir
