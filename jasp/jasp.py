@@ -124,7 +124,7 @@ def compatible_atoms_p(a1, a2):
 read. we only care if the number or types of atoms changed.
     a1 is the directory atoms
     a2 is the passed atoms.'''
-    print 'Checking if {0} compatible with {1}.'.format(a1, a2)
+    log.debug('Checking if {0} compatible with {1}.'.format(a1, a2))
     if ((len(a1) != len(a2))
         or
         (a1.get_chemical_symbols() != a2.get_chemical_symbols())):
