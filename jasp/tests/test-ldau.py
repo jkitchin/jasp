@@ -71,10 +71,3 @@ def test_ldauj():
               debug=logging.DEBUG,
               atoms=atoms) as calc:
         assert not calc.calculation_required(calc.get_atoms(), ['energy'])
-
-        
-
-def test_2():
-    CWD = os.getcwd()
-    os.chdir('Fe-base')
-    calc = Vasp(restart=True)
