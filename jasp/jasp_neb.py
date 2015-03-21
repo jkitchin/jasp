@@ -108,7 +108,7 @@ def get_neb(self, npi=1):
             raise VaspQueued
 
         # write out all the images, including initial and final
-        for i,atoms in enumerate(self.neb_images):
+        for i, atoms in enumerate(self.neb_images):
             image_dir = '0{0}'.format(i)
 
             if not os.path.isdir(image_dir):
@@ -180,11 +180,11 @@ def get_neb(self, npi=1):
                 self.write_sort_file()
                 os.chdir(cwd)
 
-        f = open('00/energy','w')
+        f = open('00/energy', 'w')
         f.write(str(self.neb_initial_energy))
         f.close()
 
-        f = open('0{0}/energy'.format(len(self.neb_images)-1),'w')
+        f = open('0{0}/energy'.format(len(self.neb_images) - 1), 'w')
         f.write(str(self.neb_final_energy))
         f.close()
 
@@ -209,8 +209,8 @@ def get_neb(self, npi=1):
                                          # path, it may be tricky to call
                                          # get_potential energy
 
-    log.debug('self.neb_nimages = %i',self.neb_nimages)
-    for i in range(1,self.neb_nimages+1):
+    log.debug('self.neb_nimages = %i', self.neb_nimages)
+    for i in range(1, self.neb_nimages + 1):
         log.debug(self.neb_images[i].numbers)
         nebd = '0{0}'.format(i)
         try:
@@ -225,14 +225,14 @@ def get_neb(self, npi=1):
             # atoms! If I don't do it, the calculations are wrong. If
             # I do it here, it is wrong somewhere else.
             f = open('ase-sort.dat')
-            sort, resort = [],[]
+            sort, resort = [], []
             for line in f:
-                s,r = [int(x) for x in line.split()]
+                s, r = [int(x) for x in line.split()]
                 sort.append(s)
                 resort.append(r)
 
-            log.debug('read %i: %s',i,str(atoms.numbers))
-            log.debug('read %i: %s',i,str(atoms.get_chemical_symbols()))
+            log.debug('read %i: %s', i, str(atoms.numbers))
+            log.debug('read %i: %s', i, str(atoms.get_chemical_symbols()))
             images += [atoms[resort]]
         finally:
             os.chdir('..')
@@ -261,7 +261,7 @@ def plot_neb(self, show=True):
         images = calc.neb_images
         energies = []
         energies += [float(open('00/energy').readline())]
-        for i in range(1,len(images) - 1):
+        for i in range(1, len(images) - 1):
             f = open('0{0}/OUTCAR'.format(i))
             elines = []
             for line in f:
@@ -309,7 +309,7 @@ def plot_neb(self, show=True):
 
 Vasp.plot_neb = plot_neb
 
-# this is a static method
+
 def read_neb_calculator():
     '''Read calculator from the current working directory.
 
@@ -380,8 +380,8 @@ def neb_initialize(neb_images, kwargs):
     log.debug(initial.numbers)
     calc0 = initial.get_calculator()
 
-    log.debug('Calculator cwd = %s',calc0.cwd)
-    log.debug('Calculator vaspdir = %s',calc0.vaspdir)
+    log.debug('Calculator cwd = %s', calc0.cwd)
+    log.debug('Calculator vaspdir = %s', calc0.vaspdir)
 
     # we have to store the initial and final energies because
     # otherwise they will not be available when reread the
