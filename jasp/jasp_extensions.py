@@ -12,7 +12,7 @@ vaspfiles = ['INCAR', 'STOPCAR', 'stout', 'POTCAR',
              'ELFCAR', 'PROOUT', 'ase-sort.dat', 'METADATA']
 
 
-def clone(self, newdir, extra_files=[]):
+def clone(self, newdir, extra_files=None):
     '''copy a vasp directory to a new directory. Does not overwrite
     existing files. newdir is relative to the the directory the
     calculator was created from, not the current working directory,
@@ -20,6 +20,8 @@ def clone(self, newdir, extra_files=[]):
 
     what to do about METADATA, the uuid will be wrong!
     '''
+    if extra_files is None:
+        extra_files = []
 
     if os.path.isabs(newdir):
         newdirpath = newdir
@@ -781,8 +783,6 @@ def pretty_print(self):
 Vasp.__str__ = pretty_print
 
 #########################################################################
-
-
 def vasp_changed_bands(calc):
     '''Check here if VASP changed nbands.'''
     log.debug('Checking if vasp changed nbands')
@@ -810,7 +810,14 @@ def vasp_changed_bands(calc):
 
                 log.debug('calc.kwargs: {0}'.format(calc.kwargs))
                 if calc.kwargs.get('nbands', None) != nbands_new:
-                    raise VaspWarning('''The number of bands was changed by VASP. This happens sometimes when you run in parallel. It causes problems with jasp. I have already updated your INCAR. You need to change the number of bands in your script to match what VASP used to proceed.\n\n ''' + '\n'.join(lines[i - 9: i + 8]))
+                    raise VaspWarning('The number of bands was changed by VASP. '
+                                      'This happens sometimes when you run in '
+                                      'parallel. It causes problems with jasp. '
+                                      'I have already updated your INCAR. '
+                                      'You need to change the number of bands '
+                                      'in your script to match what VASP used '
+                                      'to proceed.\n\n '
+                                      + '\n'.join(lines[i - 9: i + 8]))
 
 
 def checkerr_vasp(self):

@@ -54,7 +54,8 @@ formatter = logging.Formatter(formatstring)
 handler.setFormatter(formatter)
 log.addHandler(handler)
 
-
+# * Utility functions
+# ** Calculation is ok
 def calculation_is_ok(jobid=None):
     '''Returns bool if calculation appears ok.
 
@@ -100,7 +101,9 @@ def calculation_is_ok(jobid=None):
 
     return True
 
-####################################################################
+
+# * Jasp
+# ###################################################################
 # Jasp function - returns a Vasp calculator
 # ###################################################################
 Vasp.results = {}  # for storing data used in ase.db
@@ -114,6 +117,22 @@ default_parameters = {'xc': 'PBE',
                       'lcharg': False,
                       'prec': 'Normal',
                       'kpts': (1, 1, 1)}
+
+
+def compatible_atoms_p(a1, a2):
+    '''Returns whether atoms have changed from what went in to jasp to what was
+read. we only care if the number or types of atoms changed.
+    a1 is the directory atoms
+    a2 is the passed atoms.'''
+    log.debug('Checking if {0} compatible with {1}.'.format(a1, a2))
+    if ((len(a1) != len(a2))
+        or
+        (a1.get_chemical_symbols() != a2.get_chemical_symbols())):
+        raise Exception('Incompatible atoms.\n'
+                        '{0} contains {1}'
+                        ' but you passed {2}, which is not '
+                        'compatible'.format(os.getcwd(),
+                                            a1, a2))
 
 
 def Jasp(debug=None,
@@ -150,7 +169,7 @@ def Jasp(debug=None,
             calc.set(**kwargs)
         except:
             calc = neb_initialize(atoms, kwargs)
-
+# ** Empty directory starting from scratch
     # empty vasp dir. start from scratch
     elif (not os.path.exists('INCAR')):
         calc = Vasp(restart, output_template, track_output)
@@ -159,7 +178,7 @@ def Jasp(debug=None,
             atoms.calc = calc
         log.debug('empty vasp dir. start from scratch')
 
-    # initialized directory, but no job has been run
+# ** initialized directory, but no job has been run
     elif (not os.path.exists('jobid')
           and os.path.exists('INCAR')
           # but no output files
@@ -197,6 +216,7 @@ def Jasp(debug=None,
             pass
 
         if atoms is not None:
+            compatible_atoms_p(calc.get_atoms(), atoms)
             atoms.calc = calc
         else:
             import ase.io
@@ -207,7 +227,7 @@ def Jasp(debug=None,
                 # no POSCAR found
                 pass
 
-    # job created, and in queue, but not running
+# ** job created, and in queue, but not running
     elif (os.path.exists('jobid')
           and job_in_queue(None)):
         '''this case is slightly tricky because you cannot restart if
@@ -243,6 +263,7 @@ def Jasp(debug=None,
                 self.resort = range(len(atoms))
 
             if atoms is not None:
+                compatible_atoms_p(calc.get_atoms(), atoms)
                 self.atoms = atoms
                 atoms.calc = self
             else:
@@ -258,7 +279,7 @@ def Jasp(debug=None,
 
         calc.vasp_queued = True
 
-    # job created, and in queue, and running
+# ** job created, and in queue, and running
     elif (os.path.exists('jobid')
           and job_in_queue(None)):
         log.debug('job created, and in queue, and running')
@@ -272,11 +293,11 @@ def Jasp(debug=None,
             calc = Vasp(restart=True)  # automatically loads results
 
         if atoms is not None:
+            compatible_atoms_p(calc.get_atoms(), atoms)
             atoms.calc = calc
         calc.vasp_running = True
 
-    # job is created, not in queue, not running. finished and
-    # first time we are looking at it
+# ** job is created, not in queue, not running. finished and first time we are looking at it
     elif (os.path.exists('jobid')
           and not job_in_queue(None)):
         log.debug('job is created, not in queue, not running.'
@@ -305,6 +326,7 @@ def Jasp(debug=None,
 
         # now update the atoms object if it was a kwarg
         if atoms is not None and not hasattr(calc, 'neb'):
+            compatible_atoms_p(calc.get_atoms(), atoms)
             atoms.set_cell(calc.atoms.get_cell())
             atoms.set_positions(calc.atoms.get_positions())
             atoms.calc = calc
@@ -315,8 +337,7 @@ def Jasp(debug=None,
             for hook in calc.post_run_hooks:
                 hook(calc)
 
-    # job done long ago, jobid deleted, no running, and the
-    # output files all exist
+# ** job done long ago, jobid deleted, no running, and the output files all exist
     elif (not os.path.exists('jobid')
           and os.path.exists('CONTCAR')
           and os.path.exists('OUTCAR')
@@ -330,6 +351,7 @@ def Jasp(debug=None,
             log.debug('list params = {}', calc.list_params)
 
         if atoms is not None:
+            compatible_atoms_p(calc.get_atoms(), atoms)
             atoms.set_cell(calc.atoms.get_cell())
             atoms.set_positions(calc.atoms.get_positions())
             atoms.calc = calc
@@ -337,6 +359,7 @@ def Jasp(debug=None,
         raise VaspUnknownState('I do not recognize the state of this'
                                'directory {0}'.format(os.getcwd()))
 
+# ** Done with special cases
     if os.path.exists('METADATA'):
         calc.read_metadata()
 
@@ -360,19 +383,20 @@ def Jasp(debug=None,
          and calc.int_params.get('images', None) is None):
          calc.create_metadata()
 
-    # Check if beef is used
+# ** Check if beef is used
     if calc.string_params.get('gga', None) == 'BF':
         calc.set(luse_vdw=True,
                  zab_vdw=-1.8867,
                  lbeefens=True)
 
-    # check for luse_vdw, and make link to the required kernel if
+# ** check for luse_vdw, and make link to the required kernel if
     # using vdw.
     if calc.bool_params.get('luse_vdw', False):
         if not os.path.exists('vdw_kernel.bindat'):
             os.symlink(JASPRC['vdw_kernel.bindat'], 'vdw_kernel.bindat')
 
     return calc
+
 
 class cd:
     '''Context manager for changing directories.
