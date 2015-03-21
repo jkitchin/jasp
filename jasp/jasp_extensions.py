@@ -783,6 +783,41 @@ def pretty_print(self):
 Vasp.__str__ = pretty_print
 
 #########################################################################
+def vasp_changed_bands(calc):
+    '''Check here if VASP changed nbands.'''
+    log.debug('Checking if vasp changed nbands')
+
+    if not os.path.exists('OUTCAR'):
+        return
+
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            if 'The number of bands has been changed from the values supplied' in line:
+
+                s = lines[i + 5]  # this is where the new bands are found
+                nbands_cur = calc.nbands
+                nbands_ori, nbands_new = [int(x) for x in
+                                          re.search(r"I found NBANDS\s+ =\s+([0-9]*).*=\s+([0-9]*)", s).groups()]
+                log.debug('Calculator nbands = {0}.\n'
+                          'VASP found {1} nbands.\n'
+                          'Changed to {2} nbands.'.format(nbands_cur,
+                                                          nbands_ori,
+                                                          nbands_new))
+
+                calc.set(nbands=nbands_new)
+                calc.write_incar(calc.get_atoms())
+
+                log.debug('calc.kwargs: {0}'.format(calc.kwargs))
+                if calc.kwargs.get('nbands', None) != nbands_new:
+                    raise VaspWarning('The number of bands was changed by VASP. '
+                                      'This happens sometimes when you run in '
+                                      'parallel. It causes problems with jasp. '
+                                      'I have already updated your INCAR. '
+                                      'You need to change the number of bands '
+                                      'in your script to match what VASP used '
+                                      'to proceed.\n\n '
+                                      + '\n'.join(lines[i - 9: i + 8]))
 
 
 def checkerr_vasp(self):
@@ -796,7 +831,7 @@ def checkerr_vasp(self):
                      'non-integer']
 
     # Check if VASP changed the bands
-    vasp_changed_bands(calc)
+    vasp_changed_bands(self)
 
     errors = []
     if os.path.exists('OUTCAR'):
