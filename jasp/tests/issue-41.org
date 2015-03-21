@@ -1,0 +1,186 @@
+* Base calculation
+This is a vanilla calculation to create an existing calculation directory.
+
+#+BEGIN_SRC python
+from ase import Atoms, Atom
+from jasp import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+a = 3.9  # approximate lattice constant
+b = a / 2.
+bulk = Atoms([Atom('Pd', (0.0, 0.0, 0.0))],
+             cell=[(0, b, b),
+                   (b, 0, b),
+                   (b, b, 0)])
+
+with jasp('bulk/pd',
+          encut=300,
+          xc='PBE',
+          kpts=(4, 4, 4),
+          #debug=True,
+          atoms=bulk) as calc:
+    bulk.get_potential_energy()
+    print bulk.calc
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+: -----------------------------
+  VASP calculation from /home-research/jkitchin/kitchin-python/jasp2/jasp/tests/bulk/pd
+  converged: True
+  Energy = -5.191530 eV
+
+  Unit cell vectors (angstroms)
+        x       y     z      length
+  a0 [ 0.000  1.950  1.950] 2.758
+  a1 [ 1.950  0.000  1.950] 2.758
+  a2 [ 1.950  1.950  0.000] 2.758
+  a,b,c,alpha,beta,gamma (deg):2.758 2.758 2.758 60.0 60.0 60.0
+  Unit cell volume = 14.830 Ang^3
+  Stress (GPa):xx,   yy,    zz,    yz,    xz,    xy
+            -0.037 -0.037 -0.037-0.000 -0.000 -0.000
+ Atom#  sym       position [x,y,z]tag  rmsForce constraints
+   0    Pd  [0.000      0.000      0.000]  0   0.00      T T T
+--------------------------------------------------
+
+INCAR Parameters:
+-----------------
+        nbands: 9
+         encut: 300.0
+        magmom: None
+          kpts: (4, 4, 4)
+    reciprocal: False
+            xc: PBE
+           txt: -
+         gamma: False
+
+Pseudopotentials used:
+----------------------
+Pd: /potpaw_PBE/Pd/POTCAR (git-hash: 04426435b178dfad58ed91b470847d50ff70b858)
+#+end_example
+
+* Change atoms before jasp does not and should not work
+jasp replaces the atoms with the contents it reads from bulk/pd in this case. So, the change to Pt before jasp will be undone. This is also a "Bad idea" as the directory name implies Pd, but you change atoms to Pt.
+
+#+BEGIN_SRC python
+from ase import Atoms, Atom
+from jasp import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+a = 3.9  # approximate lattice constant
+b = a / 2.
+bulk = Atoms([Atom('Pd', (0.0, 0.0, 0.0))],
+             cell=[(0, b, b),
+                   (b, 0, b),
+                   (b, b, 0)])
+
+bulk[0].symbol = 'Pt'
+
+with jasp('bulk/pd',
+          encut=300,
+          xc='PBE',
+          kpts=(4, 4, 4),
+          #debug=True,
+          atoms=bulk) as calc:
+    bulk.get_potential_energy()
+    print bulk.calc
+#+END_SRC
+
+#+RESULTS:
+
+
+* Change atoms before jasp with no existing dir does work
+Here there is no directory to read an atoms from, so this works fine, provided bulk/pt does not already exist.
+
+#+BEGIN_SRC python
+from ase import Atoms, Atom
+from jasp import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+a = 3.9  # approximate lattice constant
+b = a / 2.
+bulk = Atoms([Atom('Pd', (0.0, 0.0, 0.0))],
+             cell=[(0, b, b),
+                   (b, 0, b),
+                   (b, b, 0)])
+
+bulk[0].symbol = 'Pt'
+
+with jasp('bulk/pt',
+          encut=300,
+          xc='PBE',
+          kpts=(4, 4, 4),
+          #debug=True,
+          atoms=bulk) as calc:
+    bulk.get_potential_energy()
+    print bulk.calc
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+: -----------------------------
+  VASP calculation from /home-research/jkitchin/kitchin-python/jasp2/jasp/tests/bulk/pt
+  converged: True
+  Energy = -6.049673 eV
+
+  Unit cell vectors (angstroms)
+        x       y     z      length
+  a0 [ 0.000  1.950  1.950] 2.758
+  a1 [ 1.950  0.000  1.950] 2.758
+  a2 [ 1.950  1.950  0.000] 2.758
+  a,b,c,alpha,beta,gamma (deg):2.758 2.758 2.758 60.0 60.0 60.0
+  Unit cell volume = 14.830 Ang^3
+  Stress (GPa):xx,   yy,    zz,    yz,    xz,    xy
+            -0.086 -0.086 -0.086-0.000 -0.000 -0.000
+ Atom#  sym       position [x,y,z]tag  rmsForce constraints
+   0    Pt  [0.000      0.000      0.000]  0   0.00      T T T
+--------------------------------------------------
+
+INCAR Parameters:
+-----------------
+        nbands: 9
+         encut: 300.0
+        magmom: None
+          kpts: (4, 4, 4)
+    reciprocal: False
+            xc: PBE
+           txt: -
+         gamma: False
+
+Pseudopotentials used:
+----------------------
+Pt: /potpaw_PBE/Pt/POTCAR (git-hash: c9f5adbac3c11280bb8d4977d5b608dc070ed851)
+#+end_example
+
+* Change atoms after jasp is the wrong thing to do
+
+This is also a "BAD IDEA" since we change the atoms in a way that no longer reflects the directory name. But, it should work. This will also, rightly so, cause the calculation to be rerun repeatedly, because you changed the atoms after they were read from the directory.
+
+#+BEGIN_SRC python
+from ase import Atoms, Atom
+from jasp import *
+import matplotlib.pyplot as plt
+import numpy as np
+
+a = 3.9  # approximate lattice constant
+b = a / 2.
+bulk = Atoms([Atom('Pt', (0.0, 0.0, 0.0))],
+             cell=[(0, b, b),
+                   (b, 0, b),
+                   (b, b, 0)])
+
+with jasp('bulk/pt',
+          encut=300,
+          xc='PBE',
+          kpts=(4, 4, 4),
+          #debug=True,
+          atoms=bulk) as calc:
+    bulk[0].symbol = 'Au'
+    bulk.get_potential_energy()
+    print bulk.calc
+#+END_SRC
+
+#+RESULTS:
