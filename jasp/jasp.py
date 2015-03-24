@@ -263,7 +263,7 @@ def Jasp(debug=None,
                 self.resort = range(len(atoms))
 
             if atoms is not None:
-                compatible_atoms_p(calc.get_atoms(), atoms)
+                compatible_atoms_p(patoms, atoms)
                 self.atoms = atoms
                 atoms.calc = self
             else:
