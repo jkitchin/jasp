@@ -54,7 +54,7 @@ def get_charge_density(self, spin=0):
     Relies on :func:`ase.calculators.vasp.VaspChargeDensity`.
     """
 
-    
+
     x, y, z, data = get_volumetric_data(self, filename='CHG')
     return x, y, z, data[spin]
 
@@ -113,13 +113,14 @@ def get_electron_density_center(self, spin=0, scaled=True):
         return electron_density_center
 
 
-def get_dipole_moment(self):
+def get_dipole_moment(self, atoms=None):
     '''Returns the dipole vector of the unit cell in atomic units.
 
     To get the dipole moment, use this formula:
     dipole_moment = ((dipole_vector**2).sum())**0.5/Debye
     '''
-    atoms = self.get_atoms()
+    if atoms is None:
+        atoms = self.get_atoms()
 
     x, y, z, cd = self.get_charge_density()
     n0, n1, n2 = cd.shape
