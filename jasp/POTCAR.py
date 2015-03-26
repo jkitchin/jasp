@@ -3,19 +3,35 @@ Module to parse POTCAR files
 '''
 
 import re
+from subprocess import Popen, PIPE
+
 def get_ZVAL(potcar):
     '''
     return the ZVAL for a potcar file.
-
     parse this line:
        POMASS =  106.420; ZVAL   =   10.000    mass and valenz
     '''
-    f = open(potcar, 'r')
-    for line in f:
+    # First check if it is a .Z type file
+    if potcar.endswith('.Z'):
+        cmdlist = ['zcat', potcar]
+        p = Popen(cmdlist, stdin=PIPE, stdout=PIPE, stderr=PIPE,)
+        out, err = p.communicate()
+        if out == '' or err != '':
+            raise Exception('Cannot read POTCAR.Z:\n\n{0}'.format(err))
+
+        lines = out.split('\n')
+    
+    else:
+        with open(potcar, 'r') as f:
+            lines = f.readlines()
+        
+    for line in lines:
         if 'ZVAL' in line:
             m = re.search('ZVAL   =\s*([0-9]*\.?[0-9]*)', line)
-    f.close()
-    return float(m.group(1))
+            return float(m.group(1))
+
+    return
+
 
 def get_ENMAX(potcar):
     ''' Return ENMAX from the potcar file.'''
