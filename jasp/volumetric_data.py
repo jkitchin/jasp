@@ -114,7 +114,8 @@ def get_electron_density_center(self, spin=0, scaled=True):
 
 
 def get_dipole_moment(self, atoms=None):
-    '''Returns the dipole vector of the unit cell in atomic units.
+    '''Tries to return the dipole vector of the unit cell in atomic units.
+    Returns None when CHG file is empty/not-present.
 
     To get the dipole moment, use this formula:
     dipole_moment = ((dipole_vector**2).sum())**0.5/Debye
@@ -122,7 +123,13 @@ def get_dipole_moment(self, atoms=None):
     if atoms is None:
         atoms = self.get_atoms()
 
-    x, y, z, cd = self.get_charge_density()
+    try:
+        x, y, z, cd = self.get_charge_density()
+    except (IOError, IndexError):
+        # IOError: no CHG file, function called outside context manager
+        # IndexError: Empty CHG file, Vasp run with lcharg=False
+        return None
+        
     n0, n1, n2 = cd.shape
     nelements = n0 * n1 * n2
     voxel_volume = atoms.get_volume() / nelements
