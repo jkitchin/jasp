@@ -21,13 +21,11 @@ def get_volumetric_data(self, filename='CHG', **kwargs):
     data = np.array(vd.chg)
     n0, n1, n2 = data[0].shape
 
-    s0 = 1.0 / n0
-    s1 = 1.0 / n1
-    s2 = 1.0 / n2
+    s0 = np.linspace(0, 1, num=n0, endpoint=False)
+    s1 = np.linspace(0, 1, num=n1, endpoint=False)
+    s2 = np.linspace(0, 1, num=n2, endpoint=False)
 
-    X, Y, Z = np.mgrid[0.0:1.0:s0,
-                       0.0:1.0:s1,
-                       0.0:1.0:s2]
+    Y, X, Z = np.meshgrid(s0, s1, s2)
 
     C = np.column_stack([X.ravel(),
                          Y.ravel(),
