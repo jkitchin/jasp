@@ -50,9 +50,8 @@ def get_charge_density(self, spin=0, filename='CHG'):
     :returns: x, y, z, charge density arrays
     :rtype: 3-d numpy arrays
 
-    Relies on :func:`ase.calculators.vasp.VaspChargeDensity`.    
+    Relies on :func:`ase.calculators.vasp.VaspChargeDensity`.
     """
-
 
     x, y, z, data = get_volumetric_data(self, filename=filename)
     return x, y, z, data[spin]
