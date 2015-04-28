@@ -42,8 +42,9 @@ def get_volumetric_data(self, filename='CHG', **kwargs):
     return x, y, z, data
 
 
-def get_charge_density(self, spin=0):
+def get_charge_density(self, spin=0, filename='CHG'):
     """Returns x, y, and z coordinate and charge density arrays.
+    Supported file formats: CHG, CHGCAR
 
     :param int spin:
     :returns: x, y, z, charge density arrays
@@ -52,8 +53,7 @@ def get_charge_density(self, spin=0):
     Relies on :func:`ase.calculators.vasp.VaspChargeDensity`.
     """
 
-
-    x, y, z, data = get_volumetric_data(self, filename='CHG')
+    x, y, z, data = get_volumetric_data(self, filename=filename)
     return x, y, z, data[spin]
 
 Vasp.get_charge_density = get_charge_density
