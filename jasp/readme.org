@@ -9,10 +9,10 @@ jasp requires python 2.6+ to work, and the latest svn version of ase.
 * Installing jasp
 ** stable
 2. Installation  requirement:
-You need to install vasp (commercial codes see http://cms.mpi.univie.ac.at) 
+You need to install vasp (commercial codes see http://cms.mpi.univie.ac.at)
 and ASE  (see https://wiki.fysik.dtu.dk/ase/download.html )
 
-Make sure you can run VASP from the command line, make sure the ase tests pass. 
+Make sure you can run VASP from the command line, make sure the ase tests pass.
 
 Python modules that jasp depends on:
 ase
@@ -133,8 +133,6 @@ Contains the JASP class and jasp context manager. Code to see if calculation fin
 [[./jasp_atoms.py]] - monkey patches to ase.Atom and ase.Atoms. adds set_volume, a better __repr__, and a different atoms equality check.
 
 [[./POTCAR.py]] - some functions to parse POTCAR files for data
-
-[[./CHG.py]] - reads CHCAR, computes dipole moment
 
 [[./volumetric_data.py]] - reads volumetric data from vasp calculations
 
