@@ -216,7 +216,9 @@ def Jasp(debug=None,
             pass
 
         if atoms is not None:
-            compatible_atoms_p(calc.get_atoms(), atoms)
+            import ase.io
+            atoms0 = ase.io.read('POSCAR')
+            compatible_atoms_p(atoms0, atoms)
             atoms.calc = calc
         else:
             import ase.io
