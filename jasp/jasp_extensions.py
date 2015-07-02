@@ -1192,3 +1192,133 @@ def get_number_of_ionic_steps(self):
     return nsteps
 
 Vasp.get_number_of_ionic_steps = get_number_of_ionic_steps
+
+
+def get_required_memory(self):
+    ''' Returns the recommended memory needed for a VASP calculation
+    This method determines the memory requirements from
+    KPOINT calculations run locally before submission to the queue
+
+    Further Beta testing is required before release
+
+    Code retrieves memory estimate based on the following priority:
+    1) METADATA, 2) existing OUTCAR, and 3)run diagnostic calculation
+    '''
+    import json
+
+    def get_memory():
+        ''' Retrieves the recommended memory from the OUTCAR
+        '''
+
+        if os.path.exists('OUTCAR'):
+            with open('OUTCAR') as f:
+                lines = f.readlines()
+        else:
+            return None
+
+        for line in lines:
+
+            # There can be multiple instances of this,
+            # but they all seem to be identical
+            if 'memory' in line:
+
+                # Read the memory usage
+                required_mem = float(line.split()[-2]) / 1e6
+                return required_mem
+
+    # Attempt to get the recommended memory from METADATA
+    # JASP automatically generates a METADATA file when
+    # run, so there should be no instances where it does not exist
+    with open('METADATA', 'r') as f:
+
+        data = json.load(f)
+        try:
+            memory = data['recommended.memory']
+
+        except(KeyError):
+
+            # Check if an OUTCAR exists from a previous run
+            if os.path.exists('OUTCAR'):
+                memory = get_memory()
+
+                # Write the recommended memory to the METADATA file
+                with open('METADATA', 'r+') as f:
+
+                    data = json.load(f)
+                    data['recommended.memory'] = memory
+                    f.seek(0)
+                    json.dump(data, f)
+
+            # If no OUTCAR exists, we run a 'dummy' calculation
+            else:
+                original_ialgo = self.int_params.get('ialgo')
+                self.int_params['ialgo'] = -1
+
+                # Generate the base files needed for VASP calculation
+                atoms = self.get_atoms()
+                self.initialize(atoms)
+
+                from ase.io.vasp import write_vasp
+                write_vasp('POSCAR',
+                           self.atoms_sorted,
+                           symbol_count=self.symbol_count)
+                self.write_incar(atoms)
+                self.write_potcar()
+                self.write_kpoints()
+                self.write_sort_file()
+
+                # We only need the memory estimate, so we can greatly
+                # accelerate the process by terminating after we have it
+                process = Popen(JASPRC['vasp.executable.serial'],
+                                stdout=PIPE)
+                while not get_memory():
+                    time.sleep(0.1)
+                process.terminate()
+
+                # Now get memory and clean up from mock run
+                memory = get_memory()
+
+                # return to original settings
+                self.int_params['ialgo'] = original_ialgo
+                with open('INCAR', 'r') as f:
+                    lines = f.readlines()
+
+                for i, line in enumerate(lines):
+                    if 'IALGO' in line and type(original_ialgo) is int:
+                        lines[i] = ' IALGO = {0}\n'.format(original_ialgo)
+                    elif 'IALGO' in line:
+                        del lines[i]
+
+                with open('INCAR', 'w') as f:
+                    f.write(''.join(lines))
+
+                # Write the recommended memory to the METADATA file
+                with open('METADATA', 'r+') as f:
+
+                    data = json.load(f)
+                    data['recommended.memory'] = memory
+                    f.seek(0)
+                    json.dump(data, f)
+
+                # Remove all non-initialization files
+                files = ['CHG', 'CHGCAR', 'CONTCAR', 'DOSCAR',
+                         'EIGENVAL', 'IBZKPT', 'OSZICAR', 'PCDAT',
+                         'vasprun.xml', 'OUTCAR', 'WAVECAR', 'XDATCAR']
+
+                for f in files:
+                    os.unlink(f)
+
+    # Each node will require the memory read from the OUTCAR
+    nodes = JASPRC['queue.nodes']
+    ppn = JASPRC['queue.ppn']
+
+    # Return an integer
+    import math
+    total_memory = int(math.ceil(nodes * ppn * memory))
+
+    JASPRC['queue.mem'] = '{0}GB'.format(total_memory)
+
+    # return the memory as read from the OUTCAR
+    return memory
+
+Vasp.get_required_memory = get_required_memory
