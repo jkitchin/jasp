@@ -1271,6 +1271,7 @@ def get_required_memory(self):
             process = Popen(JASPRC['vasp.executable.serial'],
                             stdout=PIPE)
 
+            from threading import Timer
             timer = Timer(15.0, process.kill())
             timer.start()
             while True:
