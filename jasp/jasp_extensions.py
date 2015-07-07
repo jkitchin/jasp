@@ -1270,26 +1270,22 @@ def get_required_memory(self):
             # accelerate the process by terminating after we have it
             process = Popen(JASPRC['vasp.executable.serial'],
                             stdout=PIPE)
-            while not get_memory():
-                time.sleep(0.1)
-            process.terminate()
 
-            # Now get memory and clean up from mock run
-            memory = get_memory()
+            timer = Timer(15.0, process.kill())
+            timer.start()
+            while True:
+                if timer.is_alive():
+                    memory = get_memory()
+                    if memory:
+                        timer.cancel()
+                        process.terminate()
+                        break
+                else:
+                    raise RuntimeError('Memory estimate timed out')
 
             # return to original settings
             self.int_params['ialgo'] = original_ialgo
-            with open('INCAR', 'r') as f:
-                lines = f.readlines()
-
-            for i, line in enumerate(lines):
-                if 'IALGO' in line and type(original_ialgo) is int:
-                    lines[i] = ' IALGO = {0}\n'.format(original_ialgo)
-                elif 'IALGO' in line:
-                    del lines[i]
-
-            with open('INCAR', 'w') as f:
-                f.write(''.join(lines))
+            self.write_incar(atoms)
 
             # Write the recommended memory to the METADATA file
             with open('METADATA', 'r+') as f:
