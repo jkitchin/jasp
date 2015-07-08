@@ -25,7 +25,7 @@ import os
 JASPRC = {'vasp.executable.serial':
           '/opt/kitchingroup/vasp-5.3.5/bin/vasp-vtst-serial-beef',
           'vasp.executable.parallel':
-          '/opt/kitchingroup/vasp-5.3.5/bin/vasp-vtst-parallel', # -beef-vaspsol
+          '/opt/kitchingroup/vasp-5.3.5/bin/vasp-vtst-parallel-beef-vaspsol',
           'mode': 'queue',  # other value is 'run'
           'queue.command': 'qsub',
           'queue.options': '-joe',
