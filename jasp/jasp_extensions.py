@@ -1266,13 +1266,17 @@ def get_required_memory(self):
             self.write_kpoints()
             self.write_sort_file()
 
+            # Need to pass a function to Timer for delayed execution
+            def kill():
+                process.kill()
+
             # We only need the memory estimate, so we can greatly
             # accelerate the process by terminating after we have it
             process = Popen(JASPRC['vasp.executable.serial'],
                             stdout=PIPE)
 
             from threading import Timer
-            timer = Timer(15.0, process.kill())
+            timer = Timer(20.0, kill)
             timer.start()
             while True:
                 if timer.is_alive():
@@ -1281,6 +1285,8 @@ def get_required_memory(self):
                         timer.cancel()
                         process.terminate()
                         break
+                    else:
+                        time.sleep(0.1)
                 else:
                     raise RuntimeError('Memory estimate timed out')
 
