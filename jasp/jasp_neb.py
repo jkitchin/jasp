@@ -62,7 +62,7 @@ def get_neb(self, npi=1):
 
     # check for OUTCAR in each image dir
     for i in range(1, len(self.neb_images)-1):
-        wf = '0{0}/OUTCAR'.format(i)
+        wf = '{0}/OUTCAR'.format(str(i).zfill(2))
         if not os.path.exists(wf):
             log.debug('calc_required in {0}'.format(wf))
             calc_required = True
@@ -78,10 +78,10 @@ def get_neb(self, npi=1):
                 f.close()
                 return False
 
-            converged = subdir_converged('0{0}/OUTCAR'.format(i))
+            converged = subdir_converged('{0}/OUTCAR'.format(str(i).zfill(2)))
 
             if not converged:
-                print '0{0} does not appear converged'.format(i)
+                print '{0} does not appear converged'.format(str(i).zfill(2))
 
     # make sure no keywords have changed
     if not ((self.float_params == self.old_float_params) and
@@ -109,7 +109,8 @@ def get_neb(self, npi=1):
 
         # write out all the images, including initial and final
         for i, atoms in enumerate(self.neb_images):
-            image_dir = '0{0}'.format(i)
+            image_dir = str(i).zfill(2)
+                
 
             if not os.path.isdir(image_dir):
                 # create if needed.
@@ -184,7 +185,7 @@ def get_neb(self, npi=1):
         f.write(str(self.neb_initial_energy))
         f.close()
 
-        f = open('0{0}/energy'.format(len(self.neb_images) - 1), 'w')
+        f = open('{0}/energy'.format(str(len(self.neb_images) - 1).zfill(2)), 'w')
         f.write(str(self.neb_final_energy))
         f.close()
 
@@ -212,7 +213,7 @@ def get_neb(self, npi=1):
     log.debug('self.neb_nimages = %i', self.neb_nimages)
     for i in range(1, self.neb_nimages + 1):
         log.debug(self.neb_images[i].numbers)
-        nebd = '0{0}'.format(i)
+        nebd = str(i).zfill(2)
         try:
             os.chdir(nebd)
             log.debug('in %s' % nebd)
@@ -262,7 +263,7 @@ def plot_neb(self, show=True):
         energies = []
         energies += [float(open('00/energy').readline())]
         for i in range(1, len(images) - 1):
-            f = open('0{0}/OUTCAR'.format(i))
+            f = open('{0}/OUTCAR'.format(str(i).zfill(2)))
             elines = []
             for line in f:
                 if 'energy w' in line:
@@ -272,7 +273,7 @@ def plot_neb(self, show=True):
             # take last line
             fields = elines[-1].split()
             energies += [float(fields[-1])]
-        energies += [float(open('0{0}/energy'.format(len(images) - 1)).readline())]
+        energies += [float(open('{0}/energy'.format(str(len(images) - 1)).zfill(2)).readline())]
 
     energies = np.array(energies) - energies[0]
 
@@ -331,7 +332,7 @@ def read_neb_calculator():
         log.debug('reading neb calculator: 0%i', i)
         cwd = os.getcwd()
 
-        os.chdir('0{0}'.format(i))
+        os.chdir('{0}'.format(str(i).zfill(2)))
         if os.path.exists('CONTCAR'):
             f = open('CONTCAR')
             if f.read() == '':
@@ -359,7 +360,7 @@ def read_neb_calculator():
     f = open('00/energy')
     calc.neb_initial_energy = float(f.readline().strip())
     f.close()
-    f = open('0{0}/energy'.format(len(images) - 1))
+    f = open('{0}/energy'.format(str(len(images) - 1)).zfill(2))
     calc.neb_final_energy = float(f.readline().strip())
     f.close()
 
