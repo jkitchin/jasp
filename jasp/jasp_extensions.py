@@ -1363,9 +1363,8 @@ def bader(self, cmd=None, ref=False, verbose=False, overwrite=False):
     out, err = p.communicate()
     if out == '' or err != '':
         raise Exception('Cannot perform Bader:\n\n{0}'.format(err))
-    else:
-        if verbose:
-            print('Bader completed for {0}'.format(self.vaspdir))
+    elif verbose:
+        print('Bader completed for {0}'.format(self.vaspdir))
 
 Vasp.bader = bader
 
