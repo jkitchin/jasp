@@ -328,7 +328,7 @@ def read_neb_calculator():
 
     images = []
     log.debug('calc.int_params[images] = %i', calc.int_params['images'])
-    for i in range(calc.int_params['images'] + 2):
+    for i in range(calc.int_params['images']):
         log.debug('reading neb calculator: 0%i', i)
         cwd = os.getcwd()
 
@@ -360,7 +360,7 @@ def read_neb_calculator():
     f = open('00/energy')
     calc.neb_initial_energy = float(f.readline().strip())
     f.close()
-    f = open('{0}/energy'.format(str(len(images) - 1)).zfill(2))
+    f = open('{0}/energy'.format(str(len(images) - 1).zfill(2)))
     calc.neb_final_energy = float(f.readline().strip())
     f.close()
 
