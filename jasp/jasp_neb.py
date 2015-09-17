@@ -323,12 +323,16 @@ def read_neb_calculator():
     calc.read_kpoints()
 
     # set default functional
+    # if both gga and xc are not specified
     if calc.string_params['gga'] is None:
-        calc.input_params['xc'] = 'PBE'
+        if calc.input_params['xc'] is None:
+            calc.input_params['xc'] = 'PBE'
 
     images = []
     log.debug('calc.int_params[images] = %i', calc.int_params['images'])
-    for i in range(calc.int_params['images']):
+    # Add 2 to IMAGES flag from INCAR to get
+    # first and last images
+    for i in range(calc.int_params['images'] + 2):
         log.debug('reading neb calculator: 0%i', i)
         cwd = os.getcwd()
 
