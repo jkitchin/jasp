@@ -130,12 +130,12 @@ Uses `search-site-url' to do the actual search.
   "return number of valence electrons for the POTCAR
 functional can be lower case. chemical-symbol must be correct"
   (interactive "sFunctional: \nsChemical Symbol: ")
-  (shell-command (format "awk 'NR==2{print;exit}' %s" 
+  (shell-command (format "awk 'NR==2{print;exit}' %s"
 			 (format "%s/potpaw_%s/%s/POTCAR"
 				 (getenv "VASP_PP_PATH")
 				 (upcase functional)
 				 chemical-symbol))))
-    
+
 ;; define a menu for vasp-mode
 (defvar vasp-mode-map
   (let ((map (make-sparse-keymap)))
@@ -146,7 +146,9 @@ functional can be lower case. chemical-symbol must be correct"
     map)
   "Keymap for vasp-mode")
 
-(defvar vasp-mode-hook nil "*List of functions to call when entering vasp mode.")
+(defvar vasp-mode-hook
+  nil
+  "*List of functions to call when entering vasp mode.")
 
 (require 'easymenu)
 
