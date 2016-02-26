@@ -1,0 +1,91 @@
+* encut
+ENCUT= [real]
+
+Default:
+ENCUT	=	largest ENMAX from POTCAR-file
+
+
+Cut-off energy for plane wave basis set in eV. All plane-waves with a kinetic energy smaller than  $ E_ {\rm cut}$ are included in the basis set: i.e.
+
+$\displaystyle \vert {\bf G}+ {\bf k}\vert < G_{\rm cut}$   with$\displaystyle \qquad E_{\rm cut}=\frac{\hbar^2}{2m}G_{\rm cut}^2
+$
+The number of plane waves differs for each k-point, leading to a superior beahviour for e.g. energy-volume calculations. If the volume is increased the total number of plane waves changes fairly smoothly. The criterion  $ \vert {\bf G}\vert < G_{\rm cut}$ (i.e. same basis set for each k-point) would lead to a very rough energy-volume curve and, generally, slower energy convergence.
+Starting from version VASP 3.2 the POTCAR files contains a default ENMAX (and ENMIN) line, therefore it is in principle not necessary to specify ENCUT in the INCAR file. For calculations with more than one species, the maximum cutoff (ENMAX or ENMIN) value is used for the calculation (see below, Sec. 6.11). For consistency reasons we still recommend to specify the cutoff manually in the INCAR file and keep in constant throughout a set of calculations.
+
+* sigma
+
+Default
+ISMEAR	=	1
+SIGMA	=	0.2
+ISMEAR determines how the partial occupancies  tex2html_wrap_inline4645 are set for each wavefunction. For the finite temperature LDA SIGMA determines the width of the smearing in eV.
+
+ISMEAR:
+
+-1
+Fermi-smearing
+0
+Gaussian smearing
+1..N
+method of Methfessel-Paxton order N Mind: For the Methfessel-Paxton scheme the partial occupancies can be negative.
+-2
+partial occupancies are read in from INCAR, and kept fixed throughout run.
+There should be a tag
+
+displaymath4639
+
+and for spin-polarized calculations
+
+displaymath4640
+
+in the INCAR file supplying the partial occupancies for all bands and k-points. The band-index runs fastest. The partial occupancies must be between 0 and 1 (for spin-polarized and non-spin-polarized calculations). Mind: Partial occupancies are also written to the OUTCAR file, but in this case they are multiplied by 2, i.e. they are between 0 and 2.
+
+-3
+make a loop over the different smearing-parameters supplied in the INCAR file.
+There should be a tag
+
+displaymath4641
+
+in the INCAR file, supplying different smearing parameters. IBRION is set to -1 and NSW to the number of supplied values. The first loop is done using tetrahedron method with Blöchl corrections.
+
+-4
+tetrahedron method without Blöchl corrections
+-5
+tetrahedron method with Blöchl corrections
+For the calculation of the total energy in bulk materials we recommend the tetrahedron method with Blöchl corrections (ISMEAR=-5). This method also gives a smooth nice electronic density of states (DOS). The only drawback is that the methods is not variational with respect to the partial occupancies, therefore the calculated forces might be wrong by a few percent for metals. For the calculation of phonon frequencies based on forces we recommend the method of Methfessel-Paxton (ISMEAR>0). For semiconductors and insulators the forces are always correct, because partial occupancies do not vary!
+The method of Methfessel-Paxton (MP) also results in a very accurate description of the total energy, nevertheless the width of the smearing (SIGMA) must be chosen carefully (see also 9.4). Too large smearing-parameters might result in a wrong total energy, small smearing parameters require a large k-point mesh. SIGMA should be as large as possible, but the difference between the free energy and the total energy (i.e. the term ' entropy T*S') in the OUTCAR should be negligible (usually less than 1 meV/atom). In most cases N=1 and N=2 leads to very similar results. The method of MP is also the method of choice for large super cells. In this case the tetrahedron method is not applicable if less than three k-points are used.
+
+Mind: Avoid to use ISMEAR>0 for semiconductors and insulators, it might result in problems, because this function gives occupancies which are larger than 2. For insulators you can always use the tetrahedron method (ISMEAR=-5).
+
+The Gaussian smearing (GS) method leads in most cases also to reasonable results. Within this method it is necessary to extrapolate from finite SIGMA results to SIGMA=0 results. There is an extra-line in the OUTCAR file 'energy(SIGMA  tex2html_wrap_inline4651 )' stating the results of this extrapolation. Large SIGMA values lead to a similar error as the MP scheme, but in contrast to the MP scheme there is no way to figure out, how large the error due to the smearing is. Therefore the method of MP seems to be superior to the GS method. In addition forces and stress are consistent with the free energy and not the energy for SIGMA  tex2html_wrap_inline4351 0. Usually the Methfessel-Paxton is therefore easier to use.
+
+For further considerations on the choice for the smearing method see sections 9.4,10.6. To summarize, use the following guidelines:
+
+For semiconductors or insulators use always tetrahedron method (ISMEAR=-5), if the cell is too large (or if you use only 1 or two k-points) use ISMEAR=0.
+For relaxations in metals always use ISMEAR=1 and an appropriated SIGMA value (the entropy term should less than 1 meV per atom). Mind: Avoid to use ISMEAR>0 for semiconductors and insulators, it might result in problems.
+For metals a sensible value is usually SIGMA= 0.2 (that's the value we use for most transition metal surfaces).
+
+For the DOS and very accurate total energy calculations (no relaxation in metals) use the tetrahedron method (ISMEAR=-5).
+* isif
+Default
+if IBRION=0 (MD)	0
+else	2
+ISIF controls whether the stress tensor is calculated. The calculation of the stress tensor is relatively time-consuming, and therefore by default switched off for ab initio MD's. Forces are always calculated.
+
+In addition ISIF determines which degrees of freedom (ions, cell volume, cell shape) are allowed to change.
+
+The following table shows the meaning of ISIF. At the moment cell changes are only supported for relaxations and nor fot molecular dynamics simulations.
+
+ISIF	calculate	calculate	relax	change	change
+force	stress tensor	ions	cell shape	cell volume
+0	yes	no	yes	no	no
+1	yes	trace only  tex2html_wrap_inline4607	yes	no	no
+2	yes	yes	yes	no	no
+3	yes	yes	yes	yes	yes
+4	yes	yes	yes	yes	no
+5	yes	yes	no	yes	no
+6	yes	yes	no	yes	yes
+7	yes	yes	no	no	yes
+tex2html_wrap_inline4607 Trace only means that only the total pressure, i.e. the line
+
+external pressure =      ... kB
+is correct. The individual components of the stress tensor are not reliable in that case. This switch must be used with caution. Mind: Before you perform relaxations in which the volume or the cell shape is allowed to change you must read and understand section 9.6. In general volume changes should be done only with a slightly increased energy cutoff (i.e. ENCUT=1.3 * default value, or PREC=High in vasp.4.4).
