@@ -2,7 +2,7 @@
 
 This is a python module for running VASP our (the Kitchin group) way. See http://kitchingroup.cheme.cmu.edu/dft-book for comprehensive examples of using =jasp=.
 
-Briefly, =jasp= simplifies creation of calculation scripts, automates job submission and management to a queue system, and provides more functionality than the ase.calculators.vasp module. Python 2.7 is probably required, and =jasp= uses as many new features of python as possible.
+Briefly, =jasp= simplifies creation of calculation scripts, automates job submission and management to a queue system, and provides more functionality than the ase.calculators.vasp module. Python 2.7 is required, and =jasp= uses as many new features of python as possible.
 
 
 * Installation
