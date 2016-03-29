@@ -1,4 +1,4 @@
-'''Configuration dictionary for submitting jobs
+"""Configuration dictionary for submitting jobs
 
 mode = queue   # this defines whether jobs are immediately run or queued
 user.name = jkitchin
@@ -18,7 +18,7 @@ then check for ./.jasprc
 Note that the environment variables VASP_SERIAL and VASP_PARALLEL can
 also be used to identify the vasp executables used by runjasp.py.
 
-'''
+"""
 import os
 
 # default settings
@@ -41,7 +41,7 @@ JASPRC = {'vasp.executable.serial':
 
 
 def read_configuration(fname):
-    '''reads jasprc configuration from fname'''
+    """Reads jasprc configuration from fname."""
     f = open(fname)
     for line in f:
         line = line.strip()

@@ -485,4 +485,4 @@ if __name__ == '__main__':
     from jasp import *
 
     with jasp('tests/molecules/simple-co') as calc:
-        print calc.org(3)
+        print(calc.org(3))

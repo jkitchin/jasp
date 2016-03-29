@@ -1,8 +1,9 @@
 from jasp import *
-from ase.io import read, write
-from ase.io.vasp import read_vasp, write_vasp
+from ase.io import read
+from ase.io.vasp import write_vasp
+from ase.calculators.vasp import Vasp
 
-'''
+"""
 code for running NEB calculations in jasp
 
 here is typical code to set up the band:
@@ -30,17 +31,17 @@ with jasp('O-diffusion',
           images, energies = calc.get_neb()
 
 The spring tag triggers the setup of an NEB calculation for Jasp.
-'''
+"""
 
 import logging
 log = logging.getLogger('Jasp')
 
 
 def get_neb(self, npi=1):
-    '''Returns images, energies if available or runs the job.
+    """Returns images, energies if available or runs the job.
 
     npi = nodes per image for running the calculations. Default=1
-    '''
+    """
 
     # how do we know if we need to run jobs?  if jobid exists that means
     # it is or was queued
@@ -81,7 +82,7 @@ def get_neb(self, npi=1):
             converged = subdir_converged('{0}/OUTCAR'.format(str(i).zfill(2)))
 
             if not converged:
-                print '{0} does not appear converged'.format(str(i).zfill(2))
+                print('{0} does not appear converged'.format(str(i).zfill(2)))
 
     # make sure no keywords have changed
     if not ((self.float_params == self.old_float_params) and
@@ -97,12 +98,12 @@ def get_neb(self, npi=1):
         log.debug(self.vaspdir)
 
     if calc_required:
-        '''
+        """
         this creates the directories and files if needed.
 
         write out the poscar for all the images. write out the kpoints and
         potcar.
-        '''
+        """
 
         if os.path.exists('jobid'):
             raise VaspQueued
@@ -110,7 +111,6 @@ def get_neb(self, npi=1):
         # write out all the images, including initial and final
         for i, atoms in enumerate(self.neb_images):
             image_dir = str(i).zfill(2)
-                
 
             if not os.path.isdir(image_dir):
                 # create if needed.
@@ -119,8 +119,6 @@ def get_neb(self, npi=1):
                 # this code is copied from
                 # ase.calculators.vasp.initialize to get the sorting
                 # correct.
-                p = self.input_params
-
                 self.all_symbols = atoms.get_chemical_symbols()
                 self.natoms = len(atoms)
                 self.spinpol = atoms.get_initial_magnetic_moments().any()
@@ -175,7 +173,7 @@ def get_neb(self, npi=1):
 
                 write_vasp('{0}/POSCAR'.format(image_dir),
                            self.atoms_sorted,
-                           symbol_count = self.symbol_count)
+                           symbol_count=self.symbol_count)
                 cwd = os.getcwd()
                 os.chdir(image_dir)
                 self.write_sort_file()
@@ -199,16 +197,15 @@ def get_neb(self, npi=1):
         self.write_incar(self.neb_images[0])
 
         JASPRC['queue.nodes'] = npi * self.neb_nimages
-        log.debug('Running on %i nodes',JASPRC['queue.nodes'])
-        self.run() # this will raise VaspSubmitted
+        log.debug('Running on %i nodes', JASPRC['queue.nodes'])
+        self.run()  # this will raise VaspSubmitted
 
     #############################################
     # now we are just retrieving results
     images = [self.neb_images[0]]
-    energies = [self.neb_initial_energy] # this is a tricky point. unless
-                                         # the calc stores an absolute
-                                         # path, it may be tricky to call
-                                         # get_potential energy
+    # this is a tricky point. unless the calc stores an absolute path, it may be
+    # tricky to call get_potential energy
+    energies = [self.neb_initial_energy]
 
     log.debug('self.neb_nimages = %i', self.neb_nimages)
     for i in range(1, self.neb_nimages + 1):
@@ -245,13 +242,14 @@ def get_neb(self, npi=1):
 
 Vasp.get_neb = get_neb
 
+
 def plot_neb(self, show=True):
-    '''Return a list of the energies and atoms objects for each image in
+    """Return a list of the energies and atoms objects for each image in
 
     the band.
 
     by default shows the plot figure
-    '''
+    """
     import jasp
     try:
         images, energies = self.get_neb()
@@ -312,9 +310,10 @@ Vasp.plot_neb = plot_neb
 
 
 def read_neb_calculator():
-    '''Read calculator from the current working directory.
+    """Read calculator from the current working directory.
 
-    Static method that returns a :mod:`jasp.Jasp` calculator.'''
+    Static method that returns a :mod:`jasp.Jasp` calculator.
+    """
     log.debug('Entering read_neb_calculator in {0}'.format(os.getcwd()))
 
     calc = Vasp()
@@ -352,7 +351,7 @@ def read_neb_calculator():
         f = open('ase-sort.dat')
         sort, resort = [], []
         for line in f:
-            s,r = [int(x) for x in line.split()]
+            s, r = [int(x) for x in line.split()]
             sort.append(s)
             resort.append(r)
 
@@ -370,11 +369,12 @@ def read_neb_calculator():
 
     calc.neb_images = images
     calc.neb_nimages = len(images) - 2
-    calc.neb=True
+    calc.neb = True
     return calc
 
+
 def neb_initialize(neb_images, kwargs):
-    '''Creates necessary files for an NEB calculation'''
+    """Creates necessary files for an NEB calculation"""
     for a in neb_images:
         log.debug(a.numbers)
 

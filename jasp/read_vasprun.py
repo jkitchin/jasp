@@ -114,4 +114,4 @@ if __name__ == '__main__':
         f = read_forces(calc)
 
         for atom, force in zip(calc.get_atoms(), f):
-            print atom.symbol, (force**2).sum()**0.5
+            print(atom.symbol, (force**2).sum()**0.5)

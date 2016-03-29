@@ -1,4 +1,5 @@
-import os
+"""jasp module for K-point utility functions."""
+
 import numpy as np
 from ase.calculators.vasp import Vasp
 
@@ -239,13 +240,13 @@ if __name__ == '__main__':
         atoms = calc.get_atoms()
         grid = set_kppra(calc, 1000)
 
-        print grid
-        print 'nkpts: ', np.multiply.reduce(grid)
-        print 'you asked for: ', kppra / len(atoms)
+        print(grid)
+        print('nkpts: ', np.multiply.reduce(grid))
+        print('you asked for: ', kppra / len(atoms))
 
     with jasp('../../dft-org/surfaces/Pt-slab-1x1') as calc:
         grid = set_kppra(calc, 1000, slab=True, even=True)
-        print view(calc.get_atoms())
-        print grid
-        print 'nkpts: ', np.multiply.reduce(grid)
-        print 'you asked for: ', kppra/len(atoms)
+        print(view(calc.get_atoms()))
+        print(grid)
+        print('nkpts: ', np.multiply.reduce(grid))
+        print('you asked for: ', kppra/len(atoms))
