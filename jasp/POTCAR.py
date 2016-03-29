@@ -20,11 +20,11 @@ def get_ZVAL(potcar):
             raise Exception('Cannot read POTCAR.Z:\n\n{0}'.format(err))
 
         lines = out.split('\n')
-    
+
     else:
         with open(potcar, 'r') as f:
             lines = f.readlines()
-        
+
     for line in lines:
         if 'ZVAL' in line:
             m = re.search('ZVAL   =\s*([0-9]*\.?[0-9]*)', line)
@@ -61,7 +61,7 @@ def get_special_setups(potcar='POTCAR'):
     potcars = []
     with open(potcar) as f:
         lines = f.readlines()
-    
+
     # first potcar
     potcars += [lines[0].strip()]
 
@@ -81,6 +81,6 @@ def get_special_setups(potcar='POTCAR'):
 
 
 if __name__ == '__main__':
-    print get_ZVAL('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR')
-    print get_ENMAX('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR')
-    print get_ENMIN('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR')
+    print(get_ZVAL('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR'))
+    print(get_ENMAX('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR'))
+    print(get_ENMIN('/home/jkitchin/src/vasp/potpaw_PBE/Pd/POTCAR'))
