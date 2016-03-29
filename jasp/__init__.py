@@ -1,7 +1,8 @@
 """Wrapper module ase.calculators.vasp to enable automatic job handling with the
 Torque queue system.
 
-provides a function :func:`jasp.Jasp` and a context manager jasp.
+provides a function :func:`jasp.jasp.Jasp` and a context manager
+:func:`jasp.jasp.jasp`.
 
 Jasp(**kwargs) returns a monkeypatched Vasp calculator.
 
