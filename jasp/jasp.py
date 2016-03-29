@@ -9,14 +9,16 @@ with the following features:
 4. atoms is now a keyword
 '''
 
-import commands, exceptions, os, sys
+import os
+import sys
 from hashlib import sha1
 from subprocess import Popen, PIPE
-import numpy as np
-np.set_printoptions(precision=3, suppress=True)
 
 from ase import Atoms
 from ase.calculators.vasp import *
+
+import numpy as np
+np.set_printoptions(precision=3, suppress=True)
 
 # internal imports
 from jasprc import *          # configuration data
@@ -78,7 +80,7 @@ def calculation_is_ok(jobid=None):
 
     with open('INCAR') as f:
         if 'SPRING' in f.read():
-            print 'Apparently an NEB calculation. Check it your self.'
+            print('Apparently an NEB calculation. Check it your self.')
             return True
 
     with open('CONTCAR') as f:
@@ -558,10 +560,10 @@ if __name__ == '__main__':
             if isavaspdir(arg):
                 with jasp(arg) as calc:
                     try:
-                        print '{0:40s} {1}'.format(arg[-40:],
-                                                   calc.calculate())
-                    except (VaspSubmitted, VaspQueued), e:
-                        print e
+                        print('{0:40s} {1}'.format(arg[-40:],
+                                                   calc.calculate()))
+                    except (VaspSubmitted, VaspQueued) as e:
+                        print(e)
                         pass
         else:
             # recurse through each arg
@@ -569,8 +571,8 @@ if __name__ == '__main__':
                 if isavaspdir(path):
                     with jasp(path) as calc:
                         try:
-                            print '{0:40s} {1}'.format(path[-40:],
-                                                       calc.calculate())
-                        except (VaspSubmitted, VaspQueued), e:
-                            print e
+                            print('{0:40s} {1}'.format(path[-40:],
+                                                       calc.calculate()))
+                        except (VaspSubmitted, VaspQueued) as e:
+                            print(e)
                             pass
