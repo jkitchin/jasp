@@ -1,7 +1,7 @@
 from jasp import *
 import uuid
 import textwrap
-
+# * Archive and clone
 # http://cms.mpi.univie.ac.at/vasp/vasp/Files_used_VASP.html
 vaspfiles = ['INCAR', 'STOPCAR', 'stout', 'POTCAR',
              'OUTCAR', 'vasprun.xml',
@@ -98,7 +98,7 @@ def archive(self, archive='vasp', extra_files=[], append=False):
 
 Vasp.archive = archive
 
-
+# * Pseudopotentials
 def get_pseudopotentials(self):
     from os.path import join, isfile, islink
     ''' this is almost the exact code from the original initialize
@@ -190,7 +190,7 @@ def get_pseudopotentials(self):
                 break
         if not found:
             log.debug('Looked for %s' % name)
-            print 'Looked for %s' % name
+            print('Looked for %s' % name)
             raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,
                                                                   name))
     for symbol in symbols:
@@ -212,13 +212,13 @@ def get_pseudopotentials(self):
                 self.ppp_list.append(filename+'.Z')
                 break
         if not found:
-            print '''Looking for %s
+            print('''Looking for %s
                 The pseudopotentials are expected to be in:
                 LDA:  $VASP_PP_PATH/potpaw/
                 PBE:  $VASP_PP_PATH/potpaw_PBE/
-                PW91: $VASP_PP_PATH/potpaw_GGA/''' % name
+                PW91: $VASP_PP_PATH/potpaw_GGA/''' % name)
             log.debug('Looked for %s' % name)
-            print 'Looked for %s' % name
+            print('Looked for %s' % name)
             raise RuntimeError('No pseudopotential for %s:%s!' % (symbol,
                                                                   name))
             raise RuntimeError('No pseudopotential for %s!' % symbol)
@@ -243,6 +243,7 @@ def get_pseudopotentials(self):
 
 Vasp.get_pseudopotentials = get_pseudopotentials
 
+# * Hook functions
 '''pre_run and post_run hooks
 
 the idea here is that you can register some functions that will run
@@ -308,6 +309,7 @@ def job_in_queue(self):
             return False
 Vasp.job_in_queue = job_in_queue
 
+# * Calculation functions
 
 def calculation_required(self, atoms, quantities):
     '''Monkey-patch original function because (4,4,4) != [4,4,4] which
@@ -388,9 +390,9 @@ def calculation_required(self, atoms, quantities):
             continue
         else:
             if self.input_params[key] != self.old_input_params[key]:
-                print '{0} FAILED'.format(key)
-                print self.input_params[key]
-                print self.old_input_params[key]
+                print('{0} FAILED'.format(key))
+                print(self.input_params[key])
+                print(self.old_input_params[key])
                 return True
 
     if 'magmom' in quantities:
@@ -488,7 +490,7 @@ def run(self):
                               '= {0}'.format(JASPRC['multiprocessing.cores_per_process']))
                     log.debug('running vanilla MPI job')
 
-                    print 'MPI NPROCS = ', NPROCS
+                    print('MPI NPROCS = ', NPROCS)
                     vaspcmd = JASPRC['vasp.executable.parallel']
                     parcmd = 'mpirun -np %i %s' % (NPROCS, vaspcmd)
                     exitcode = os.system(parcmd)
@@ -570,7 +572,7 @@ def prepare_input_files(self):
     self.create_metadata()
 Vasp.prepare_input_files = prepare_input_files
 
-
+# * Pretty print
 def pretty_print(self):
     '''
     __str__ function to print the calculator with a nice summary, e.g. jaspsum
@@ -608,9 +610,9 @@ def pretty_print(self):
 
         if not self.converged:
             try:
-                print self.read_relaxed()
+                print(self.read_relaxed())
             except IOError:
-                print False
+                print(False)
         if self.converged:
             energy = atoms.get_potential_energy()
             forces = atoms.get_forces()
@@ -782,7 +784,7 @@ def pretty_print(self):
 
 Vasp.__str__ = pretty_print
 
-#########################################################################
+# * Post analysis error checking
 def vasp_changed_bands(calc):
     '''Check here if VASP changed nbands.'''
     log.debug('Checking if vasp changed nbands')
@@ -865,14 +867,14 @@ def checkerr_vasp(self):
                 os.unlink('error')
         if os.path.exists('error'):
             with open('error') as f:
-                print 'Errors found:\n', f.read()
+                print('Errors found:\n', f.read())
     else:
         if not hasattr(self, 'neb'):
             raise Exception('no OUTCAR` found')
 
 Vasp.register_post_run_hook(checkerr_vasp)
 
-
+# * Utility functions
 def strip(self, extrafiles=()):
     '''removes large uncritical output files from directory'''
     files_to_remove = ['CHG', 'CHGCAR', 'WAVECAR'] + extrafiles
@@ -882,6 +884,157 @@ def strip(self, extrafiles=()):
             os.unlink(f)
 
 Vasp.strip = strip
+
+
+def get_elapsed_time(self):
+    '''Return elapsed calculation time in seconds from the OUTCAR file.'''
+    import re
+    regexp = re.compile('Elapsed time \(sec\):\s*(?P<time>[0-9]*\.[0-9]*)')
+
+    with open('OUTCAR') as f:
+        lines = f.readlines()
+
+    m = re.search(regexp, lines[-8])
+
+    time = m.groupdict().get('time', None)
+    if time is not None:
+        return float(time)
+    else:
+        return None
+Vasp.get_elapsed_time = get_elapsed_time
+
+
+def get_required_memory(self):
+    ''' Returns the recommended memory needed for a VASP calculation
+
+    Code retrieves memory estimate based on the following priority:
+    1) METADATA
+    2) existing OUTCAR
+    3) run diagnostic calculation
+
+    The final method determines the memory requirements from
+    KPOINT calculations run locally before submission to the queue
+    '''
+    import json
+
+    def get_memory():
+        """ Retrieves the recommended memory from the OUTCAR."""
+
+        if os.path.exists('OUTCAR'):
+            with open('OUTCAR') as f:
+                lines = f.readlines()
+        else:
+            return None
+
+        for line in lines:
+
+            # There can be multiple instances of this,
+            # but they all seem to be identical
+            if 'memory' in line:
+
+                # Read the memory usage
+                required_mem = float(line.split()[-2]) / 1e6
+                return required_mem
+
+    # Attempt to get the recommended memory from METADATA
+    # JASP automatically generates a METADATA file when
+    # run, so there should be no instances where it does not exist
+    with open('METADATA', 'r') as f:
+        data = json.load(f)
+
+    try:
+        memory = data['recommended.memory']
+    except(KeyError):
+        # Check if an OUTCAR exists from a previous run
+        if os.path.exists('OUTCAR'):
+            memory = get_memory()
+
+            # Write the recommended memory to the METADATA file
+            with open('METADATA', 'r+') as f:
+
+                data = json.load(f)
+                data['recommended.memory'] = memory
+                f.seek(0)
+                json.dump(data, f)
+
+        # If no OUTCAR exists, we run a 'dummy' calculation
+        else:
+            original_ialgo = self.int_params.get('ialgo')
+            self.int_params['ialgo'] = -1
+
+            # Generate the base files needed for VASP calculation
+            atoms = self.get_atoms()
+            self.initialize(atoms)
+
+            from ase.io.vasp import write_vasp
+            write_vasp('POSCAR',
+                       self.atoms_sorted,
+                       symbol_count=self.symbol_count)
+            self.write_incar(atoms)
+            self.write_potcar()
+            self.write_kpoints()
+            self.write_sort_file()
+
+            # Need to pass a function to Timer for delayed execution
+            def kill():
+                process.kill()
+
+            # We only need the memory estimate, so we can greatly
+            # accelerate the process by terminating after we have it
+            process = Popen(JASPRC['vasp.executable.serial'],
+                            stdout=PIPE)
+
+            from threading import Timer
+            timer = Timer(20.0, kill)
+            timer.start()
+            while True:
+                if timer.is_alive():
+                    memory = get_memory()
+                    if memory:
+                        timer.cancel()
+                        process.terminate()
+                        break
+                    else:
+                        time.sleep(0.1)
+                else:
+                    raise RuntimeError('Memory estimate timed out')
+
+            # return to original settings
+            self.int_params['ialgo'] = original_ialgo
+            self.write_incar(atoms)
+
+            # Write the recommended memory to the METADATA file
+            with open('METADATA', 'r+') as f:
+
+                data = json.load(f)
+                data['recommended.memory'] = memory
+                f.seek(0)
+                json.dump(data, f)
+
+            # Remove all non-initialization files
+            files = ['CHG', 'CHGCAR', 'CONTCAR', 'DOSCAR',
+                     'EIGENVAL', 'IBZKPT', 'OSZICAR', 'PCDAT',
+                     'vasprun.xml', 'OUTCAR', 'WAVECAR', 'XDATCAR']
+
+            for f in files:
+                os.unlink(f)
+
+    # Each node will require the memory read from the OUTCAR
+    nodes = JASPRC['queue.nodes']
+    ppn = JASPRC['queue.ppn']
+
+    # Return an integer
+    import math
+    total_memory = int(math.ceil(nodes * ppn * memory))
+
+    JASPRC['queue.mem'] = '{0}GB'.format(total_memory)
+
+    # return the memory as read from the OUTCAR
+    return memory
+
+Vasp.get_required_memory = get_required_memory
+
+# * Extra vasp get/set functions
 
 
 def set_nbands(self, N=None, f=1.5):
@@ -930,22 +1083,6 @@ def get_valence_electrons(self):
 Vasp.get_valence_electrons = get_valence_electrons
 
 
-def get_elapsed_time(self):
-    '''Return elapsed calculation time in seconds from the OUTCAR file.'''
-    import re
-    regexp = re.compile('Elapsed time \(sec\):\s*(?P<time>[0-9]*\.[0-9]*)')
-
-    with open('OUTCAR') as f:
-        lines = f.readlines()
-
-    m = re.search(regexp, lines[-8])
-
-    time = m.groupdict().get('time', None)
-    if time is not None:
-        return float(time)
-    else:
-        return None
-Vasp.get_elapsed_time = get_elapsed_time
 
 old_read_ldau = Vasp.read_ldau
 
@@ -1194,141 +1331,9 @@ def get_number_of_ionic_steps(self):
 Vasp.get_number_of_ionic_steps = get_number_of_ionic_steps
 
 
-def get_required_memory(self):
-    ''' Returns the recommended memory needed for a VASP calculation
-
-    Code retrieves memory estimate based on the following priority:
-    1) METADATA
-    2) existing OUTCAR
-    3) run diagnostic calculation
-
-    The final method determines the memory requirements from
-    KPOINT calculations run locally before submission to the queue
-    '''
-    import json
-
-    def get_memory():
-        ''' Retrieves the recommended memory from the OUTCAR
-        '''
-
-        if os.path.exists('OUTCAR'):
-            with open('OUTCAR') as f:
-                lines = f.readlines()
-        else:
-            return None
-
-        for line in lines:
-
-            # There can be multiple instances of this,
-            # but they all seem to be identical
-            if 'memory' in line:
-
-                # Read the memory usage
-                required_mem = float(line.split()[-2]) / 1e6
-                return required_mem
-
-    # Attempt to get the recommended memory from METADATA
-    # JASP automatically generates a METADATA file when
-    # run, so there should be no instances where it does not exist
-    with open('METADATA', 'r') as f:
-        data = json.load(f)
-
-    try:
-        memory = data['recommended.memory']
-    except(KeyError):
-        # Check if an OUTCAR exists from a previous run
-        if os.path.exists('OUTCAR'):
-            memory = get_memory()
-
-            # Write the recommended memory to the METADATA file
-            with open('METADATA', 'r+') as f:
-
-                data = json.load(f)
-                data['recommended.memory'] = memory
-                f.seek(0)
-                json.dump(data, f)
-
-        # If no OUTCAR exists, we run a 'dummy' calculation
-        else:
-            original_ialgo = self.int_params.get('ialgo')
-            self.int_params['ialgo'] = -1
-
-            # Generate the base files needed for VASP calculation
-            atoms = self.get_atoms()
-            self.initialize(atoms)
-
-            from ase.io.vasp import write_vasp
-            write_vasp('POSCAR',
-                       self.atoms_sorted,
-                       symbol_count=self.symbol_count)
-            self.write_incar(atoms)
-            self.write_potcar()
-            self.write_kpoints()
-            self.write_sort_file()
-
-            # Need to pass a function to Timer for delayed execution
-            def kill():
-                process.kill()
-
-            # We only need the memory estimate, so we can greatly
-            # accelerate the process by terminating after we have it
-            process = Popen(JASPRC['vasp.executable.serial'],
-                            stdout=PIPE)
-
-            from threading import Timer
-            timer = Timer(20.0, kill)
-            timer.start()
-            while True:
-                if timer.is_alive():
-                    memory = get_memory()
-                    if memory:
-                        timer.cancel()
-                        process.terminate()
-                        break
-                    else:
-                        time.sleep(0.1)
-                else:
-                    raise RuntimeError('Memory estimate timed out')
-
-            # return to original settings
-            self.int_params['ialgo'] = original_ialgo
-            self.write_incar(atoms)
-
-            # Write the recommended memory to the METADATA file
-            with open('METADATA', 'r+') as f:
-
-                data = json.load(f)
-                data['recommended.memory'] = memory
-                f.seek(0)
-                json.dump(data, f)
-
-            # Remove all non-initialization files
-            files = ['CHG', 'CHGCAR', 'CONTCAR', 'DOSCAR',
-                     'EIGENVAL', 'IBZKPT', 'OSZICAR', 'PCDAT',
-                     'vasprun.xml', 'OUTCAR', 'WAVECAR', 'XDATCAR']
-
-            for f in files:
-                os.unlink(f)
-
-    # Each node will require the memory read from the OUTCAR
-    nodes = JASPRC['queue.nodes']
-    ppn = JASPRC['queue.ppn']
-
-    # Return an integer
-    import math
-    total_memory = int(math.ceil(nodes * ppn * memory))
-
-    JASPRC['queue.mem'] = '{0}GB'.format(total_memory)
-
-    # return the memory as read from the OUTCAR
-    return memory
-
-Vasp.get_required_memory = get_required_memory
-
+# * Bader functions
 def chgsum(self):
-    '''
-    Uses the chgsum.pl utility to sum over the AECCAR0 and AECCAR2 files
-    '''
+    """Uses the chgsum.pl utility to sum over the AECCAR0 and AECCAR2 files."""
     cmdlist = ['chgsum.pl', 'AECCAR0', 'AECCAR2']
     p = Popen(cmdlist, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
@@ -1336,12 +1341,12 @@ def chgsum(self):
         raise Exception('Cannot perform chgsum:\n\n{0}'.format(err))
 
 Vasp.chgsum = chgsum
-    
+
+
 def bader(self, cmd=None, ref=False, verbose=False, overwrite=False):
 
-    '''
-    Performs bader analysis for a calculation
-    
+    """Performs bader analysis for a calculation.
+
     Follows defaults unless full shell command is specified
 
     Does not overwrite existing files if overwrite=False
@@ -1349,11 +1354,12 @@ def bader(self, cmd=None, ref=False, verbose=False, overwrite=False):
     the sum of AECCAR0 and AECCAR2
 
     Requires the bader.pl (and chgsum.pl) script to be in the system PATH
-    '''
+
+    """
 
     if 'ACF.dat' in os.listdir('./') and not overwrite:
         return
-    
+
     if cmd is None:
         if ref:
             self.chgsum()
@@ -1364,7 +1370,7 @@ def bader(self, cmd=None, ref=False, verbose=False, overwrite=False):
         cmdlist = cmd.split()
     elif type(cmd) is list:
         cmdlist = cmd
-        
+
     p = Popen(cmdlist, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
     if out == '' or err != '':
@@ -1373,4 +1379,3 @@ def bader(self, cmd=None, ref=False, verbose=False, overwrite=False):
         print('Bader completed for {0}'.format(self.vaspdir))
 
 Vasp.bader = bader
-
