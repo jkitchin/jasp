@@ -14,6 +14,9 @@ import sys
 from hashlib import sha1
 from subprocess import Popen, PIPE
 
+# this is used in jasp_extensions. We will have to remove it at some point.
+import commands
+
 from ase import Atoms
 from ase.calculators.vasp import *
 
