@@ -61,13 +61,16 @@ log.addHandler(handler)
 
 # * Utility functions
 # ** Calculation is ok
+
+
 def calculation_is_ok(jobid=None):
-    '''Returns bool if calculation appears ok.
+    """Returns bool if calculation appears finished and ok.
 
     That means:
     1. There is a CONTCAR with contents
     2. The OUTCAR has 'Voluntary context switches' at the end.
-    '''
+
+    """
     # find job output file
     output = ['\n']
     if jobid is not None:
@@ -83,18 +86,30 @@ def calculation_is_ok(jobid=None):
 
     with open('INCAR') as f:
         if 'SPRING' in f.read():
-            print('Apparently an NEB calculation. Check it your self.')
+            print('Apparently an NEB calculation.'
+                  'No automated checking implemented.'
+                  ' Check it your self.')
             return True
+
+    # No OUTCAR means we are not done or ok.
+    if not os.path.exists('CONTCAR'):
+        log.debug('Missing CONTCAR')
+        return False
 
     with open('CONTCAR') as f:
         content = f.read()
 
+    # There is a scenario where a SCF cycle is not done, and the
+    # CONTCAR is empty.
     if not len(content) > 0:
-        os.unlink('CONTCAR')
-        if os.path.exists('jobid'):
-            os.unlink('jobid')
-        raise VaspNotFinished('CONTCAR appears empty. It has been '
-                              'deleted. Please run your script again')
+        output += ('CONTCAR appears empty.')
+        log.debug(''.join(output))
+        raise VaspEmptyCONTCAR(''.join(output))
+
+    # No OUTCAR means it is not done.
+    if not os.path.exists('OUTCAR'):
+        log.debug('No OUTCAR found')
+        return False
 
     with open('OUTCAR') as f:
         lines = f.readlines()
@@ -102,6 +117,7 @@ def calculation_is_ok(jobid=None):
             output += ['Last 20 lines of OUTCAR:\n']
             output += lines[-20:]
             output += ['=' * 66]
+            log.debug(''.join(output))
             raise VaspNotFinished(''.join(output))
 
     return True
@@ -131,8 +147,7 @@ read. we only care if the number or types of atoms changed.
     a2 is the passed atoms.'''
     log.debug('Checking if {0} compatible with {1}.'.format(a1, a2))
     if ((len(a1) != len(a2))
-        or
-        (a1.get_chemical_symbols() != a2.get_chemical_symbols())):
+        or (a1.get_chemical_symbols() != a2.get_chemical_symbols())):
         raise Exception('Incompatible atoms.\n'
                         '{0} contains {1}'
                         ' but you passed {2}, which is not '
@@ -146,27 +161,24 @@ def Jasp(debug=None,
          track_output=False,
          atoms=None,
          **kwargs):
-    '''wrapper function to create a Vasp calculator. The only purpose
-    of this function is to enable atoms as a keyword argument, and to
-    restart the calculator from the current directory if no keywords
-    are given.
+    """Wrapper function to create a Vasp calculator.
 
-    By default we delete these large files. We do not need them very
-    often, so the default is to delete them, and only keep them when
-    we know we want them.
+    The only purpose of this function is to enable atoms as a keyword
+    argument, and to return a calculator from the current directory if
+    no keywords are given.
 
     **kwargs is the same as ase.calculators.vasp.
 
     you must be in the directory where vasp will be run.
 
-    '''
+    """
 
     if debug is not None:
         log.setLevel(debug)
 
     log.debug('Jasp called in %s', os.getcwd())
     log.debug('kwargs = %s', kwargs)
-    # special initialization NEB case
+# ** Case 1. special initialization NEB case
     if 'spring' in kwargs:
         log.debug('Entering NEB setup')
         try:
@@ -174,7 +186,7 @@ def Jasp(debug=None,
             calc.set(**kwargs)
         except:
             calc = neb_initialize(atoms, kwargs)
-# ** Empty directory starting from scratch
+# ** Case 2. Empty directory starting from scratch
     # empty vasp dir. start from scratch
     elif (not os.path.exists('INCAR')):
         calc = Vasp(restart, output_template, track_output)
@@ -240,11 +252,12 @@ def Jasp(debug=None,
 
 # ** job created, and in queue, but not running
     elif (os.path.exists('jobid')
+          # the function below normally works on a calculator.
           and job_in_queue(None)):
-        '''this case is slightly tricky because you cannot restart if
-        there is no contcar or outcar. here is a modified version of
-        the restart_load function that avoids this problem.
-        '''
+        # this case is slightly tricky because you cannot restart if
+        # there is no contcar or outcar. This code is a modified version of
+        # the restart_load function that avoids this problem.
+
         log.debug('job created, and in queue, but not running. tricky case')
 
         self = Vasp(restart, output_template, track_output)
@@ -287,7 +300,6 @@ def Jasp(debug=None,
         self.converged = False
 
         calc = self
-
         calc.vasp_queued = True
 
 # ** job created, and in queue, and running
@@ -308,7 +320,8 @@ def Jasp(debug=None,
             atoms.calc = calc
         calc.vasp_running = True
 
-# ** job is created, not in queue, not running. finished and first time we are looking at it
+# ** job is created, not in queue, not running.
+# finished and first time we are looking at it
     elif (os.path.exists('jobid')
           and not job_in_queue(None)):
         log.debug('job is created, not in queue, not running.'
@@ -317,10 +330,13 @@ def Jasp(debug=None,
         with open('jobid') as f:
             jobid = f.readline().split('.')[0]
 
-            if calculation_is_ok(jobid):
-                pass
+        # check if we are ok. It should be ok, and raise an Exception
+        # of some kind if not.
+        log.debug('Checking calculation.')
+        if not calculation_is_ok(jobid):
+            log.debug("Not ok people!!!")
 
-        # delete the jobid file, since it is done
+        # # delete the jobid file, since it is done
         os.unlink('jobid')
 
         calc = Vasp(restart, output_template, track_output)
@@ -347,8 +363,10 @@ def Jasp(debug=None,
         if hasattr(calc, 'post_run_hooks'):
             for hook in calc.post_run_hooks:
                 hook(calc)
+        log.debug('Done with post hooks.')
 
-# ** job done long ago, jobid deleted, no running, and the output files all exist
+# ** job done long ago, jobid deleted, no running, and the output
+# files all exist
     elif (not os.path.exists('jobid')
           and os.path.exists('CONTCAR')
           and os.path.exists('OUTCAR')
@@ -357,9 +375,10 @@ def Jasp(debug=None,
                   'no running, and the output files all exist')
         if calculation_is_ok():
             log.debug('calculation seems ok.')
-            calc = Vasp(restart=True)
-            calc.read_incar()
-            log.debug('list params = {}', calc.list_params)
+
+        calc = Vasp(restart=True)
+        calc.read_incar()
+        log.debug('list params = {}', calc.list_params)
 
         if atoms is not None:
             compatible_atoms_p(calc.get_atoms(), atoms)
@@ -392,7 +411,7 @@ def Jasp(debug=None,
     # create a METADATA file if it does not exist and we are not an NEB.
     if ((not os.path.exists('METADATA'))
          and calc.int_params.get('images', None) is None):
-         calc.create_metadata()
+        calc.create_metadata()
 
 # ** Check if beef is used
     if calc.string_params.get('gga', None) == 'BF':
@@ -410,7 +429,7 @@ def Jasp(debug=None,
 
 
 class cd:
-    '''Context manager for changing directories.
+    """Context manager for changing directories.
 
     On entering, store initial location, change to the desired directory,
     creating it if needed.  On exit, change back to the original directory.
@@ -419,12 +438,11 @@ class cd:
     with cd('path/to/a/calculation'):
         calc = Jasp(args)
         calc.get_potential energy()
-    '''
+    """
 
-    def __init__(self, working_directory):
+    def __init__(self, working_directory,):
         self.origin = os.getcwd()
         self.wd = working_directory
-
 
     def __enter__(self):
         # make directory if it doesn't already exist
@@ -434,86 +452,151 @@ class cd:
         # now change to new working dir
         os.chdir(self.wd)
 
-
     def __exit__(self, *args):
         os.chdir(self.origin)
-        return False # allows body exceptions to propagate out.
+        return False  # allows body exceptions to propagate out.
+
+
+def exception_handler(context_manager, etype, evalue, traceback):
+    """Exception handler for jasp context manager.
+
+    The function has this signature:
+    f(context_manager, exception_type, exception_value, traceback)
+    context_manager will be the jasp instance the exception was raised in.
+
+    The context_manager may have a calc attribute, but it may be None
+    of there is an exception in jasp.__enter__.
+
+    see `sys.exc_info' for details of the other three args.
+
+    This function must return True if the exception is handled, or
+    False if not.
+
+    """
+
+    if isinstance(evalue, VaspSubmitted):
+        print('Submitted in {}.'.format(context_manager.vaspdir))
+        print(str(evalue))
+        return True
+
+    elif isinstance(evalue, VaspQueued):
+        print('Queued in {}.'.format(context_manager.vaspdir))
+        return True
+
+    elif isinstance(evalue, VaspEmptyCONTCAR):
+        print('Empty CONTCAR found.')
+        print(evalue)
+        for f in ['CONTCAR', 'OUTCAR', 'jobid']:
+            if os.path.exists(f):
+                os.unlink(f)
+                print('Deleted {}'.format(f))
+
+        # try again.
+        # print('Getting ready to reenter.')
+        context_manager.restart = True
+        context_manager.__enter__()
+        return True
+
+    elif isinstance(evalue, VaspNotFinished):
+        print('Vasp does not seem to have finished.')
+        print(evalue)
+        return False
+
+    print('Failed to catch: ', evalue)
+    return False
 
 
 class jasp:
-    '''Context manager for running Vasp calculations
+    """Context manager for running Vasp calculations
 
     On entering, automatically change to working vasp directory, and
     on exit, automatically change back to original working directory.
 
-    Note: You do not want to raise exceptions here! it makes code
-    using this really hard to write because you have to catch
-    exceptions in the with statement.
-    '''
+    """
 
-    def __init__(self, vaspdir, **kwargs):
-        '''
+    def __init__(self, vaspdir,
+                 exception_handler=exception_handler,
+                 **kwargs):
+        """Initialization of a jasp context manager.
+
         vaspdir: the directory to run vasp in
 
+        exception_handler: a function that handles exceptions. It has
+        the signature: f(calculator, exception_type, exception_value,
+        traceback) and is called in __exit__ after an exception is
+        raised.
+
         **kwargs: all the vasp keywords, including an atoms object
-        '''
+
+        """
 
         self.cwd = os.getcwd()  # directory we were in when jasp created
         self.vaspdir = os.path.expanduser(vaspdir)
-
+        self.exception_handler = exception_handler
+        self.calc = None
         self.kwargs = kwargs  # this does not include the vaspdir variable
 
+        self.restart = False
+
     def __enter__(self):
-        '''
-        on enter, make sure directory exists, create it if necessary,
-        and change into the directory. then return the calculator.
+        """ On enter, make sure directory exists, create it if necessary,
+        and change into the directory. Then return the calculator.
 
-        try not to raise exceptions in here to avoid needing code like:
-        try:
-            with jasp() as calc:
-                do stuff
-        except:
-            do stuff.
+        """
+        #print('enter: ', os.getcwd())
+        # print('restart: ', self.restart)
+        if not self.restart:
+            # make directory if it doesn't already exist
+            if not os.path.isdir(self.vaspdir):
+                os.makedirs(self.vaspdir)
 
-        I want this syntax:
-        with jasp() as calc:
-            try:
-                calc.do something
-            except (VaspException):
-                do something.
-        '''
-        # make directory if it doesn't already exist
-        if not os.path.isdir(self.vaspdir):
-            os.makedirs(self.vaspdir)
-
-        # now change to new working dir
-        os.chdir(self.vaspdir)
+            # now change to new working dir
+            os.chdir(self.vaspdir)
+        else:
+            print('Restarting! ', os.getcwd)
 
         # and get the new calculator
+
         try:
             calc = Jasp(**self.kwargs)
             calc.vaspdir = self.vaspdir   # vasp directory
             calc.cwd = self.cwd   # directory we came from
+            self.calc = calc
             return calc
         except:
-            self.__exit__()
-            raise
+            if not self.exception_handler(self,
+                                          *sys.exc_info()):
+                raise
 
-    def __exit__(self, *args):
-        '''
-        on exit, change back to the original directory.
-        '''
+    def __exit__(self, etype, evalue, traceback):
+        """On exit, handle exceptions, and change back to the original
+        directory.
+
+        """
+        ret = True  # unless we get an exception, which could change this.
+        if etype is not None:            
+            try:
+                ret = self.exception_handler(self,
+                                             etype, evalue, traceback)
+            except:
+                ret = False                
+
         os.chdir(self.cwd)
-        return False  # allows exception to propagate out
+        # Getting here means no exceptions raised.
+        return ret
 
 
 def isavaspdir(path):
-    '''Return bool if the current working directory is a VASP directory.
+    """Return bool if the current working directory is a VASP directory.
 
     A VASP dir has the vasp files in it. This function is typically used
     when walking a filesystem to identify directories that contain
     calculation results.
-    '''
+
+    This is partially duplicative of jasp.utils.vasp_p. I am leaving
+    it in here since it is used in the __main__ code below.
+
+    """
     # standard vaspdir
     if (os.path.exists(os.path.join(path, 'POSCAR')) and
         os.path.exists(os.path.join(path, 'INCAR')) and
@@ -535,7 +618,7 @@ def isavaspdir(path):
         return False
 
 if __name__ == '__main__':
-    ''' make the module a script!
+    """Make the module a script!
 
     you run this with an argument and the command changes into the
     directory, and runs vasp.
@@ -544,7 +627,7 @@ if __name__ == '__main__':
     if needed.
 
     if you run jasp.py in a directory, it will submit the job if needed.
-    '''
+    """
     from optparse import OptionParser
 
     parser = OptionParser('jasp.py')
