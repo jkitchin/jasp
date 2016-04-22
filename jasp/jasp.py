@@ -502,6 +502,8 @@ def exception_handler(context_manager, etype, evalue, traceback):
         print(evalue)
         return False
 
+    # getting here means an uncaught exception. It should be raised.
+    # We get that by returning False to the context_manager
     print('Failed to catch: ', evalue)
     return False
 
@@ -566,6 +568,7 @@ class jasp:
         except:
             if not self.exception_handler(self,
                                           *sys.exc_info()):
+                # Not handled, so reraise.
                 raise
 
     def __exit__(self, etype, evalue, traceback):
