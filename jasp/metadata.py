@@ -31,12 +31,17 @@ from collections import OrderedDict
 
 
 def create_metadata(self, fname='METADATA'):
-    '''Create the METADATA file.
+    """Create the METADATA file.
 
-    we do not overwrite metadata files with this command. you should
+    We do not overwrite metadata files with this command. you should
     delete the file and recreate it.
-    '''
+
+    """
     if os.path.exists(fname):
+        return None
+
+    # No atoms are defined so we don't make metadata.
+    if self.atoms is None:
         return None
 
     # this uuid should only ever be made once.
