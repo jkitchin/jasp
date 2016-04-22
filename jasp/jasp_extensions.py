@@ -13,13 +13,15 @@ vaspfiles = ['INCAR', 'STOPCAR', 'stout', 'POTCAR',
 
 
 def clone(self, newdir, extra_files=None):
-    '''copy a vasp directory to a new directory. Does not overwrite
-    existing files. newdir is relative to the the directory the
-    calculator was created from, not the current working directory,
-    unless an absolute path is used.
+    """Copy a vasp directory to a new directory.
+
+    Does not overwrite existing files. newdir is relative to the the
+    directory the calculator was created from, not the current working
+    directory, unless an absolute path is used.
 
     what to do about METADATA, the uuid will be wrong!
-    '''
+
+    """
     if extra_files is None:
         extra_files = []
 
@@ -65,10 +67,10 @@ Vasp.clone = clone
 
 
 def archive(self, archive='vasp', extra_files=[], append=False):
-    '''
-    Create an archive file (.tar.gz) of the vasp files in the current
+    """Create an archive file (.tar.gz) of the vasp files in the current
     directory.  This is a way to save intermediate results.
-    '''
+
+    """
 
     import tarfile
 
@@ -99,12 +101,18 @@ def archive(self, archive='vasp', extra_files=[], append=False):
 Vasp.archive = archive
 
 # * Pseudopotentials
+
+
 def get_pseudopotentials(self):
+    """Return pseudoptentials used in calculation.
+    Returns list of [(chemical symbol, path, git-hash)].
+
+    """
     from os.path import join, isfile, islink
-    ''' this is almost the exact code from the original initialize
-    function, but all it does is get the pseudpotentials paths, and
-    the git-hash for each one
-    '''
+    # this is almost the exact code from the original initialize
+    # function, but all it does is get the pseudpotentials paths, and
+    # the git-hash for each one
+
     atoms = self.get_atoms()
     p = self.input_params
 
@@ -244,38 +252,49 @@ def get_pseudopotentials(self):
 Vasp.get_pseudopotentials = get_pseudopotentials
 
 # * Hook functions
-'''pre_run and post_run hooks
+# pre_run and post_run hooks
 
-the idea here is that you can register some functions that will run
-before and after running a Vasp calculation. These functions will have
-the following signature: function(self). you might use them like this
+# the idea here is that you can register some functions that will run
+# before and after running a Vasp calculation. These functions will have
+# the following signature: function(self). you might use them like this
 
-def set_nbands(self):
-   do something if nbands is not set
+# def set_nbands(self):
+#    do something if nbands is not set
 
-calc.register_pre_run_hook(set_nbands)
+# calc.register_pre_run_hook(set_nbands)
 
-def enter_calc_in_database(self):
-   do something
+# def enter_calc_in_database(self):
+#    do something
 
-calc.register_post_run_hook(enter_calc_in_database)
+# calc.register_post_run_hook(enter_calc_in_database)
 
-maybe plugins
-(http://www.luckydonkey.com/2008/01/02/python-style-plugins-made-easy/)
-are a better way?
+# maybe plugins
+# (http://www.luckydonkey.com/2008/01/02/python-style-plugins-made-easy/)
+# are a better way?
 
-The calculator will store a list of hooks.
+# The calculator will store a list of hooks.
 
-'''
+# 
 
 
 def register_pre_run_hook(function):
+    """Add function to pre_run_hooks.
+    The function will be run before the calculation starts.
+    The function takes one argument, the calculator.
+
+    """
     if not hasattr(Vasp, 'pre_run_hooks'):
         Vasp.pre_run_hooks = []
     Vasp.pre_run_hooks.append(function)
 
 
 def register_post_run_hook(function):
+    """Add function to post_run_hook.
+
+    The function should take one argument, the calculator.
+    It will be run after the calculation is finished.
+
+    """
     if not hasattr(Vasp, 'post_run_hooks'):
         Vasp.post_run_hooks = []
     Vasp.post_run_hooks.append(function)
@@ -285,7 +304,7 @@ Vasp.register_post_run_hook = staticmethod(register_post_run_hook)
 
 
 def job_in_queue(self):
-    ''' return True or False if the directory has a job in the queue'''
+    """Return True or False if the directory has a job in the queue."""
     if not os.path.exists('jobid'):
         return False
     else:
@@ -311,9 +330,10 @@ Vasp.job_in_queue = job_in_queue
 
 # * Calculation functions
 
+
 def calculation_required(self, atoms, quantities):
-    '''Monkey-patch original function because (4,4,4) != [4,4,4] which
-    makes the test on input_params fail'''
+    """Monkey-patch original function because (4,4,4) != [4,4,4] which
+    makes the test on input_params fail"""
 
     if self.positions is None:
         log.debug('self.positions is None')
@@ -415,14 +435,16 @@ original_calculate = Vasp.calculate
 
 
 def calculate(self, atoms=None):
-    '''
-    monkeypatched function to avoid calling calculate unless we really
-    want to run a job. If a job is queued or running, we should exit
+    """Monkeypatched function to avoid calling calculate unless we really
+    want to run a job.
+
+    If a job is queued or running, we should exit
     here to avoid reinitializing the input files.
 
     I also made it possible to not give an atoms here, since there
     should be one on the calculator.
-    '''
+
+    """
     if hasattr(self, 'vasp_queued'):
         raise VaspQueued('Queued', os.getcwd())
 
@@ -450,13 +472,13 @@ Vasp.calculate = calculate
 
 
 def run(self):
-    '''monkey patch to submit job through the queue.
+    """Monkey patch to submit job through the queue.
 
     If this is called, then the calculator thinks a job should be run.
     If we are in the queue, we should run it, otherwise, a job should
     be submitted.
 
-    '''
+    """
     if hasattr(self, 'pre_run_hooks'):
         for hook in self.pre_run_hooks:
             hook(self)
@@ -517,12 +539,12 @@ def run(self):
         # end
 
     # if you get here, a job is getting submitted
-    script = '''
+    script = """
 #!/bin/bash
 cd {self.cwd}  # this is the current working directory
 cd {self.vaspdir}  # this is the vasp directory
 runjasp.py     # this is the vasp command
-#end'''.format(**locals())
+#end""".format(**locals())
 
     jobname = self.vaspdir
     log.debug('{0} will be the jobname.'.format(jobname))
@@ -557,6 +579,11 @@ Vasp.run = run
 
 
 def prepare_input_files(self):
+    """Prepares input files for a calculation.
+
+    POSCAR, INCAR, POTCAR, KPOINTS, METADATA, and ase-sort.dat.
+
+    """
     # Initialize calculations
     atoms = self.get_atoms()
     self.initialize(atoms)
@@ -573,10 +600,14 @@ def prepare_input_files(self):
 Vasp.prepare_input_files = prepare_input_files
 
 # * Pretty print
+
+
 def pretty_print(self):
-    '''
-    __str__ function to print the calculator with a nice summary, e.g. jaspsum
-    '''
+    """__str__ function to print the calculator with a nice summary.
+
+    e.g. jaspsum
+
+    """
     # special case for neb calculations
     if self.int_params['images'] is not None:
         # we have an neb.
@@ -785,8 +816,14 @@ def pretty_print(self):
 Vasp.__str__ = pretty_print
 
 # * Post analysis error checking
+
+
 def vasp_changed_bands(calc):
-    '''Check here if VASP changed nbands.'''
+    """Check here if VASP changed nbands.
+
+    This sometimes happens in parallel calculations.
+
+    """
     log.debug('Checking if vasp changed nbands')
 
     if not os.path.exists('OUTCAR'):
@@ -821,9 +858,10 @@ def vasp_changed_bands(calc):
                                       'to proceed.\n\n '
                                       + '\n'.join(lines[i - 9: i + 8]))
 
+Vasp.register_post_run_hook(vasp_changed_bands)
 
 def checkerr_vasp(self):
-    ''' Checks vasp output in OUTCAR for errors. adapted from atat code'''
+    """ Checks vasp output in OUTCAR for errors. adapted from atat code"""
     error_strings = ['forrtl: severe',  # seg-fault
                      'highest band is occupied at some k-points!',
                      'rrrr',  # I think this is from Warning spelled
@@ -849,9 +887,9 @@ def checkerr_vasp(self):
         if not converged:
             errors.append(('Converged', converged))
 
-        # Then if ibrion > 0, check whether ionic relaxation condition been
-        # fulfilled, but we do not check ibrion >3 because those are vibrational
-        # type calculations.
+        # Then if ibrion > 0, check whether ionic relaxation condition
+        # been fulfilled, but we do not check ibrion >3 because those
+        # are vibrational type calculations.
         if self.int_params['ibrion'] in [1, 2, 3]:
             if not self.read_relaxed():
                 errors.append(('Ions/cell Converged', converged))
@@ -876,7 +914,7 @@ Vasp.register_post_run_hook(checkerr_vasp)
 
 # * Utility functions
 def strip(self, extrafiles=()):
-    '''removes large uncritical output files from directory'''
+    """removes large uncritical output files from directory"""
     files_to_remove = ['CHG', 'CHGCAR', 'WAVECAR'] + extrafiles
 
     for f in files_to_remove:
@@ -887,7 +925,7 @@ Vasp.strip = strip
 
 
 def get_elapsed_time(self):
-    '''Return elapsed calculation time in seconds from the OUTCAR file.'''
+    """Return elapsed calculation time in seconds from the OUTCAR file."""
     import re
     regexp = re.compile('Elapsed time \(sec\):\s*(?P<time>[0-9]*\.[0-9]*)')
 
@@ -905,7 +943,7 @@ Vasp.get_elapsed_time = get_elapsed_time
 
 
 def get_required_memory(self):
-    ''' Returns the recommended memory needed for a VASP calculation
+    """ Returns the recommended memory needed for a VASP calculation
 
     Code retrieves memory estimate based on the following priority:
     1) METADATA
@@ -914,7 +952,7 @@ def get_required_memory(self):
 
     The final method determines the memory requirements from
     KPOINT calculations run locally before submission to the queue
-    '''
+    """
     import json
 
     def get_memory():
@@ -1038,7 +1076,7 @@ Vasp.get_required_memory = get_required_memory
 
 
 def set_nbands(self, N=None, f=1.5):
-    ''' convenience function to set NBANDS to N or automatically
+    """Convenience function to set NBANDS to N or automatically
     compute nbands
 
     for non-spin-polarized calculations
@@ -1048,7 +1086,7 @@ def set_nbands(self, N=None, f=1.5):
     http://cms.mpi.univie.ac.at/vasp/vasp/NBANDS_tag.html
 
     for transition metals f may be as high as 2.
-    '''
+    """
     if N is not None:
         self.set(nbands=int(N))
         return
@@ -1061,10 +1099,10 @@ Vasp.set_nbands = set_nbands
 
 
 def get_valence_electrons(self):
-    '''Return all the valence electrons for the atoms.
+    """Return the number of valence electrons for the atoms.
 
     Calculated from the POTCAR file.
-    '''
+    """
     if not os.path.exists('POTCAR'):
         self.initialize(self.get_atoms())
         self.write_potcar()
@@ -1088,7 +1126,7 @@ old_read_ldau = Vasp.read_ldau
 
 
 def read_ldau(self):
-    '''Upon restarting the calculation, Vasp.read_incar() read
+    """Upon restarting the calculation, Vasp.read_incar() reads
     list_keys ldauu, ldauj, and ldaul as list params, even though we
     are only allowed to define them through a dict key. If the
     calculation is complete, this is never a problem because we
@@ -1110,7 +1148,7 @@ def read_ldau(self):
 
     'Note: the problem persists with continuation calculations with
     nbands and magmoms.
-    '''
+    """
     ldau, ldauprint, ldautype, ldau_luj = old_read_ldau(self)
 
     self.set(ldauu=None)
@@ -1122,7 +1160,7 @@ Vasp.read_ldau = read_ldau
 
 
 def get_nearest_neighbor_table(self):
-    """read the nearest neighbor table from OUTCAR
+    """Read the nearest neighbor table from OUTCAR
 
     returns a list of atom indices and the connecting neighbors. The
     list is not sorted according to self.sorted or self.resorted.
@@ -1136,9 +1174,6 @@ def get_nearest_neighbor_table(self):
 
     # i contains index of line
     i += 1  # first line of the table
-
-    # sometimes there is carriover to the next line.
-    line_counter = 0
 
     NN = []
 
@@ -1172,6 +1207,7 @@ Vasp.get_nearest_neighbor_table = get_nearest_neighbor_table
 # this fixes a bug in ase.calculators.vasp, which does not return a
 # copy of the forces
 def get_forces(self, atoms):
+    """Get a copy of the forces from the calculator."""
     self.update(atoms)
     return np.copy(self.forces)
 
@@ -1179,7 +1215,7 @@ Vasp.get_forces = get_forces
 
 
 def get_energy_components(self, outputType=0):
-    '''Returns all of the components of the energies.
+    """Returns all of the components of the energies.
 
     outputType = 0, returns each individual component
 
@@ -1193,7 +1229,7 @@ def get_energy_components(self, outputType=0):
     http://cms.mpi.univie.ac.at/vasp-forum/forum_viewtopic.php?4.273
 
     Contributed by Jason Marshall, 2014.
-    '''
+    """
     # self.calculate()
 
     with open('OUTCAR') as f:
@@ -1261,7 +1297,7 @@ Vasp.get_energy_components = get_energy_components
 
 
 def get_beefens(self, n=-1):
-    '''Get the BEEFens 2000 ensemble energies from the OUTCAR.
+    """Get the BEEFens 2000 ensemble energies from the OUTCAR.
 
     This only works with Vasp 5.3.5 compiled with libbeef.
 
@@ -1271,11 +1307,12 @@ def get_beefens(self, n=-1):
     order, so you can calculate ensemble energy differences for reactions,
     as long as the number of samples in the ensemble is the same.
 
-    There is usually more than one BEEFens section. By default we return
-    the last one. Choose another one with the the :par: n.
+    There is usually more than one BEEFens section. By default we
+    return the last one. Choose another one with the the :par: n.
 
     see http://suncat.slac.stanford.edu/facility/software/functional/
-    '''
+
+    """
     beefens = []
     with open('OUTCAR') as f:
         lines = f.readlines()
@@ -1287,16 +1324,18 @@ def get_beefens(self, n=-1):
 
 Vasp.get_beefens = get_beefens
 
+
 def get_orbital_occupations(self):
-    '''Read occuations from OUTCAR.
+    """Read occuations from OUTCAR.
     Returns a numpy array of
     [[s, p, d tot]] for each atom.
 
     You probably need to have used LORBIT=11 for this function to
     work.
-    '''
+    """
 
-    # this finds the last entry of occupations. Sometimes, this is printed multiple times in the OUTCAR.
+    # this finds the last entry of occupations. Sometimes, this is
+    # printed multiple times in the OUTCAR.
     with open('OUTCAR', 'r') as f:
         lines = f.readlines()
         start = None
@@ -1344,7 +1383,6 @@ Vasp.chgsum = chgsum
 
 
 def bader(self, cmd=None, ref=False, verbose=False, overwrite=False):
-
     """Performs bader analysis for a calculation.
 
     Follows defaults unless full shell command is specified
