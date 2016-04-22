@@ -1,9 +1,9 @@
-'''Module for reading volumetric data from VASP calculations.
+"""Module for reading volumetric data from VASP calculations.
 
 Charge density and dipole moment
 Local potential
 Electron localization function
-'''
+"""
 import os
 import numpy as np
 from ase.calculators.vasp import Vasp, VaspChargeDensity
@@ -11,10 +11,11 @@ from POTCAR import get_ZVAL
 
 
 def get_volumetric_data(self, filename='CHG', **kwargs):
-    '''Read filename to read the volumetric data in it.
+    """Read filename to read the volumetric data in it.
 
     Supported filenames are CHG, CHGCAR, and LOCPOT.
-    '''
+
+    """
     atoms = self.get_atoms()
     vd = VaspChargeDensity(filename)
 
@@ -46,11 +47,12 @@ def get_charge_density(self, spin=0, filename='CHG'):
     """Returns x, y, and z coordinate and charge density arrays.
     Supported file formats: CHG, CHGCAR
 
-    :param int spin:
+    :param int spin: an integer
     :returns: x, y, z, charge density arrays
     :rtype: 3-d numpy arrays
 
     Relies on :func:`ase.calculators.vasp.VaspChargeDensity`.
+
     """
 
     x, y, z, data = get_volumetric_data(self, filename=filename)
@@ -60,13 +62,14 @@ Vasp.get_charge_density = get_charge_density
 
 
 def get_local_potential(self):
-    '''Returns x, y, z, and local potential arrays
+    """Returns x, y, z, and local potential arrays
 
     is there a spin for this?
 
     We multiply the data by the volume because we are reusing the
     charge density code which divides by volume.
-    '''
+
+    """
     x, y, z, data = get_volumetric_data(self, filename='LOCPOT')
     atoms = self.get_atoms()
     return x, y, z, data[0] * atoms.get_volume()
@@ -75,7 +78,7 @@ Vasp.get_local_potential = get_local_potential
 
 
 def get_elf(self):
-    '''Returns x, y, z and electron localization function arrays.'''
+    """Returns x, y, z and electron localization function arrays."""
 
     x, y, z, data = get_volumetric_data(self, filename='ELFCAR')
     atoms = self.get_atoms()
@@ -84,11 +87,12 @@ Vasp.get_elf = get_elf
 
 
 def get_electron_density_center(self, spin=0, scaled=True):
-    '''Returns center of electron density.
+    """Returns center of electron density.
 
     If scaled, use scaled coordinates, otherwise use cartesian
     coordinates.
-    '''
+
+    """
 
     atoms = self.get_atoms()
 
@@ -105,19 +109,21 @@ def get_electron_density_center(self, spin=0, scaled=True):
     electron_density_center /= total_electron_charge
 
     if scaled:
-        uc = slab.get_cell()
+        uc = atoms.get_cell()
         return np.dot(np.linalg.inv(uc.T), electron_density_center.T).T
     else:
         return electron_density_center
 
 
 def get_dipole_moment(self, atoms=None):
-    '''Tries to return the dipole vector of the unit cell in atomic units.
+    """Tries to return the dipole vector of the unit cell in atomic units.
     Returns None when CHG file is empty/not-present.
 
-    To get the dipole moment, use this formula:
+    To get the dipole moment, use this formula: 
+
     dipole_moment = ((dipole_vector**2).sum())**0.5/Debye
-    '''
+
+    """
     if atoms is None:
         atoms = self.get_atoms()
 
