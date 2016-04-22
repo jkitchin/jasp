@@ -3,21 +3,21 @@
 #############################################
 
 
+class VaspSubmitted(Exception):
+    def __init__(self, jobid):
+        self.jobid = jobid
+
+    def __str__(self):
+        return str(self.jobid)
+
+
 class VaspQueued(Exception):
     def __init__(self, msg='Queued', cwd=None):
         self.msg = msg
         self.cwd = cwd
 
     def __str__(self):
-        return repr(self.cwd)
-
-
-class VaspSubmitted(Exception):
-    def __init__(self, jobid):
-        self.jobid = jobid
-
-    def __str__(self):
-        return repr(self.jobid)
+        return str(self.cwd)
 
 
 class VaspRunning(Exception):
