@@ -1,0 +1,152 @@
+#+TITLE: tests for exception handling
+
+The first time you run this, you should see something like:
+#+BEGIN_EXAMPLE
+: Submitted in tests/simple-co.
+: 1379519.gilgamesh.cheme.cmu.edu
+#+END_EXAMPLE
+
+A subsequent run while queued will show:
+#+BEGIN_EXAMPLE
+: Queued in tests/simple-co.
+#+END_EXAMPLE
+
+When done, it should just work.
+
+#+BEGIN_SRC python
+import sys
+sys.path.insert(0, "/home-research/jkitchin/kitchin-python/jasp")
+
+import os
+#os.system('rm -fr tests/simple-co')
+
+from ase import Atoms, Atom
+from jasp import *
+JASPRC['walltime'] = "00:00:01"
+co = Atoms([Atom('C',[0,   0, 0]),
+            Atom('O',[1.2, 0, 0])],
+            cell=(6., 6., 6.))
+
+with jasp('tests/simple-co', #output dir
+          xc='PBE',  # the exchange-correlation functional
+          nbands=6,  # number of bands
+          encut=350, # planewave cutoff
+          ismear=1,  # Methfessel-Paxton smearing
+          sigma=0.01,# very small smearing factor for a molecule
+          debug=logging.DEBUG,
+          atoms=co) as calc:
+
+    print 'energy = {0} eV'.format(co.get_potential_energy())    
+#+END_SRC
+
+#+RESULTS:
+: energy = -14.69111507 eV
+
+** a loop
+The first time you run this you get:
+
+#+begin_example
+Submitted in tests/co-L-4.
+1379522.gilgamesh.cheme.cmu.edu
+
+Submitted in tests/co-L-5.
+1379523.gilgamesh.cheme.cmu.edu
+
+Submitted in tests/co-L-6.
+1379524.gilgamesh.cheme.cmu.edu
+
+Submitted in tests/co-L-8.
+1379525.gilgamesh.cheme.cmu.edu
+
+Submitted in tests/co-L-10.
+1379526.gilgamesh.cheme.cmu.edu
+
+Not ready
+#+end_example
+
+Note, we don't have a "flag" variable, we have to check that the array is the right size. There isn't a way to append a list either.
+
+#+BEGIN_SRC python
+import sys
+sys.path.insert(0, "/home-research/jkitchin/kitchin-python/jasp")
+
+from jasp import *
+from ase import Atoms,Atom
+import numpy as np
+np.set_printoptions(precision=3, suppress=True)
+
+atoms = Atoms([Atom('C',[0,   0, 0]),
+               Atom('O',[1.2, 0, 0])])
+
+L = [4, 5, 6, 8, 10]
+
+volumes, energies = [], []
+for a in L:
+    atoms.set_cell([a,a,a], scale_atoms=False)
+    atoms.center()
+    with jasp('tests/co-L-{0}'.format(a),
+              encut=350,
+              xc='PBE',
+              atoms=atoms) as calc:
+        
+        energies.append(atoms.get_potential_energy())
+
+if len(energies) != len(L):
+    print('Not ready')
+    import sys; sys.exit()
+
+import matplotlib.pyplot as plt
+plt.plot(L, energies, 'bo-')
+plt.xlabel('Unit cell length ($\AA$)')
+plt.ylabel('Total energy (eV)')
+plt.savefig('co-e-v.png')
+#+END_SRC
+
+#+RESULTS:
+
+[[./co-e-v.png]]
+
+** Example custom handler
+Here we show how to define your own exception handler. The default one is more sophisticated than this. See jasp.exception_handler for the docstring explaining more nuances.
+
+#+BEGIN_SRC python
+import sys
+sys.path.insert(0, "/home-research/jkitchin/kitchin-python/jasp")
+
+from ase import Atoms, Atom
+from jasp import *
+
+co = Atoms([Atom('C',[0,   0, 0]),
+            Atom('O',[1.2, 0, 0])],
+            cell=(6., 6., 6.))
+
+def func(context_manager, etype, evalue, traceback):
+    if isinstance(evalue, VaspSubmitted):
+        print('Submitted in {}.'.format(context_manager.vaspdir))
+        print(str(evalue))
+        return True
+
+    elif isinstance(evalue, VaspQueued):
+        print('Queued in {}.'.format(context_manager.vaspdir))
+        return True
+    # this will re-raise anything not caught
+    else:
+        return False
+
+with jasp('tests/simple-co', #output dir
+          exception_handler=func,  # your function handler here.
+          xc='PBE',  # the exchange-correlation functional
+          nbands=6,  # number of bands
+          encut=1350, # planewave cutoff
+          ismear=1,  # Methfessel-Paxton smearing
+          sigma=0.01,# very small smearing factor for a molecule
+          debug=logging.DEBUG,
+          atoms=co) as calc:
+
+    print(co.get_potential_energy())
+    
+#+END_SRC
+
+#+RESULTS:
+: -14.66859888
+
