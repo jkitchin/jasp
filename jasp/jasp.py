@@ -484,8 +484,32 @@ def exception_handler(context_manager, etype, evalue, traceback):
         return True
 
     elif isinstance(evalue, VaspEmptyCONTCAR):
-        print('Empty CONTCAR found.')
+        print('Empty CONTCAR found. Checking if we should restart.')
         print(evalue)
+
+        # determine if we should restart. The answer is yes, unless
+        # there is a .ojobid file.
+        if os.path.exists('jobid'):
+            with open('jobid') as f:
+                jobid = f.readline().strip()
+                jobid = jobid.replace(".gilgamesh.cheme.cmu.edu",
+                                      "")
+
+            import glob
+            output = glob.glob('*.o{}'.format(jobid))[0]
+
+            with open(output) as f:
+                lines = f.readlines()
+
+            for line in lines:
+                if '=>> PBS: job killed:' in line:
+                    print ''.join(lines)
+                    raise VaspNotFinished('The queue killed this'
+                                          'job for some reason.'
+                                          ' Not automatically restarting.')
+
+        # No evidence the queue killed the job. So we can probably
+        # just restart it.
         for f in ['CONTCAR', 'OUTCAR', 'jobid']:
             if os.path.exists(f):
                 os.unlink(f)
@@ -554,8 +578,6 @@ class jasp:
 
             # now change to new working dir
             os.chdir(self.vaspdir)
-        else:
-            print('Restarting! ', os.getcwd)
 
         # and get the new calculator
 
