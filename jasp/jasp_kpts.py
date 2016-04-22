@@ -24,7 +24,9 @@ def write_kpoints(self, fname='KPOINTS'):
             if n > 0, then a line per kpoint
     line 5: if n <=0 it is the gamma shift
 
-    After the kpts may be tetrahedra, but we do now support that for now.
+    After the kpts may be tetrahedra, but we do now support that for
+    now.
+
     """
 
     p = self.input_params
@@ -100,7 +102,7 @@ Vasp.write_kpoints = write_kpoints
 
 
 def read_kpoints(self, filename='KPOINTS'):
-    '''monkey patch to read all kpoint files'''
+    """Monkey patch to read all variations of KPOINTS files."""
     file = open(filename, 'r')
     lines = file.readlines()
     file.close()
@@ -166,46 +168,44 @@ Vasp.read_kpoints = read_kpoints
 
 
 def get_kpts_from_kppra(atoms, kppra, even=False, slab=False, gamma=False):
-    '''
-    Returns a kpt grid that most uniformly samples each unit cell
+    """Returns a kpt grid that most uniformly samples each unit cell
     vector direction, and provides at least the desired kpoints per
     reciprocal atoms.
 
     even:  constrains the grid to be even
     slab:  if True, sets grid to (n1, n2, 1)
-    gamma: wheter to offset
-    '''
+    gamma: whether to offset
+    """
     nreciprocal_atoms = 1./len(atoms)
     NKPTS = kppra*nreciprocal_atoms
 
     # lengths of unit cell vectors
     u1, u2, u3 = np.sqrt(np.sum(atoms.get_cell()**2, 1))
 
-    '''
-    The algorithm is:
-    k1 * k2 * k3 = NKPTS
 
-    we want the following to be as close to true as possible:
+    # The algorithm is:
+    # k1 * k2 * k3 = NKPTS
 
-    u1*k1 = u2*k2 = u3*k3 = constant
+    # we want the following to be as close to true as possible:
 
-    where u1, u2, u3 are the lengths of the unit cell vectors, and k1,
-    k2, k3 are the number of kpoints in each direction. This means if
-    u2 is twice as long as u1, it should have half as many kpoints.
+    # u1*k1 = u2*k2 = u3*k3 = constant
 
-    That means:
-    (u1*u2*u3)*(k1*k2*k3) = constant**3
+    # where u1, u2, u3 are the lengths of the unit cell vectors, and k1,
+    # k2, k3 are the number of kpoints in each direction. This means if
+    # u2 is twice as long as u1, it should have half as many kpoints.
 
-    or constant = ((u1*u2*u3)*NKPTS)**(1./3.)
+    # That means:
+    # (u1*u2*u3)*(k1*k2*k3) = constant**3
 
-    We will start the algorighm below this value, say at 90% of the
-    constant because there will be rounding, and we will always round up.
+    # or constant = ((u1*u2*u3)*NKPTS)**(1./3.)
 
-    now, k1 = int(np.ceil(constant/u1))
+    # We will start the algorighm below this value, say at 90% of the
+    # constant because there will be rounding, and we will always round up.
 
-    all we have to do is iteratively increase the constant until
-    k1 * k2 * k3 >= NKPTS
-    '''
+    # now, k1 = int(np.ceil(constant/u1))
+
+    # all we have to do is iteratively increase the constant until
+    # k1 * k2 * k3 >= NKPTS
 
     constant = 0.9 * (NKPTS * (u1 * u2 * u3))**(1./3.)
 
