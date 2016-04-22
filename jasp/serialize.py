@@ -60,6 +60,7 @@ Vasp.check_state = check_state
 
 
 def atoms_to_dict(atoms):
+    """Convert atoms to a dictionary."""
     d = {}
     d['cell'] = atoms.get_cell().tolist()
     d['symbols'] = atoms.get_chemical_symbols()
@@ -71,6 +72,7 @@ def atoms_to_dict(atoms):
 
 
 def calc_to_dict(calc, **kwargs):
+    """Convert calc to a dictionary."""
     d = {'doc': '''JSON representation of a VASP calculation.
 
 energy is in eV
@@ -197,10 +199,11 @@ Vasp.todict = calc_to_dict
 
 
 def add_to_db(self, dbfile, tags=()):
-    '''add calculation to dbfile with extra tags.
+    """add calculation to an ase.db file with extra tags.
 
     No check for duplicate entries.
-    '''
+
+    """
     atoms = self.get_atoms()
     self.results['energy'] = atoms.get_potential_energy()
     self.results['forces'] = atoms.get_forces(apply_constraint=False)
@@ -213,34 +216,37 @@ Vasp.add_to_db = add_to_db
 
 
 def calc_to_json(self, **kwargs):
-    '''Return json string representing calculator.
+    """Return json string representing calculator.
 
     Available as a calculator property.
 
     >>> print calc.json
-    '''
+
+    """
     d = calc_to_dict(self, **kwargs)
     return json.dumps(d)
 Vasp.json = property(calc_to_json)
 
 
 def calc_to_pretty_json(self, **kwargs):
-    '''return pretty-printed json string representing calculator.
+    """Return pretty-printed json string representing calculator.
 
     Available as a calculator property.
     >>> print calc.pretty_json
-    '''
+
+    """
     d = calc_to_dict(self, **kwargs)
     return json.dumps(d, sort_keys=True, indent=4)
 Vasp.pretty_json = property(calc_to_pretty_json)
 
 
 def json_to_calc(jsonstring):
-    '''Convert a json string to a calculator.
+    """Convert a json string to a calculator.
 
     The string must come from the calc_to_json or calc_to_pretty_json
     function.
-    '''
+
+    """
 
     d = json.loads(jsonstring)
 
@@ -260,9 +266,11 @@ def json_to_calc(jsonstring):
 
 
 def calc_to_xml(self):
-    '''Convert a calc object to xml.
+    """Convert a calc object to xml.
 
-    Requires pyxser.'''
+    Requires pyxser.
+
+    """
 
     class vasp(object):
         def __init__(self, d):
@@ -274,12 +282,13 @@ Vasp.xml = property(calc_to_xml)
 
 
 def vasp_repr(self):
-    '''Convert a calculator to python code.
+    """Convert a calculator to python code.
 
     >>> print repr(calc)
 
     Missing functionality: constraints, magnetic moments
-    '''
+
+    """
     from Cheetah.Template import Template
 
     try:
@@ -370,13 +379,13 @@ Vasp.python = property(vasp_repr)
 
 
 def calc_to_org(self, level=1):
-    '''Return an org representation of a calculator at headline LEVEL.
+    """Return an org representation of a calculator at headline LEVEL.
 
     The calculation data is put into machine (org) readable tables and
     file tags. This probably only makes sense in Emacs, where org-mode
     can automaically align the tables, and there is a good framework for
     reading this data.
-    '''
+    """
     from Cheetah.Template import Template
 
     calc = self
@@ -395,7 +404,8 @@ def calc_to_org(self, level=1):
                         constraints[i] = ["F", "F", "F"]
             if isinstance(constraint, FixScaled):
                 d = {True: "F", False: "T"}
-                constraints[constraint.a] = [d[x] for x in constraint.mask.tolist()]
+                constraints[constraint.a] = [d[x] for x in
+                                             constraint.mask.tolist()]
     else:
         constraints = [['T', 'T', 'T'] for atom in atoms]
 
@@ -480,9 +490,3 @@ $headline $label
     return Template(template, searchList=[locals()]).respond()
 
 Vasp.org = calc_to_org
-
-if __name__ == '__main__':
-    from jasp import *
-
-    with jasp('tests/molecules/simple-co') as calc:
-        print(calc.org(3))
