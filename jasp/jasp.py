@@ -496,17 +496,19 @@ def exception_handler(context_manager, etype, evalue, traceback):
                                       "")
 
             import glob
-            output = glob.glob('*.o{}'.format(jobid))[0]
+            output = glob.glob('*.o{}'.format(jobid))
 
-            with open(output) as f:
-                lines = f.readlines()
+            if len(output) == 1:
+                os.unlink('jobid')
+                with open(output[0]) as f:
+                    lines = f.readlines()
 
-            for line in lines:
-                if '=>> PBS: job killed:' in line:
-                    print ''.join(lines)
-                    raise VaspNotFinished('The queue killed this'
-                                          'job for some reason.'
-                                          ' Not automatically restarting.')
+                    for line in lines:
+                        if '=>> PBS: job killed:' in line:
+                            print ''.join(lines)
+                        raise VaspNotFinished('The queue killed this'
+                                              'job for some reason.'
+                                              ' Not automatically restarting.')
 
         # No evidence the queue killed the job. So we can probably
         # just restart it.
