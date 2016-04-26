@@ -150,3 +150,43 @@ with jasp('tests/simple-co', #output dir
 #+RESULTS:
 : -14.66859888
 
+
+
+* Tests from Jake
+
+#+BEGIN_SRC python
+import sys
+sys.path.insert(0, "/home-research/jkitchin/kitchin-python/jasp")
+
+from jasp import *
+from ase import Atoms, Atom
+
+atoms = Atoms([Atom('C', [0,   0, 0]),
+               Atom('O', [1.2, 0, 0])])
+
+atoms.set_cell([4, 4, 4], scale_atoms=False)
+atoms.center()
+
+ready = False
+with jasp('molecules/co-L-4',
+	  encut=350,
+	  xc='PBE',
+	  atoms=atoms) as calc:
+    
+    atoms = calc.get_atoms()
+    nrg = atoms.get_potential_energy()
+    ready = True
+
+if ready:
+    # Clear the CONTCAR to simulate incomplete job
+    #open('molecules/co-L-4/CONTCAR', 'w').close()
+
+    with jasp('molecules/co-L-4') as calc:
+	atoms = calc.get_atoms()
+        print(atoms)
+#+END_SRC
+
+#+RESULTS:
+: Atoms(symbols='CO', positions=..., tags=..., cell=[4.0, 4.0, 4.0],
+:       pbc=[True, True, True], calculator=Vasp(...))
+
