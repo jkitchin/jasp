@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''this is a patched :mod:`ase.calculators.vasp.Vasp` calculator
+"""This is a patched :mod:`ase.calculators.vasp.Vasp` calculator
 
 with the following features:
 
@@ -7,7 +7,7 @@ with the following features:
 2. calculations are run through the queue, not at the command line.
 3. hook functions are enabled for pre and post processing
 4. atoms is now a keyword
-'''
+"""
 
 import os
 import sys
@@ -516,10 +516,9 @@ def exception_handler(context_manager, etype, evalue, traceback):
                 print('Deleted {}'.format(f))
 
         # try again.
-        # print('Getting ready to reenter.')
+        print('Getting ready to reenter.')
         context_manager.restart = True
-        context_manager.__enter__()
-        return True
+        return context_manager.__enter__()
 
     elif isinstance(evalue, VaspNotFinished):
         print('Vasp does not seem to have finished.')
@@ -582,16 +581,26 @@ class jasp:
         # and get the new calculator
 
         try:
+            # print('Reading calc')
             calc = Jasp(**self.kwargs)
             calc.vaspdir = self.vaspdir   # vasp directory
             calc.cwd = self.cwd   # directory we came from
             self.calc = calc
-            return calc
+            return self.calc
         except:
-            if not self.exception_handler(self,
-                                          *sys.exc_info()):
-                # Not handled, so reraise.
+            # Getting here usually means an empty contcar file.
+            # This is a tricky point. We pass the exception out to the
+            # handler, and return what it returns. Usually this is
+            # True/False, but in one case it is a
+            # calculator. __enter__ should return the
+            # calculator. Otherwise, many things do not work.
+            res = self.exception_handler(self,
+                                         *sys.exc_info())
+            if not res:
+                # Not handled, so reraise. then it gets handled
                 raise
+            else:
+                return res
 
     def __exit__(self, etype, evalue, traceback):
         """On exit, handle exceptions, and change back to the original
