@@ -1417,3 +1417,40 @@ def bader(self, cmd=None, ref=False, verbose=False, overwrite=False):
         print('Bader completed for {0}'.format(self.vaspdir))
 
 Vasp.bader = bader
+
+
+def get_property(self, name, atoms=None, allow_calculation=True):
+    """A function meant to mimic the get_property() function
+    already implemented for non-VASP calculators in ASE.
+
+    This function is required for proper usage of the ASE database
+    the way it is currently written.
+
+    """
+
+    if atoms is None:
+        atoms = self.get_atoms()
+
+    if name == 'energy':
+        return atoms.get_potential_energy()
+
+    elif name == 'forces':
+        return atoms.get_forces()
+
+    elif name == 'stress':
+        return atoms.get_stress()
+
+    elif name == 'dipole':
+        return atoms.get_dipole_moment()
+
+    elif name == 'magmom' and hasattr(self, 'magnetic_moment'):
+        return atoms.get_magnetic_moment()
+
+    elif name == 'magmoms':
+        return atoms.get_magnetic_moments()
+
+    # Does not currently collect the charges if available.
+    else:
+        raise NotImplementedError
+
+Vasp.get_property = get_property
