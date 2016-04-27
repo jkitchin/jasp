@@ -1454,3 +1454,20 @@ def get_property(self, name, atoms=None, allow_calculation=True):
         raise NotImplementedError
 
 Vasp.get_property = get_property
+
+
+def is_neb(self):
+    """There is limited support for NEB calculations in JASP.
+
+    This function parses the OUTCAR for NEB dependent phrase:
+    ' CHAIN: Running the NEB\n' and returns True if it is found.
+
+    """
+
+    if os.path.exists('OUTCAR'):
+        with open('OUTCAR', 'r') as f:
+            lines = f.readlines()
+            if ' CHAIN: Running the NEB\n' in lines:
+                return True
+
+Vasp.is_neb = is_neb

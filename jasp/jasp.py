@@ -408,9 +408,10 @@ def Jasp(debug=None,
     calc.kwargs = kwargs
     calc.set(**kwargs)
 
-    # create a METADATA file if it does not exist and we are not an NEB.
+    # create a METADATA file if it does not exist and not a NEB.
     if ((not os.path.exists('METADATA'))
-         and calc.int_params.get('images', None) is None):
+        and calc.int_params.get('images', None) is None
+        and (not calc.is_neb())):
         calc.create_metadata()
 
 # ** Check if beef is used
