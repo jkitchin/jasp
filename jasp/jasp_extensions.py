@@ -1057,17 +1057,23 @@ def get_required_memory(self):
             for f in files:
                 os.unlink(f)
 
-    # Each node will require the memory read from the OUTCAR
+    # One node will require the memory read from the OUTCAR
     nodes = JASPRC['queue.nodes']
     ppn = JASPRC['queue.ppn']
 
     # Return an integer
     import math
-    total_memory = int(math.ceil(nodes * ppn * memory))
+    # From experience, there is a loss of about 10% efficiency in
+    # memory per node used.
+    ratio = 1.0 / float((ppn + nodes))
+    eff_factor = 1 + (0.10 / float(ratio))
+
+    # Rounded up to the nearest GB
+    total_memory = int(math.ceil(eff_factor * float(memory)))
 
     JASPRC['queue.mem'] = '{0}GB'.format(total_memory)
 
-    # return the memory as read from the OUTCAR
+    # Return the memory as read from the OUTCAR
     return memory
 
 Vasp.get_required_memory = get_required_memory
