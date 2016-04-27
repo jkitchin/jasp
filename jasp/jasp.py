@@ -474,14 +474,15 @@ def exception_handler(context_manager, etype, evalue, traceback):
     False if not.
 
     """
+    cwd = context_manager.vaspdir
 
     if isinstance(evalue, VaspSubmitted):
-        print('Submitted in {}.'.format(context_manager.vaspdir))
+        print('Submitted in {}.'.format(cwd))
         print(str(evalue))
         return True
 
     elif isinstance(evalue, VaspQueued):
-        print('Queued in {}.'.format(context_manager.vaspdir))
+        print('Queued in {}.'.format(cwd))
         return True
 
     elif isinstance(evalue, VaspEmptyCONTCAR):
@@ -496,20 +497,23 @@ def exception_handler(context_manager, etype, evalue, traceback):
                 jobid = jobid.replace(".gilgamesh.cheme.cmu.edu",
                                       "")
 
-            import glob
-            output = glob.glob('*.o{}'.format(jobid))
+            from glob import glob
+            # glob does not identify hidden files. For some reason
+            # many stdout files are written as the extension only.
+            # This should be fixed so the second glob can be removed.
+            output = glob('*.o{}'.format(jobid)) + glob('.o{}'.format(jobid))
 
-            if len(output) == 1:
-                os.unlink('jobid')
+            if output:
                 with open(output[0]) as f:
                     lines = f.readlines()
 
-                    for line in lines:
-                        if '=>> PBS: job killed:' in line:
-                            print ''.join(lines)
-                        raise VaspNotFinished('The queue killed this'
-                                              'job for some reason.'
-                                              ' Not automatically restarting.')
+                for line in lines:
+                    if '=>> PBS: job killed:' in line:
+                        print(''.join(lines))
+                        raise VaspNotFinished('The queue killed this '
+                                              'job for some reason. '
+                                              'Not automatically restarting in'
+                                              '\n{}'.format(cwd))
 
         # No evidence the queue killed the job. So we can probably
         # just restart it.
@@ -519,18 +523,18 @@ def exception_handler(context_manager, etype, evalue, traceback):
                 print('Deleted {}'.format(f))
 
         # try again.
-        print('Getting ready to reenter.')
+        print('Getting ready to reenter {}'.format(cwd))
         context_manager.restart = True
         return context_manager.__enter__()
 
     elif isinstance(evalue, VaspNotFinished):
-        print('Vasp does not seem to have finished.')
+        print('Vasp does not seem to have finished in {}'.format(cwd))
         print(evalue)
         return False
 
     # getting here means an uncaught exception. It should be raised.
     # We get that by returning False to the context_manager
-    print('Failed to catch: ', evalue)
+    print('Failed to catch: {} in\n{}'.format(evalue, cwd))
     return False
 
 
@@ -571,7 +575,7 @@ class jasp:
         and change into the directory. Then return the calculator.
 
         """
-        #print('enter: ', os.getcwd())
+        # print('enter: ', os.getcwd())
         # print('restart: ', self.restart)
         if not self.restart:
             # make directory if it doesn't already exist
@@ -611,12 +615,12 @@ class jasp:
 
         """
         ret = True  # unless we get an exception, which could change this.
-        if etype is not None:            
+        if etype is not None:
             try:
                 ret = self.exception_handler(self,
                                              etype, evalue, traceback)
             except:
-                ret = False                
+                ret = False
 
         os.chdir(self.cwd)
         # Getting here means no exceptions raised.
