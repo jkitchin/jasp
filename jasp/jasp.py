@@ -235,7 +235,7 @@ def Jasp(debug=None,
         if atoms is not None:
             import ase.io
             try:
-                atoms0 = ase.io.read('POSCAR')
+                atoms0 = ase.io.read('POSCAR')[calc.resort]
                 compatible_atoms_p(atoms0, atoms)
                 atoms.calc = calc
             except IOError:
@@ -244,7 +244,7 @@ def Jasp(debug=None,
         else:
             import ase.io
             try:
-                atoms = ase.io.read('POSCAR')
+                atoms = ase.io.read('POSCAR')[calc.resort]
                 atoms.set_calculator(calc)
             except IOError:
                 # no POSCAR found
