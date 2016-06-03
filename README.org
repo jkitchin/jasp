@@ -1,5 +1,11 @@
 #+TITLE: =jasp=
 
+
+Note: =jasp= is now considered deprecated. It still works, but we do not use it anymore. Instead, we are using a new, rewritten vasp.py calculator at http://github.com/jkitchin/vasp
+
+
+* About jasp
+
 This is a python module for running VASP our (the Kitchin group) way. See http://kitchingroup.cheme.cmu.edu/dft-book for comprehensive examples of using =jasp=.
 
 Briefly, =jasp= simplifies creation of calculation scripts, automates job submission and management to a queue system, and provides more functionality than the ase.calculators.vasp module. Python 2.7 is required, and =jasp= uses as many new features of python as possible.
