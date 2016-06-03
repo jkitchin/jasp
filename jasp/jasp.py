@@ -393,6 +393,12 @@ def Jasp(debug=None,
     if os.path.exists('METADATA'):
         calc.read_metadata()
 
+    # the new ase xc handling seems to lose the xc input arg, which
+    # causes jasp to think recalculations are needed since they don't
+    # match. We restore it here for jasp.
+    if 'xc' in kwargs:
+        calc.input_params['xc'] = kwargs['xc']
+
     # save initial params to check for changes later
     log.debug('saving initial parameters')
     log.debug('list_params = {}', calc.list_params)
